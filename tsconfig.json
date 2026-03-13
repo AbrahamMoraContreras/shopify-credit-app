@@ -1,0 +1,49 @@
+{
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".react-router/types/**/*",
+    "env.d.ts",
+    ".next/types/**/*.ts"
+  ],
+  "compilerOptions": {
+    "lib": [
+      "DOM",
+      "DOM.Iterable",
+      "ES2022"
+    ],
+    "strict": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "allowSyntheticDefaultImports": true,
+    "removeComments": false,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "allowJs": true,
+    "resolveJsonModule": true,
+    "jsx": "preserve",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "target": "ES2022",
+    "baseUrl": ".",
+    "types": [
+      "@react-router/node",
+      "vite/client",
+      "@shopify/polaris-types"
+    ],
+    "rootDirs": [
+      ".",
+      "./.react-router/types"
+    ],
+    "incremental": true,
+    "esModuleInterop": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
+  },
+  "exclude": [
+    "node_modules"
+  ]
+}
