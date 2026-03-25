@@ -79,3 +79,27 @@ class Credit(Base):
             return None
         last_p = sorted(approved, key=lambda p: p.payment_date, reverse=True)[0]
         return last_p.notes
+
+    @property
+    def last_payment_date(self):
+        approved = [p for p in self.payments if getattr(p.status, "value", p.status) == "APROBADO"]
+        if not approved:
+            return None
+        last_p = sorted(approved, key=lambda p: p.payment_date, reverse=True)[0]
+        return last_p.payment_date
+
+    @property
+    def last_payment_method(self):
+        approved = [p for p in self.payments if getattr(p.status, "value", p.status) == "APROBADO"]
+        if not approved:
+            return None
+        last_p = sorted(approved, key=lambda p: p.payment_date, reverse=True)[0]
+        return last_p.payment_method
+
+    @property
+    def last_payment_reference(self):
+        approved = [p for p in self.payments if getattr(p.status, "value", p.status) == "APROBADO"]
+        if not approved:
+            return None
+        last_p = sorted(approved, key=lambda p: p.payment_date, reverse=True)[0]
+        return last_p.reference_number

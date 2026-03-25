@@ -2,7 +2,7 @@
 
 client_id = "d18e2cf79009e12e8b74d3d7ea5a6aba"
 name = "credit-app-partner"
-application_url = "https://example.com"
+application_url = "https://adaptation-spokesman-frequent-obtain.trycloudflare.com"
 embedded = true
 
 [build]
@@ -18,6 +18,6 @@ optional_scopes = [ ]
 use_legacy_install_flow = false
 
 [auth]
-redirect_urls = [ "https://example.com/api/auth" ]
+redirect_urls = [ "https://example.com/auth/callback" ]
 
 # En shopify.app.toml o shopify.app.dev-sin-partner.toml

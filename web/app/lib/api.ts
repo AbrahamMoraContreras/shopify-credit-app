@@ -2,24 +2,24 @@
 const API_BASE_URL = process.env.API_BASE_URL || "https://your-api-url.com"
 
 export interface ApiConfig {
-  merchantId: string
+  accessToken: string
   baseUrl?: string
 }
 
 export class ApiClient {
   private baseUrl: string
-  private merchantId: string
+  private accessToken: string
 
   constructor(config: ApiConfig) {
     this.baseUrl = config.baseUrl || API_BASE_URL
-    this.merchantId = config.merchantId
+    this.accessToken = config.accessToken
   }
 
   private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`
     const headers = {
       "Content-Type": "application/json",
-      "X-Merchant-ID": this.merchantId,
+      "Authorization": `Bearer ${this.accessToken}`,
       ...options?.headers,
     }
 

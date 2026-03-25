@@ -10,6 +10,9 @@ export interface Credit {
   balance: number;
   last_payment_amount?: number | null;
   last_payment_notes?: string | null;
+  last_payment_date?: string | null;
+  last_payment_method?: string | null;
+  last_payment_reference?: string | null;
   installments_count: number;
   status: string;
   created_at: string;
@@ -20,7 +23,17 @@ export interface Credit {
     phone: string | null;
     favorable_balance: number;
   };
+  installments?: Installment[];
   items?: CreditItem[];
+}
+
+export interface Installment {
+  id: number;
+  credit_id: number;
+  number: number;
+  amount: number;
+  due_date: string;
+  status: string;
 }
 
 export interface CreditItem {
@@ -73,4 +86,4 @@ export interface PaymentResponse {
 
 export type PaymentStatus = "REGISTRADO" | "APROBADO" | "RECHAZADO" | "EN_REVISION" | "CANCELADO";
 
-export type PaymentMethod = "BANK" | "PAYPAL" | "PAGO_MOVIL";
+export type PaymentMethod = "BANK" | "PAYPAL" | "PAGO_MOVIL" | "CASH" | "EFECTIVO";

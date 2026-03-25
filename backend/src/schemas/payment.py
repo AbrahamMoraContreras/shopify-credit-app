@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import Optional, List, Any
 from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
@@ -12,12 +12,28 @@ class PaymentMethod(str, Enum):
     PAGO_MOVIL = "PAGO_MOVIL"
 
 class PaymentCreditItem(BaseModel):
-    product_id: str
-    product_code: Optional[str]
+    product_id: Optional[str] = None
+    product_code: Optional[str] = None
     product_name: str
     quantity: int
     unit_price: float
-    subtotal: float
+    total_price: float
+
+    model_config = {"from_attributes": True}
+
+class CustomerSummary(BaseModel):
+    full_name: str
+    email: Optional[str] = None
+
+    model_config = {"from_attributes": True}
+
+class CreditSummary(BaseModel):
+    id: int
+    total_amount: Decimal
+    balance: Decimal
+    concept: str
+    customer: Optional[CustomerSummary] = None
+    items: List[PaymentCreditItem] = []
 
     model_config = {"from_attributes": True}
 
@@ -95,5 +111,21 @@ class PaymentResponse(BaseModel):
 
     created_at: datetime
     updated_at: datetime
+
+    model_config = {"from_attributes": True}
+class PaymentProofResponse(BaseModel):
+    id: int
+    status: str
+    submitted_at: datetime
+    reference_number: str
+    bank_name: str
+    amount: float
+    notes: Optional[str] = None
+
+    model_config = {"from_attributes": True}
+
+class PaymentDetailResponse(PaymentResponse):
+    credit: CreditSummary
+    proof: Optional[PaymentProofResponse] = None
 
     model_config = {"from_attributes": True}

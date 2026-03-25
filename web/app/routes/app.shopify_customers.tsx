@@ -1,10 +1,9 @@
-'use client'
-
 import type { LoaderFunctionArgs } from "react-router";
-import { useLoaderData, useNavigate } from "react-router";
-import { useOutletContext } from "react-router";
+import { useLoaderData, useSubmit, useNavigation } from "react-router";
+import * as React from "react";
 import { useState } from "react";
 import { authenticate } from "../shopify.server";
+import { getAccessTokenForShop } from "../lib/auth.server";
 
 // Shopify customer node shape from GraphQL
 interface ShopifyCustomer {
@@ -49,16 +48,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   // 2. Fetch backend customers to get favorable balances
   let favorableBalanceMap: Record<number, number> = {};
   let reputationMap: Record<number, { score: number | null; label: string | null }> = {};
+  const BACKEND_URL = "http://localhost:8000";
+
   try {
-    const merchantRes = await fetch("http://localhost:8000/api/merchants/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ shop_domain: session.shop }),
-    });
-    if (merchantRes.ok) {
-      const merchant = await merchantRes.json();
-      const backendRes = await fetch("http://localhost:8000/api/customers?limit=200", {
-        headers: { "X-Merchant-ID": merchant.id },
+    let accessToken = await getAccessTokenForShop(session.shop);
+
+    if (accessToken) {
+      const backendRes = await fetch(`${BACKEND_URL}/api/customers?limit=200`, {
+        headers: { "Authorization": `Bearer ${accessToken}` },
       });
       if (backendRes.ok) {
         const backendCustomers: BackendCustomer[] = await backendRes.json();
@@ -80,26 +77,41 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   return { customers, favorableBalanceMap, reputationMap };
 };
 
+export const action = async ({ request }: LoaderFunctionArgs) => {
+  const { session } = await authenticate.admin(request);
+  const accessToken = await getAccessTokenForShop(session.shop);
+  const formData = await request.formData();
+  const shopifyNumericId = formData.get("shopifyNumericId");
+  const intent = formData.get("intent");
+
+  if (intent === "reset-balance" && shopifyNumericId) {
+    try {
+      const res = await fetch(`http://localhost:8000/api/customers/shopify/${shopifyNumericId}/reset-balance`, {
+        method: "PATCH",
+        headers: { "Authorization": `Bearer ${accessToken}` },
+      });
+      if (!res.ok) return { error: "Error al resetear balance" };
+      return { success: true };
+    } catch { return { error: "Error de red" }; }
+  }
+  return null;
+};
+
+export const headers = () => ({
+  "Cache-Control": "no-cache, no-store, must-revalidate",
+});
+
 export default function ShopifyCustomers() {
   const { customers, favorableBalanceMap, reputationMap } = useLoaderData<typeof loader>();
-  const { merchantId } = useOutletContext<{ merchantId: string }>();
-  const navigate = useNavigate();
+  const submit = useSubmit();
+  const navigation = useNavigation();
   const [resetting, setResetting] = useState<Record<number, boolean>>({});
 
-  const handleResetBalance = async (shopifyNumericId: number) => {
+  const handleResetBalance = (shopifyNumericId: number) => {
     if (!window.confirm("¿Estás seguro de que deseas vaciar el saldo a favor de este cliente? Esta acción no se puede deshacer.")) {
         return;
     }
-    setResetting(s => ({ ...s, [shopifyNumericId]: true }));
-    try {
-      await fetch(`http://localhost:8000/api/customers/shopify/${shopifyNumericId}/reset-balance`, {
-        method: "PATCH",
-        headers: { "X-Merchant-ID": String(merchantId) },
-      });
-      navigate(".", { replace: true });
-    } finally {
-      setResetting(s => ({ ...s, [shopifyNumericId]: false }));
-    }
+    submit({ intent: "reset-balance", shopifyNumericId: String(shopifyNumericId) }, { method: "post" });
   };
 
   const reputationBadge = (label: string | null) => {
@@ -112,7 +124,8 @@ export default function ShopifyCustomers() {
     };
     const c = config[label ?? "sin_historial"] ?? config["sin_historial"];
     if (!c.tone) return <s-text color="subdued">{c.emoji}</s-text>;
-    return <s-badge tone={c.tone}>{c.emoji} {c.text}</s-badge>;
+    const badgeTone = (c.tone as any) || "info";
+    return <s-badge tone={badgeTone}>{c.emoji} {c.text}</s-badge>;
   };
 
   const getShopifyNumericId = (gid: string) => {
@@ -175,14 +188,14 @@ export default function ShopifyCustomers() {
                       <s-table-cell>{customer.numberOfOrders}</s-table-cell>
                       <s-table-cell>
                         {hasSaldo ? (
-                          <s-stack gap="small-100" direction="horizontal" alignItems="center">
+                          <s-stack gap="small-100" direction="inline" alignItems="center">
                             <s-badge tone="success">${saldo.toFixed(2)}</s-badge>
                             <s-button
                               id={`reset-balance-${numericId}`}
-                              size="slim"
                               tone="critical"
                               onClick={() => handleResetBalance(numericId)}
                               disabled={resetting[numericId]}
+                              accessibilityLabel="Vaciar saldo a favor del cliente"
                             >
                               Vaciar
                             </s-button>

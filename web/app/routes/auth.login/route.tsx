@@ -40,7 +40,7 @@ export default function Auth() {
             autocomplete="on"
             error={errors.shop}
           ></s-text-field>
-          <s-button type="submit">Log in</s-button>
+          <s-button type="submit" accessibilityLabel="Iniciar sesión con tu tienda">Log in</s-button>
         </s-section>
         </Form>
       </s-page>

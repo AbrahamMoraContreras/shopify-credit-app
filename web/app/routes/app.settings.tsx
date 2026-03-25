@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useOutletContext } from 'react-router';
+import { type LoaderFunctionArgs, type ActionFunctionArgs } from "react-router";
+import { useLoaderData, useSubmit, useNavigation, useActionData } from "react-router";
+import { getAccessTokenForShop } from "../lib/auth.server";
+import { authenticate } from "../shopify.server";
 
 const VENEZUELAN_BANKS = [
   "(0001) BANCO CENTRAL DE VENEZUELA",
@@ -46,42 +49,73 @@ const DEFAULT_TRANSFERENCIA = {
   ci: ""
 };
 
+export const loader = async ({ request }: LoaderFunctionArgs) => {
+  const { session } = await authenticate.admin(request);
+  const accessToken = await getAccessTokenForShop(session.shop);
+  if (!accessToken) throw new Error("Token no disponible");
+
+  const res = await fetch(`http://localhost:8000/api/merchants/settings`, {
+    headers: { "Authorization": `Bearer ${accessToken}` }
+  });
+  if (!res.ok) throw new Error("Error cargando settings");
+  const data = await res.json();
+  return { settings: data };
+};
+
+export const action = async ({ request }: ActionFunctionArgs) => {
+  const { session } = await authenticate.admin(request);
+  const accessToken = await getAccessTokenForShop(session.shop);
+  const formData = await request.formData();
+  
+  const pagoMovil = JSON.parse(formData.get("pagoMovil") as string);
+  const transferencia = JSON.parse(formData.get("transferencia") as string);
+
+  const res = await fetch(`http://localhost:8000/api/merchants/settings`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${accessToken}`
+    },
+    body: JSON.stringify({ pago_movil: pagoMovil, transferencia })
+  });
+  
+  if (!res.ok) return { success: false };
+  return { success: true };
+};
+
+export const headers = () => ({
+  "Cache-Control": "no-cache, no-store, must-revalidate",
+});
+
 export default function Settings() {
-  const { merchantId } = useOutletContext<{ merchantId: string }>();
-  const [pagoMovil, setPagoMovil] = useState(DEFAULT_PAGO_MOVIL);
-  const [transferencia, setTransferencia] = useState(DEFAULT_TRANSFERENCIA);
+  const { settings } = useLoaderData<typeof loader>();
+  const submit = useSubmit();
+  const navigation = useNavigation();
+  const actionData = useActionData<{ success?: boolean }>();
+
+  const [pagoMovil, setPagoMovil] = useState(settings?.pago_movil ? { ...DEFAULT_PAGO_MOVIL, ...settings.pago_movil } : DEFAULT_PAGO_MOVIL);
+  const [transferencia, setTransferencia] = useState(settings?.transferencia ? { ...DEFAULT_TRANSFERENCIA, ...settings.transferencia } : DEFAULT_TRANSFERENCIA);
   const [paypal, setPaypal] = useState({ email: "", titular: "" });
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
   useEffect(() => {
-    if (!merchantId) return;
-    fetch(`http://localhost:8000/api/merchants/settings`, {
-      headers: { "X-Merchant-ID": merchantId }
-    })
-      .then(r => r.json())
-      .then(data => {
-        if (data.pago_movil) setPagoMovil({ ...DEFAULT_PAGO_MOVIL, ...data.pago_movil });
-        if (data.transferencia) setTransferencia({ ...DEFAULT_TRANSFERENCIA, ...data.transferencia });
-      })
-      .catch(console.error);
-  }, [merchantId]);
-
-  const handleSave = async () => {
-    setSaveStatus("saving");
-    try {
-      const res = await fetch(`http://localhost:8000/api/merchants/settings`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Merchant-ID": merchantId
-        },
-        body: JSON.stringify({ pago_movil: pagoMovil, transferencia })
-      });
-      setSaveStatus(res.ok ? "saved" : "error");
-    } catch {
-      setSaveStatus("error");
+    if (navigation.state === "submitting") {
+      setSaveStatus("saving");
+    } else if (navigation.state === "idle" && actionData !== undefined) {
+      setSaveStatus(actionData.success ? "saved" : "error");
+      const timer = setTimeout(() => setSaveStatus("idle"), 3000);
+      return () => clearTimeout(timer);
     }
-    setTimeout(() => setSaveStatus("idle"), 3000);
+  }, [navigation.state, actionData]);
+
+  const handleSave = () => {
+    submit(
+      { 
+        pagoMovil: JSON.stringify(pagoMovil), 
+        transferencia: JSON.stringify(transferencia) 
+      }, 
+      { method: "post" }
+    );
   };
 
   return(
@@ -93,7 +127,7 @@ export default function Settings() {
             padding="base"
           >
             <s-grid-item>
-              <s-box border="base" borderRadius="base" padding="base" background="surface">
+              <s-box border="base" borderRadius="base" padding="base">
                 <s-stack gap="base">
                   <s-heading>Pago Móvil</s-heading>
                   <s-divider />
@@ -111,7 +145,7 @@ export default function Settings() {
                     value={pagoMovil.telefono}
                     onChange={(e: any) => setPagoMovil({...pagoMovil, telefono: e.target.value})}
                   />
-                  <s-grid gridTemplateColumns="1fr 3fr" gap="tight" alignItems="end">
+                  <s-grid gridTemplateColumns="1fr 3fr" gap="small" alignItems="end">
                     <s-select
                       label="Tipo"
                       value={pagoMovil.tipoCi}
@@ -132,7 +166,7 @@ export default function Settings() {
             </s-grid-item>
 
             <s-grid-item>
-              <s-box border="base" borderRadius="base" padding="base" background="surface">
+              <s-box border="base" borderRadius="base" padding="base">
                 <s-stack gap="base">
                   <s-heading>Transferencia Bancaria</s-heading>
                   <s-divider />
@@ -150,7 +184,7 @@ export default function Settings() {
                     value={transferencia.numero}
                     onChange={(e: any) => setTransferencia({...transferencia, numero: e.target.value})}
                   />
-                  <s-grid gridTemplateColumns="1fr 3fr" gap="tight" alignItems="end">
+                  <s-grid gridTemplateColumns="1fr 3fr" gap="small" alignItems="end">
                     <s-select
                       label="Tipo"
                       value={transferencia.tipoCi}
@@ -171,7 +205,7 @@ export default function Settings() {
             </s-grid-item>
 
             <s-grid-item>
-              <s-box border="base" borderRadius="base" padding="base" background="surface">
+              <s-box border="base" borderRadius="base" padding="base">
                 <s-stack gap="base">
                   <s-heading>PayPal</s-heading>
                   <s-divider />
@@ -196,6 +230,7 @@ export default function Settings() {
               variant="primary" 
               onClick={handleSave}
               disabled={saveStatus === "saving" || undefined}
+              accessibilityLabel="Guardar cambios de configuración"
             >
               {saveStatus === "saving" ? "Guardando..." : "Guardar Cambios"}
             </s-button>
@@ -300,7 +335,7 @@ export default function Settings() {
                   Restablecer todas las configuraciones por defecti. Esta acción no puede deshacerse.
                 </s-paragraph>
               </s-box>
-              <s-button tone="critical">Restablecer</s-button>
+              <s-button tone="critical" accessibilityLabel="Restablecer configuraciones de la aplicación">Restablecer</s-button>
             </s-grid>
           </s-box>
           <s-box paddingInline="small-100">

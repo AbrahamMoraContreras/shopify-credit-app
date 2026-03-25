@@ -115,7 +115,6 @@ def create_credit(db: Session, merchant_id: str, payload: CreditCreate):
                 product_name=item_data.product_name,
                 quantity=item_data.quantity,
                 unit_price=item_data.unit_price,
-                total_price=item_data.total_price
             ))
         db.commit()
 
@@ -190,6 +189,18 @@ def update_credit(db: Session, credit: Credit, payload: CreditUpdate):
 def delete_credit(db: Session, credit: Credit):
     db.delete(credit)
     db.commit()
+
+def cancel_credit(db: Session, credit: Credit):
+    credit.status = CreditStatus.CANCELADO
+    # Cancel pending or overdue installments to stop them from appearing in expected payments
+    for inst in credit.installments:
+        if inst.status in [InstallmentStatus.PENDIENTE, InstallmentStatus.VENCIDO]:
+            inst.status = InstallmentStatus.CANCELADA
+    
+    _log_history(db, credit.id, "CREDITO_CANCELADO", "El crédito fue cancelado manualmente")
+    db.commit()
+    db.refresh(credit)
+    return credit
 
 
 

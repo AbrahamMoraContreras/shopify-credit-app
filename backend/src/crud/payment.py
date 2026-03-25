@@ -13,6 +13,7 @@ from models.enums import PaymentStatus, CreditStatus, InstallmentStatus
 from models.credit_item import CreditItem
 from models.customer import Customer
 from crud.cte import credit_items_agg_cte
+from models.payment_token import PaymentToken
 
 def update_customer_punctuality(db: Session, customer: Customer):
     # Calcula el promedio de la puntualidad de los pagos aprobados
@@ -92,11 +93,14 @@ def get_payment_by_id(
     payment_id: int,
     merchant_id: UUID
 ) -> Payment | None:
+    from sqlalchemy.orm import selectinload
     return (
         db.query(Payment)
         .options(
             joinedload(Payment.credit)
-            .joinedload(Credit.items)
+            .joinedload(Credit.items),
+            joinedload(Payment.credit).joinedload(Credit.customer),
+            selectinload(Payment.payment_tokens).joinedload(PaymentToken.proof)
         )
         .filter(
             Payment.id == payment_id,
@@ -199,13 +203,15 @@ def create_payment(
 def _apply_payment_distribution(db: Session, payment: Payment, credit: Credit, target_installment_ids: list[int], distribute_excess: bool, customer: Customer):
     """
     Distributes an APROBADO payment's amount across the credit and installments.
+    Also auto-computes punctuality_value for installment-based credits (monthly/biweekly)
+    by comparing payment_date against the earliest covered installment's due_date.
     """
     initial_balance = Decimal(str(credit.balance))
     payment_amount = Decimal(str(payment.amount))
     
     pending_installments = db.query(CreditInstallment).filter(
         CreditInstallment.credit_id == credit.id,
-        CreditInstallment.paid == False
+        CreditInstallment.status != InstallmentStatus.PAGADA
     ).order_by(
         CreditInstallment.number == 0,
         CreditInstallment.due_date.asc().nulls_last()
@@ -257,6 +263,7 @@ def _apply_payment_distribution(db: Session, payment: Payment, credit: Credit, t
     remaining_to_distribute = amount_to_apply_to_credit
 
     # 4. Drain the Remaining Funds into Installments (if any)
+    fully_paid_installments: list[CreditInstallment] = []
     for inst in distribution_queue:
         if remaining_to_distribute <= Decimal("0.00"):
             break
@@ -267,14 +274,30 @@ def _apply_payment_distribution(db: Session, payment: Payment, credit: Credit, t
             # Cuota pagada por completo
             remaining_to_distribute -= inst_debt
             inst.paid_amount = inst.amount
-            inst.paid = True
             inst.status = InstallmentStatus.PAGADA
             inst.paid_at = datetime.utcnow()
+            fully_paid_installments.append(inst)
         else:
             # Pago parcial
             inst.paid_amount += remaining_to_distribute
             remaining_to_distribute = Decimal("0.00")
-            
+
+    # 5. Auto-compute punctuality for installment-based credits (monthly/biweekly).
+    #    Only runs when: at least one installment was fully paid, the credit has installments,
+    #    and punctuality_value was NOT already set manually (e.g., Fiado feedback).
+    if fully_paid_installments and credit.installments_count > 0 and payment.punctuality_value is None:
+        payment_date_only = payment.payment_date.date() if payment.payment_date else datetime.utcnow().date()
+        # Use the earliest due_date among the fully-paid installments as the reference
+        covered_due_dates = [
+            inst.due_date  # already a date object (SQLAlchemy Date column)
+            for inst in fully_paid_installments
+        ]
+        valid_due_dates = [d for d in covered_due_dates if d is not None]
+        if valid_due_dates:
+            earliest_due = min(valid_due_dates)
+            # On-time: paid on or before the due date → 100. Late: paid after → 0.
+            payment.punctuality_value = Decimal("100") if payment_date_only <= earliest_due else Decimal("0")
+
     # Última actualización del status del crédito
     # Even if there were no installments (Fiado), `credit.balance` was already reduced in Step 2 above.
     if credit.balance <= 0:
@@ -318,7 +341,6 @@ def review_payment(
             
         covered_installments = db.query(CreditInstallment).filter(CreditInstallment.id.in_(target_ids)).all()
         for inst in covered_installments:
-            inst.paid = False
             inst.status = InstallmentStatus.PENDIENTE
             inst.paid_amount = Decimal("0.00")
             inst.paid_at = None
@@ -402,6 +424,31 @@ def batch_delete_payments(
     
     db.commit()
     return len(payments)
+
+
+def delete_all_pending_proofs(
+    db: Session,
+    merchant_id: UUID
+):
+    from models.payment_token import PaymentProof, PaymentToken
+    
+    # Get all pending proofs for this merchant
+    proofs_to_delete = (
+        db.query(PaymentProof)
+        .join(PaymentToken, PaymentProof.token_id == PaymentToken.id)
+        .filter(
+            PaymentToken.merchant_id == merchant_id,
+            PaymentProof.status == "PENDIENTE"
+        )
+        .all()
+    )
+    
+    count = len(proofs_to_delete)
+    for p in proofs_to_delete:
+        db.delete(p)
+    
+    db.commit()
+    return count
 
 
 def list_payments(

@@ -2,85 +2,28 @@
 const API_BASE_URL = process.env.API_BASE_URL || ""
 
 export interface ApiConfig {
-  merchantId: string
+  accessToken: string
   baseUrl?: string
-}
-
-export interface Credit {
-  id: string
-  customerName: string
-  totalAmount: number
-  balance: number
-  installmentsCount: number
-  pendingInstallments: number
-  createdAt: string
-  status: "ACTIVE" | "COMPLETED" | "CANCELLED"
-}
-
-export interface CustomerSummary {
-  customerName: string
-  pendingOrders: number
-  pendingDebt: number
-  favorBalance: number
-  totalOrders: number
-}
-
-export interface DashboardData {
-  totalDebt: number
-  customersWithDebt: number
-  customers: CustomerSummary[]
-}
-
-export interface CreditDetail extends Credit {
-  items: CreditItem[]
-  installments: CreditInstallment[]
-  payments: Payment[]
-}
-
-export interface CreditItem {
-  id: string
-  productId: string
-  productName: string
-  quantity: number
-  price: number
-  total: number
-}
-
-export interface CreditInstallment {
-  id: string
-  installmentNumber: number
-  amount: number
-  dueDate: string
-  status: "PENDIENTE" | "PAGADA" | "VENCIDO"
-}
-
-export interface Payment {
-  id: string
-  amount: number
-  paymentDate: string
-  paymentMethod: string
-  referenceNumber: string
-  status: "EN_REVISION" | "APROBADO" | "RECHAZADO"
 }
 
 export class ApiClient {
   private baseUrl: string
-  private merchantId: string
+  private accessToken: string
 
   constructor(config: ApiConfig) {
     this.baseUrl = config.baseUrl || API_BASE_URL
-    this.merchantId = config.merchantId
+    this.accessToken = config.accessToken
   }
 
   private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`
     const headers = {
       "Content-Type": "application/json",
-      "X-Merchant-ID": this.merchantId,
+      "Authorization": `Bearer ${this.accessToken}`,
       ...options?.headers,
     }
 
-    console.log("[v0] API Request:", { url, merchantId: this.merchantId })
+    console.log("[v0] API Request:", { url, accessToken: this.accessToken })
 
     try {
       const response = await fetch(url, {
@@ -103,24 +46,24 @@ export class ApiClient {
     }
   }
 
-  async getDashboard(): Promise<DashboardData> {
-    return this.request<DashboardData>("/api/dashboard")
+  async getDashboard() {
+    return this.request("/api/dashboard")
   }
 
-  async getCredits(params?: { page?: number; limit?: number }): Promise<{ data: Credit[]; total: number }> {
+  async getCredits(params?: { page?: number; limit?: number }) {
     const query = new URLSearchParams(params as any).toString()
     return this.request(`/api/credits${query ? `?${query}` : ""}`)
   }
 
-  async getCreditsByCustomer(customerName: string): Promise<Credit[]> {
+  async getCreditsByCustomer(customerName: string) {
     return this.request(`/api/credits?customerName=${encodeURIComponent(customerName)}`)
   }
 
-  async getCreditById(id: string): Promise<Credit> {
+  async getCreditById(id: string) {
     return this.request(`/api/credits/${id}`)
   }
 
-  async getCreditDetailById(id: string): Promise<CreditDetail> {
+  async getCreditDetailById(id: string) {
     return this.request(`/api/credits/${id}/detail`)
   }
 
@@ -131,6 +74,6 @@ export class ApiClient {
 }
 
 // Helper function to create API client
-export function createApiClient(merchantId = "default-merchant") {
-  return new ApiClient({ merchantId })
+export function createApiClient(accessToken = "default-token") {
+  return new ApiClient({ accessToken })
 }

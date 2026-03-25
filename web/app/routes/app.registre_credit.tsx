@@ -1,12 +1,13 @@
 'use client'
 
 import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
-import { useLoaderData, Form, useActionData, useSubmit, useNavigation, redirect, useOutletContext } from "react-router";
+import { useLoaderData, Form, useActionData, useSubmit, useNavigation, redirect, useOutletContext, useFetcher } from "react-router";
 import { authenticate } from "../shopify.server";
-import { toNumber, calculateInstallmentAmount } from '../../components/utils/app.number';
-import { generateInstallmentSchedule } from '../../components/utils/date';
+import { getAccessTokenForShop } from "../lib/auth.server";
+import { toNumber, calculateInstallmentAmount } from './components/utils/app.number';
+import { generateInstallmentSchedule } from './components/utils/date';
 import { useMemo, useState, useEffect } from 'react';
-import { PAY_METHODS } from '../../components/constants/payMethods';
+import { PAY_METHODS } from './components/constants/payMethods';
 
 interface ShopifyCustomer {
   id: string;
@@ -38,24 +39,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const payload = JSON.parse(formData.get("payload") as string);
 
   try {
-    // Resolve the real merchant ID from the Shopify session
-    const registerRes = await fetch("http://localhost:8000/api/merchants/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ shop_domain: session.shop }),
-    });
+    const accessToken = await getAccessTokenForShop(session.shop);
 
-    if (!registerRes.ok) {
-      return { error: "No se pudo resolver el merchant. Verifique el backend." };
+    if (!accessToken) {
+      return { error: "No se pudo obtener el token de acceso desde el servidor." };
     }
-
-    const merchant = await registerRes.json();
 
     const response = await fetch("http://localhost:8000/api/credits", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-Merchant-ID": merchant.id,
+        "Authorization": `Bearer ${accessToken}`,
       },
       body: JSON.stringify(payload),
     });
@@ -117,7 +111,25 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { admin } = await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
+  const url = new URL(request.url);
+
+  if (url.searchParams.has("customerReputationId")) {
+    const accessToken = await getAccessTokenForShop(session.shop);
+    const searchId = url.searchParams.get("customerReputationId");
+    if (!searchId) return { reputation: null };
+    try {
+      const r = await fetch(`http://localhost:8000/api/customers?shopify_customer_id=${searchId}&limit=1`, {
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+      });
+      if (r.ok) {
+        const data = await r.json();
+        const found = Array.isArray(data) ? data[0] : null;
+        return { reputation: found?.reputation ?? null };
+      }
+    } catch { return { reputation: null }; }
+    return { reputation: null };
+  }
 
   const response = await admin.graphql(`
     {
@@ -158,16 +170,34 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   return { customers, products };
 };
 
+export const headers = () => ({
+  "Cache-Control": "no-cache, no-store, must-revalidate",
+});
+
 export default function RegistreCredit() {
-  const { customers, products } = useLoaderData<typeof loader>();
+  const { customers = [], products = [] } = useLoaderData<typeof loader>();
   const actionData = useActionData<{ error?: string }>();
   const submit = useSubmit();
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting" || navigation.state === "loading";
-  const { merchantId } = (useOutletContext as any)() as { merchantId: string };
+  const { accessToken } = (useOutletContext as any)() as { accessToken: string };
 
   const [clientError, setClientError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [customerReputation, setCustomerReputation] = useState<string | null>(null);
+
+  // Sync actionData error into local state so it can be reset on navigation
+  useEffect(() => {
+    if (actionData?.error) setActionError(actionData.error);
+  }, [actionData]);
+
+  // Clear errors when navigation starts (user switches tabs / leaves page)
+  useEffect(() => {
+    if (navigation.state === "loading") {
+      setActionError(null);
+      setClientError(null);
+    }
+  }, [navigation.state]);
 
   const initialForm = {
     customer: '',
@@ -176,13 +206,7 @@ export default function RegistreCredit() {
     payMethod: '',
     exchange_rate: '',
     datepay: '',
-    first_payment_date: (() => {
-      const now = new Date();
-      const y = now.getFullYear();
-      const m = String(now.getMonth() + 1).padStart(2, '0');
-      const d = String(now.getDate()).padStart(2, '0');
-      return `${y}-${m}-${d}`;
-    })(),
+    first_payment_date: '',
     frequency: 'fiado' as 'quincenal' | 'mensual' | 'fiado',
     installment_number: '1',
     installment_amount: ''
@@ -190,6 +214,14 @@ export default function RegistreCredit() {
 
   //Datos temporales del formulario
   const [form, setForm] = useState(initialForm);
+
+  useEffect(() => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    setForm(prev => ({ ...prev, first_payment_date: `${y}-${m}-${d}` }));
+  }, []);
   const [selectedProducts, setSelectedProductsState] = useState<Record<string, boolean>>({});
   const [quantities, setQuantities] = useState<Record<string, number>>({});
 
@@ -198,23 +230,23 @@ export default function RegistreCredit() {
     return customers.find((c) => c.id === form.customer);
   }, [form.customer, customers]);
 
-  // Fetch customer credit reputation from backend when selection changes
+  // Obtener la reputacion crediticia de cada cliente desde el backend para mostrarlo en el iframe
+  const reputationFetcher = useFetcher<{ reputation: string | null }>();
+
   useEffect(() => {
-    if (!form.customer || !merchantId) {
+    if (!form.customer) {
       setCustomerReputation(null);
       return;
     }
     const numericId = form.customer.split('/').pop();
-    fetch(`http://localhost:8000/api/customers?shopify_customer_id=${numericId}&limit=1`, {
-      headers: { 'X-Merchant-ID': merchantId }
-    })
-      .then(r => r.json())
-      .then(data => {
-        const found = Array.isArray(data) ? data[0] : null;
-        setCustomerReputation(found?.reputation ?? null);
-      })
-      .catch(() => setCustomerReputation(null));
-  }, [form.customer, merchantId]);
+    reputationFetcher.load(`/app/registre_credit?customerReputationId=${numericId}`);
+  }, [form.customer]);
+
+  useEffect(() => {
+    if (reputationFetcher.data !== undefined) {
+      setCustomerReputation(reputationFetcher.data?.reputation || null);
+    }
+  }, [reputationFetcher.data]);
 
   const totalProductsAmount = useMemo(() => {
     return products.reduce((sum, p) => {
@@ -285,7 +317,7 @@ export default function RegistreCredit() {
       return;
     }
 
-    // Extract numeric ID from Shopify GID (e.g., gid://shopify/Customer/123456789)
+    // Extracción del Shopify ID de cada clientes
     const shopifyIdMatch = form.customer.match(/\/(\d+)$/);
     const numericCustomerId = shopifyIdMatch ? parseInt(shopifyIdMatch[1], 10) : 0;
 
@@ -294,11 +326,11 @@ export default function RegistreCredit() {
     const inventoryAdjustments = selectedList
       .map(p => ({
         inventoryItemId: p.variants.nodes[0]?.inventoryItem.id,
-        delta: -(quantities[p.id] || 0), // Subtracting from inventory
+        delta: -(quantities[p.id] || 0), // Extracción de inventario
       }))
       .filter(adj => !!adj.inventoryItemId);
 
-    // Find the customer object to get the displayName
+    // Encontrar el objeto del cliente para obtener su displayName
     const selected = customers.find(c => String(c.id) === String(form.customer) || c.id.endsWith(numericCustomerId.toString()));
     const customerName = selected?.displayName;
     const customerEmail = selected?.email;
@@ -357,9 +389,9 @@ export default function RegistreCredit() {
     return (
     <s-page heading="Registrar Crédito">
       <s-stack gap="base">
-        { (actionData?.error || clientError) && (
-          <s-banner tone="critical" title="No se pudo registrar el crédito">
-            <s-text>{clientError || actionData?.error}</s-text>
+        { (actionError || clientError) && (
+          <s-banner tone="critical" >
+            <s-text>{clientError || actionError}</s-text>
           </s-banner>
         )}
         <s-grid
@@ -423,10 +455,11 @@ export default function RegistreCredit() {
                         };
                         const rc = repConfig[customerReputation];
                         if (!rc) return null;
+                        const badgeTone = (rc.tone as any) || "info";
                         return (
-                          <s-stack direction="inline" gap="tight" alignItems="center" padding="extra-tight">
-                            <s-text size="small" type="strong">Reputación crediticia:</s-text>
-                            <s-badge tone={rc.tone}>{rc.label}</s-badge>
+                          <s-stack direction="inline" gap="small" alignItems="center" padding="small">
+                            <s-text type="strong">Reputación crediticia:</s-text>
+                            <s-badge tone={badgeTone}>{rc.label}</s-badge>
                           </s-stack>
                         );
                       })()}
@@ -437,40 +470,18 @@ export default function RegistreCredit() {
             </s-grid>
 
             <s-grid
-              gridTemplateColumns="repeat(2, 1fr)"
-              gap="small"
-              justifyContent="center"
-              padding="base"
-            >
-              {/* Tasa de Cambio */}
-              <s-grid-item gridColumn="span 1" >
-                <s-section>
-                  <s-number-field
-                    label="Tasa de cambio (BS)"
-                    details="Tasa de cambio"
-                    placeholder="300"
-                    value={form.exchange_rate}
-                    step={1}
-                    min={0}
-                    max={100}
-                  />
-                </s-section>
-              </s-grid-item>
-            </s-grid>
-
-
-            <s-grid
               gridTemplateColumns="repeat(3, 1fr)"
-              gap="small"
+              gap="base"
               padding="base"
-              alignItems="end"
+              alignItems="center"
+              placeContent="normal center"
             >
               <s-grid-item gridColumn="auto"  >
                 <s-section>
-                  <s-stack gap="extra-tight" direction="block">
-                    <s-text color="subdued" type="strong" size="small">Monto total del Crédito (USD)</s-text>
-                    <s-box padding="tight" background="surface" borderStyle="solid" borderColor="border" borderRadius="base">
-                      <s-text type="heading-md" fontVariantNumeric="tabular-nums">
+                  <s-stack gap="small" direction="block" alignItems="center">
+                    <s-text color="subdued" type="strong">Monto total del Crédito (USD)</s-text>
+                    <s-box padding="small" borderStyle="solid" borderRadius="base">
+                      <s-text fontVariantNumeric="tabular-nums">
                         ${totalProductsAmount.toFixed(2)}
                       </s-text>
                     </s-box>
@@ -478,64 +489,67 @@ export default function RegistreCredit() {
                 </s-section>
               </s-grid-item>
 
+              <s-grid-item gridColumn="auto"  >
                 {form.frequency !== 'fiado' && (
                   <s-section >
-                      <s-number-field
-                        label="Numero de Cuotas"
-                        placeholder="1"
-                        inputMode="decimal"
-                        value={form.installment_number}
-                        onChange={(event: any) => {
-                          const raw = (event.currentTarget as any).value as
-                            | string
-                            | undefined;
-                          setForm((prev) => ({
-                            ...prev,
-                            installment_number: raw ?? '',
-                          }));
-                        }}
-                        step={1}
-                        min={1}
-                        max={100000}
-                      />
-                  </s-section>
-                )}
-
-                {form.frequency !== 'fiado' && (
-                  <s-section >
-                    <s-stack gap="extra-tight" direction="block">
-                      <s-text color="subdued" type="strong" size="small">Monto por Cuotas</s-text>
-                      <s-box padding="tight" background="surface" borderStyle="solid" borderColor="border" borderRadius="base">
-                        <s-text type="heading-md" fontVariantNumeric="tabular-nums">
-                          ${installmentAmount.toFixed(2)}
-                        </s-text>
+                    <s-stack gap="base" direction="inline" justifyContent="center">
+                      <s-box padding="small" borderStyle="solid" borderRadius="base">
+                        <s-number-field
+                            label="Numero de Cuotas"
+                            placeholder="1"
+                            inputMode="decimal"
+                            value={form.installment_number}
+                            onChange={(event: any) => {
+                              const raw = (event.currentTarget as any).value as
+                                | string
+                                | undefined;
+                              setForm((prev) => ({
+                                ...prev,
+                                installment_number: raw ?? '',
+                              }));
+                            }}
+                            step={1}
+                            min={1}
+                            max={100000}
+                        />
                       </s-box>
                     </s-stack>
-  
-                      <s-text type="strong" color="subdued" size="small">
-                        Total: ${totalCreditNumber.toFixed(2)} | Cuotas: {installmentNumber} | Monto/Cuota: ${installmentAmount.toFixed(2)}
-                      </s-text>
-  
                   </s-section>
                 )}
-            </s-grid>
+              </s-grid-item>
 
+              <s-grid-item gridColumn="auto"  >
+                {form.frequency !== 'fiado' && (
+                  <s-section padding="base">
+                    <s-stack gap="small" direction="inline" justifyContent="center">
+                      <s-text color="subdued" type="strong">Monto por Cuotas:   ${installmentAmount.toFixed(2)}</s-text>
+                    </s-stack>
+                    <s-stack padding="large-100" gap="small" direction="inline" justifyContent="center">
+                      <s-text type="strong" color="subdued">
+                        Total: ${totalCreditNumber.toFixed(2)} | Cuotas: {installmentNumber}
+                      </s-text>
+                    </s-stack>
+                  </s-section>
+                )}
+              </s-grid-item>
+            </s-grid>
 
             <s-grid
               gridTemplateColumns="repeat(3, 1fr)"
               gap="small"
-              justifyContent="center"
               padding="base"
+              alignItems="center"
             >
 
               {/* Fecha de emisión / fecha base */}
               <s-grid-item gridColumn="span 1" >
                 <s-section>
-                  <s-date-field
-                    label="Fecha de emisión del crédito"
-                    details="Usada como base para calcular las fechas de pago"
-                    value={form.first_payment_date}
-                    onChange={(event: any) => {
+                  <s-stack gap="small" direction="inline" justifyContent="center">
+                    <s-date-field
+                      label="Fecha de emisión del crédito"
+                      details="Permite calcular las fechas de pago"
+                      value={form.first_payment_date}
+                      onChange={(event: any) => {
                       const raw = (event.currentTarget as any).value as string | undefined;
                       setForm((prev) => ({
                         ...prev,
@@ -543,49 +557,58 @@ export default function RegistreCredit() {
                       }));
                     }}
                   />
+                  </s-stack>
                 </s-section>
               </s-grid-item>
 
               <s-grid-item gridColumn="span 1" >
                 {/* Frecuencia de pago */}
-                <s-select
-                  label="Frecuencia de pago"
-                  details="Seleccione el tipo de crédito"
-                  value={form.frequency}
-                  onChange={(event: any) => {
+                <s-stack gap="small" direction="inline" justifyContent="center">
+                  <s-select
+                    label="Frecuencia de pago"
+                    name="payment period"
+                    details="Seleccione el tipo de crédito"
+                    value={form.frequency}
+                    onChange={(event: any) => {
                     const raw = (event.currentTarget as any).value as string | undefined;
-                    if (raw === 'quincenal' || raw === 'mensual' || raw === 'fiado') {
-                      setForm((prev) => ({
-                        ...prev,
-                        frequency: raw,
-                      }));
-                    }
-                  }}
-                >
-                  <s-option value="fiado">Fiado (Préstamo flexible)</s-option>
-                  <s-option value="quincenal">Quincenal</s-option>
-                  <s-option value="mensual">Mensual</s-option>
-                </s-select>
+                      if (raw === 'quincenal' || raw === 'mensual' || raw === 'fiado') {
+                        setForm((prev) => ({
+                          ...prev,
+                          frequency: raw,
+                        }));
+                      }
+                    }}
+                  >
+                    <s-option value="fiado">Fiado (Préstamo flexible)</s-option>
+                    <s-option value="quincenal">Quincenal</s-option>
+                    <s-option value="mensual">Mensual</s-option>
+                  </s-select>
+                </s-stack>
               </s-grid-item>
 
                 {/* Lista de fechas calculadas */}
                 {form.frequency !== 'fiado' && (
                   <s-grid-item gridColumn="span 1" >
-                    <s-section heading="Próximas fechas de pago">
-                    <s-stack  justifyContent="end">
-                      {schedule.length === 0 ? (
-                          <s-text color="subdued">
-                            Ingrese la fecha de emisión y el número de cuotas para ver el calendario.
-                          </s-text>
-                        ) : (
-                          schedule.map((date, index) => (
-                              <s-text key={`${date}-${index}`}>
-                                Cuota {index + 1}: {date}
-                                {index < schedule.length - 1 && <br />}
-                              </s-text>
-                          ))
-                        )}
-                    </s-stack>
+                    <s-section>
+                      <s-stack gap="small" direction="inline" justifyContent="center">
+                        <s-text type="strong" color="subdued">
+                          Próximas fechas de pago
+                        </s-text>
+                      </s-stack>
+                      <s-stack gap="small" direction="inline" justifyContent="center">
+                        {schedule.length === 0 ? (
+                            <s-text color="subdued">
+                              Ingrese la fecha de emisión y el número de cuotas para ver el calendario.
+                            </s-text>
+                          ) : (
+                            schedule.map((date, index) => (
+                                <s-text key={`${date}-${index}`}>
+                                  Cuota {index + 1}: {date}
+                                  {index < schedule.length - 1 && <br />}
+                                </s-text>
+                            ))
+                          )}
+                      </s-stack>
                     </s-section>
                   </s-grid-item>
                 )}
@@ -615,12 +638,12 @@ export default function RegistreCredit() {
         ) : (
         <s-table variant="auto">
           <s-table-header-row>
-            <s-table-header>Seleccionar</s-table-header>
-            <s-table-header listSlot="primary">Producto</s-table-header>
+            <s-table-header listSlot='primary'>Seleccionar</s-table-header>
+            <s-table-header >Producto</s-table-header>
             <s-table-header format="numeric">Precio</s-table-header>
             <s-table-header format="numeric">Cantidad</s-table-header>
             <s-table-header format="numeric">Disponible</s-table-header>
-            <s-table-header>Estado</s-table-header>
+            <s-table-header >Estado</s-table-header>
           </s-table-header-row>
 
           <s-table-body>
@@ -713,14 +736,14 @@ export default function RegistreCredit() {
           <>
             <s-table variant="auto">
               <s-table-header-row>
-                <s-table-header>Producto</s-table-header>
-                <s-table-header>Fecha de Emisión</s-table-header>
+                <s-table-header listSlot='primary'>Producto</s-table-header>
+                <s-table-header listSlot='primary'>Fecha de Emisión</s-table-header>
                 <s-table-header format="numeric">Precio Unit.</s-table-header>
                 <s-table-header format="numeric">Cantidad</s-table-header>
                 <s-table-header format="numeric">Subtotal</s-table-header>
-                <s-table-header>Método de Pago</s-table-header>
-                {form.frequency !== 'fiado' && <s-table-header>Cuotas</s-table-header>}
-                {form.frequency !== 'fiado' && <s-table-header>Próxima Cuota</s-table-header>}
+                <s-table-header listSlot='primary'>Método de Pago</s-table-header>
+                {form.frequency !== 'fiado' && <s-table-header listSlot='primary'>Cuotas</s-table-header>}
+                {form.frequency !== 'fiado' && <s-table-header listSlot='primary'>Próxima Cuota</s-table-header>}
               </s-table-header-row>
 
               <s-table-body>
@@ -797,23 +820,28 @@ export default function RegistreCredit() {
                 onClick={() => handleRegisterCredit(false)}
                 loading={isSubmitting || undefined}
                 disabled={isSubmitting || undefined}
+                accessibilityLabel="Confirmar registro de crédito"
               >
                 Registrar Crédito
               </s-button>
               <s-button 
                 slot="secondary-actions" 
+                tone="neutral"
                 onClick={() => handleRegisterCredit(true)}
                 loading={isSubmitting || undefined}
                 disabled={isSubmitting || undefined}
+                accessibilityLabel="Guardar crédito como borrador"
               >
                 Guardar Borrador
               </s-button>
               <s-button 
-                slot="secondary-actions" 
+                slot="tertiary-actions" 
+                tone="critical"
                 onClick={handleClear}
                 disabled={isSubmitting || undefined}
+                accessibilityLabel="Limpiar formulario de crédito"
               >
-                Limpiar Todo
+                Limpiar Campos
               </s-button>
             </s-button-group>
           </s-stack>

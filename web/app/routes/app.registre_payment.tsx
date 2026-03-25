@@ -1,8 +1,9 @@
 'use client'
 
 import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
-import { useLoaderData, useSubmit, useNavigation, useOutletContext, useActionData } from "react-router";
+import { useLoaderData, useSubmit, useNavigation, useOutletContext, useActionData, useFetcher } from "react-router";
 import { authenticate } from "../shopify.server";
+import { getAccessTokenForShop } from "../lib/auth.server";
 import { useState, useMemo, useEffect } from "react";
 import { redirect } from "react-router";
 
@@ -32,6 +33,7 @@ interface Credit {
   balance: number;
   status: string;
   installments: Installment[];
+  installments_count?: number;
   customer?: {
     id: number;
     full_name: string;
@@ -40,7 +42,29 @@ interface Credit {
 }
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { admin } = await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
+  const url = new URL(request.url);
+
+  if (url.searchParams.has("searchCredits")) {
+    const accessToken = await getAccessTokenForShop(session.shop);
+    const searchCustomer = url.searchParams.get("customer_id");
+    const searchCreditId = url.searchParams.get("credit_id");
+    const searchDate = url.searchParams.get("created_at_date");
+    let apiUrl = `http://localhost:8000/api/credits?status=EMITIDO&status=PENDIENTE_ACTIVACION&status=EN_PROGRESO`;
+    
+    if (searchCustomer) apiUrl += `&customer_id=${searchCustomer}`;
+    if (searchCreditId) apiUrl += `&credit_id=${searchCreditId}`;
+    if (searchDate) apiUrl += `&created_at_date=${searchDate}`;
+
+    try {
+      const response = await fetch(apiUrl, { headers: { "Authorization": `Bearer ${accessToken}` } });
+      if (response.ok) {
+        const data = await response.json();
+        return { credits: data };
+      }
+    } catch { return { credits: [] }; }
+    return { credits: [] };
+  }
 
   const response = await admin.graphql(`
     {
@@ -78,21 +102,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   } = paymentData;
   
   const methodMap: Record<string, string> = {
-    "Dolares en efectivo": "BANK",
-    "Bolivares en efectivo": "BANK",
+    "Dolares en efectivo": "CASH",
+    "Bolivares en efectivo": "EFECTIVO",
     "Pago movil": "PAGO_MOVIL",
     "Transferencia": "BANK"
   };
 
-  // Resolve merchant ID safely
-  const registerRes = await fetch("http://localhost:8000/api/merchants/register", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ shop_domain: session.shop }),
-  });
+  const accessToken = await getAccessTokenForShop(session.shop);
 
-  if (!registerRes.ok) return { error: "No se pudo resolver el merchant." };
-  const merchant = await registerRes.json();
+  if (!accessToken) return { error: "No se pudo obtener el token de acceso." };
 
     try {
         const payload = {
@@ -112,7 +130,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-Merchant-ID': merchant.id
+                'Authorization': `Bearer ${accessToken}`
             },
             body: JSON.stringify(payload)
         });
@@ -131,7 +149,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                 method: "PATCH",
                 headers: {
                 "Content-Type": "application/json",
-                "X-Merchant-ID": merchant.id,
+                "Authorization": `Bearer ${accessToken}`,
                 },
                 body: JSON.stringify({ payment_ids: [created.id], status: "APROBADO" })
             });
@@ -145,28 +163,41 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   return redirect("/app/credits");
 };
 
+export const headers = () => ({
+  "Cache-Control": "no-cache, no-store, must-revalidate",
+});
+
 export default function RegistrePayment() {
-  const { customers } = useLoaderData<typeof loader>();
+  const { customers = [] } = useLoaderData<typeof loader>();
   const actionData = useActionData<{ error?: string }>();
-  const { merchantId } = useOutletContext<{ merchantId: string }>();
+  const { accessToken } = useOutletContext<{ accessToken: string }>();
   const submit = useSubmit();
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting";
+
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  // Sync actionData error into local state so it can be cleared on navigation
+  useEffect(() => {
+    if (actionData?.error) setActionError(actionData.error);
+  }, [actionData]);
+
+  // Clear the error banner when the user navigates away and comes back
+  useEffect(() => {
+    if (navigation.state === "loading") {
+      setActionError(null);
+    }
+  }, [navigation.state]);
 
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
   const [searchCreditId, setSearchCreditId] = useState<string>("");
   const [searchDate, setSearchDate] = useState<string>("");
   const [credits, setCredits] = useState<Credit[]>([]);
-  const [isLoadingCredits, setIsLoadingCredits] = useState(false);
+  const creditsFetcher = useFetcher<{ credits: Credit[] }>();
+  const isLoadingCredits = creditsFetcher.state !== "idle";
 
   const [paymentForm, setPaymentForm] = useState({
-    date: (() => {
-        const now = new Date();
-        const y = now.getFullYear();
-        const m = String(now.getMonth() + 1).padStart(2, '0');
-        const d = String(now.getDate()).padStart(2, '0');
-        return `${y}-${m}-${d}`;
-    })(),
+    date: "",
     exchangeRate: "100",
     method: "Dolares en efectivo",
     amount: "0",
@@ -176,56 +207,44 @@ export default function RegistrePayment() {
     fiadoFeedback: "" // "" = no aplica, "100" = puntual, "50" = retrasado, "0" = no pagó
   });
 
+  useEffect(() => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    setPaymentForm(prev => ({ ...prev, date: `${y}-${m}-${d}` }));
+  }, []);
+
   const [selectedInstallments, setSelectedInstallments] = useState<Record<number, boolean>>({});
   const [useFavorableBalance, setUseFavorableBalance] = useState(false);
   const [distributeExcess, setDistributeExcess] = useState(true);
   const [approvalStatus, setApprovalStatus] = useState<"EN_REVISION" | "APROBADO">("EN_REVISION");
 
   useEffect(() => {
-    // We only fetch if at least one search criterion is present, 
-    // OR we can fetch all EMITIDO if nothing is selected (optional, but let's stick to showing when filtered)
+    // We only fetch if at least one search criterion is present
     if (!selectedCustomerId && !searchCreditId && !searchDate) {
       setCredits([]);
       setSelectedInstallments({});
       return;
     }
 
-    const fetchCredits = async () => {
-      setIsLoadingCredits(true);
-      try {
-        let url = `http://localhost:8000/api/credits?status=EMITIDO&status=PENDIENTE_ACTIVACION&status=EN_PROGRESO`;
-        
-        if (selectedCustomerId) {
-            const numericId = selectedCustomerId.split('/').pop();
-            url += `&customer_id=${numericId}`;
-        }
-        if (searchCreditId) {
-            url += `&credit_id=${searchCreditId}`;
-        }
-        if (searchDate) {
-            url += `&created_at_date=${searchDate}`;
-        }
-
-        const response = await fetch(url, {
-            headers: { "X-Merchant-ID": merchantId }
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setCredits(data);
-        }
-      } catch (error) {
-        console.error("Error fetching credits:", error);
-      } finally {
-        setIsLoadingCredits(false);
-      }
-    };
-
     const timer = setTimeout(() => {
-        fetchCredits();
+      let params = new URLSearchParams({ searchCredits: "1" });
+      if (selectedCustomerId) params.append("customer_id", selectedCustomerId.split('/').pop()!);
+      if (searchCreditId) params.append("credit_id", searchCreditId);
+      if (searchDate) params.append("created_at_date", searchDate);
+      
+      creditsFetcher.load(`/app/registre_payment?${params.toString()}`);
     }, 300); // Debounce for search fields
 
     return () => clearTimeout(timer);
   }, [selectedCustomerId, searchCreditId, searchDate]);
+
+  useEffect(() => {
+    if (creditsFetcher.data?.credits) {
+      setCredits(creditsFetcher.data.credits);
+    }
+  }, [creditsFetcher.data]);
 
   const activeInstallments = useMemo(() => {
     const all: Installment[] = [];
@@ -384,9 +403,9 @@ export default function RegistrePayment() {
   return (
     <s-page heading="Registrar Pago">
       <s-stack gap="base">
-        {actionData?.error && (
-          <s-banner tone="critical" onDismiss={() => {}}>
-            {actionData.error}
+        {actionError && (
+          <s-banner tone="critical" onDismiss={() => setActionError(null)}>
+            {actionError}
           </s-banner>
         )}
         <s-grid gridTemplateColumns="2.5fr 1fr" gap="base">
@@ -428,11 +447,6 @@ export default function RegistrePayment() {
                   value={paymentForm.date}
                   onChange={(e: any) => setPaymentForm(p => ({ ...p, date: e.target?.value || "" }))}
                 />
-                <s-number-field
-                  label="Tasa de cambio (BS)"
-                  value={paymentForm.exchangeRate}
-                  onChange={(e: any) => setPaymentForm(p => ({ ...p, exchangeRate: e.target?.value || "" }))}
-                />
                 <s-select
                   label="Método de pago"
                   value={paymentForm.method}
@@ -443,14 +457,16 @@ export default function RegistrePayment() {
                   <s-option value="Pago movil">Pago móvil</s-option>
                   <s-option value="Transferencia">Transferencia</s-option>
                 </s-select>
-              </s-grid>
 
-              <s-grid gridTemplateColumns="1.5fr 1fr" gap="small">
                 <s-number-field
                   label="Monto Pagado (USD)"
                   value={paymentForm.amount}
                   onChange={(e: any) => setPaymentForm(p => ({ ...p, amount: e.target?.value || "" }))}
                 />
+              </s-grid>
+
+              <s-grid gridTemplateColumns="1.5fr 1fr" gap="small">
+
                 {/* Hide reference field for cash methods */}
                 {paymentForm.method !== "Dolares en efectivo" && paymentForm.method !== "Bolivares en efectivo" && (
                   <s-text-field
@@ -462,7 +478,6 @@ export default function RegistrePayment() {
                       const numericVal = val.replace(/\D/g, "").slice(0, 13);
                       setPaymentForm(p => ({ ...p, reference: numericVal }));
                     }}
-                    helpText="Debe contener exactamente 13 dígitos numéricos."
                   />
                 )}
               </s-grid>
@@ -498,7 +513,6 @@ export default function RegistrePayment() {
                 label="Estado de revisión del pago"
                 value={approvalStatus}
                 onChange={(e: any) => setApprovalStatus(e.target?.value === "APROBADO" ? "APROBADO" : "EN_REVISION")}
-                helpText="Solo una opción puede estar activa a la vez."
               >
                 <s-option value="EN_REVISION">🕐 El pago está pendiente por revisar</s-option>
                 <s-option value="APROBADO">✅ El pago fue revisado y aprobado</s-option>
@@ -514,15 +528,15 @@ export default function RegistrePayment() {
               <s-heading>Detalles del Cliente</s-heading>
               <s-divider />
               {selectedCustomerShopify ? (
-                <s-stack gap="extra-tight" padding="base">
-                  <s-text type="strong" size="large">{selectedCustomerShopify.displayName}</s-text>
-                  <s-text color="subdued" size="small">{selectedCustomerShopify.email || "Sin email"}</s-text>
-                  <s-text color="subdued" size="small">{selectedCustomerShopify.phone || "Sin teléfono"}</s-text>
+                <s-stack gap="small" padding="base">
+                  <s-text type="strong" >{selectedCustomerShopify.displayName}</s-text>
+                  <s-text color="subdued" >{selectedCustomerShopify.email || "Sin email"}</s-text>
+                  <s-text color="subdued" >{selectedCustomerShopify.phone || "Sin teléfono"}</s-text>
                   {backendCustomerInfo && (
-                    <s-box padding="tight" background="surface-info" borderRadius="base">
-                        <s-stack gap="extra-tight" padding="tight">
-                            <s-text size="small" type="strong">Saldo a Favor Disponible:</s-text>
-                            <s-text size="large" tone="info">${Number(backendCustomerInfo.favorable_balance).toFixed(2)}</s-text>
+                    <s-box padding="small" borderRadius="base">
+                        <s-stack gap="small" padding="large-100">
+                            <s-text type="strong">Saldo a Favor Disponible:</s-text>
+                            <s-text tone="info">${Number(backendCustomerInfo.favorable_balance).toFixed(2)}</s-text>
                             {Number(backendCustomerInfo.favorable_balance) > 0 && (
                               <s-checkbox
                                 label="Usar Saldo a Favor para este pago"
@@ -541,8 +555,8 @@ export default function RegistrePayment() {
                               const rc = rep && repConfig[rep];
                               if (!rc) return null;
                               return (
-                                <s-stack direction="inline" gap="tight" alignItems="center">
-                                  <s-text size="small" type="strong">Reputación:</s-text>
+                                <s-stack direction="inline" gap="small" alignItems="center">
+                                  <s-text type="strong">Reputación:</s-text>
                                   <s-badge tone={rc.tone}>{rc.label}</s-badge>
                                 </s-stack>
                               );
@@ -552,7 +566,7 @@ export default function RegistrePayment() {
                   )}
                 </s-stack>
               ) : (
-                <s-text color="subdued" padding="base">Seleccione un cliente para ver detalles.</s-text>
+                <s-text color="subdued">Seleccione un cliente para ver detalles.</s-text>
               )}
             </s-section>
 
@@ -572,7 +586,7 @@ export default function RegistrePayment() {
                   <s-divider />
                   
                   {surplusAmount > 0 && (
-                    <s-stack gap="tight">
+                    <s-stack gap="small">
                         <s-stack direction="inline" justifyContent="space-between">
                             <s-text tone="success" type="strong">Excedente al pagar:</s-text>
                             <s-text tone="success" type="strong">${surplusAmount.toFixed(2)}</s-text>
@@ -668,13 +682,13 @@ export default function RegistrePayment() {
                     <s-table-cell>#{inst.credit_id}{inst.installment_number > 0 ? `-${inst.installment_number}` : ""}</s-table-cell>
                     <s-table-cell>{inst.due_date}</s-table-cell>
                     <s-table-cell>{credits.find(c => c.id === inst.credit_id)?.concept || "Crédito"}</s-table-cell>
-                    <s-table-cell format="numeric">
+                    <s-table-cell>
                         <s-text color="subdued">${(inst.original_amount ?? inst.amount).toFixed(2)}</s-text>
                     </s-table-cell>
-                    <s-table-cell format="numeric">
-                        <s-text color="success">${(inst.paid_amount ?? 0).toFixed(2)}</s-text>
+                    <s-table-cell>
+                        <s-text>${(inst.paid_amount ?? 0).toFixed(2)}</s-text>
                     </s-table-cell>
-                    <s-table-cell format="numeric">
+                    <s-table-cell>
                         <s-text type="strong">${inst.amount.toFixed(2)}</s-text>
                     </s-table-cell>
                     <s-table-cell>
@@ -690,12 +704,13 @@ export default function RegistrePayment() {
         {/* Action Button Bar */}
         <s-divider />
         <s-stack padding="base" direction="inline" justifyContent="end" gap="base">
-            <s-button onClick={handleReset} disabled={isSubmitting}>Limpiar Campos</s-button>
+            <s-button onClick={handleReset} disabled={isSubmitting} accessibilityLabel="Limpiar formulario de pago">Limpiar Campos</s-button>
             <s-button 
                 tone="critical" 
                 onClick={handleConfirmPayment} 
                 loading={isSubmitting || undefined}
                 disabled={isSubmitting || (activeInstallments.filter(i => selectedInstallments[i.id]).length === 0)}
+                accessibilityLabel="Confirmar y registrar pago seleccionado"
             >
                 Confirmar Registro de Pago
             </s-button>

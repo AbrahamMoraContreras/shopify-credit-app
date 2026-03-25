@@ -145,3 +145,23 @@ def delete_credit_endpoint(
 
     delete_credit(db, credit)
     return None
+
+@router.put("/{credit_id}/cancel", response_model=CreditResponse, tags=["credits"])
+def cancel_credit_endpoint(
+    credit_id: int,
+    db: Session = Depends(get_db),
+    merchant_id: UUID = Depends(get_merchant_id),
+):
+    credit = get_credit(db, credit_id)
+
+    if not credit:
+        raise HTTPException(status_code=404, detail="Credit not found")
+
+    if credit.merchant_id != merchant_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    if credit.status in [CreditStatus.PAGADO, CreditStatus.CANCELADO]:
+        raise HTTPException(status_code=400, detail="El crédito ya está pagado o cancelado")
+
+    from crud.credit import cancel_credit
+    return cancel_credit(db, credit)

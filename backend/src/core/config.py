@@ -25,6 +25,13 @@ class Settings(BaseSettings):
     SHOPIFY_API_KEY: str = Field(default="")
     SHOPIFY_API_SECRET: str = Field(default="")
 
+    # JWT Authentication
+    INTERNAL_AUTH_SECRET: str = Field(default="my-internal-secret-change-in-prod")
+    JWT_ACCESS_TOKEN_SECRET: str = Field(default="this-is-a-super-secret-key-change-it")
+    JWT_REFRESH_TOKEN_SECRET: str = Field(default="this-is-a-super-secret-refresh-key-change-it")
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=1440)
+    REFRESH_TOKEN_EXPIRE_DAYS: int = Field(default=7)
+
     # Resend
     RESEND_API_KEY: str = Field(default="")
     RESEND_FROM_EMAIL: str = Field(default="onboarding@resend.dev")

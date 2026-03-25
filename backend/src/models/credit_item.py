@@ -1,4 +1,5 @@
 # app/models/credit_item.py
+from decimal import Decimal
 from sqlalchemy import Column, Integer, String, Numeric, ForeignKey
 from sqlalchemy.orm import relationship
 
@@ -40,7 +41,10 @@ class CreditItem(Base):
         nullable=False
     )
     
-    total_price = Column(Numeric(12, 2), nullable=False)
+    @property
+    def total_price(self) -> Decimal:
+        """Derivado: unit_price * quantity. No se persiste en BD."""
+        return Decimal(str(self.unit_price)) * self.quantity
 
     quantity = Column(
         Integer,

@@ -1,9 +1,15 @@
 'use client'
 
-import { useEffect, useState } from "react";
-import { useOutletContext } from "react-router";
+import { useState, useMemo, useEffect } from "react";
+import { type LoaderFunctionArgs, type ActionFunctionArgs } from "react-router";
+import { useLoaderData, useSubmit, useNavigation, useActionData } from "react-router";
+import { ClientDate } from "../components/ClientDate";
+import { getAccessTokenForShop } from "../lib/auth.server";
+import { authenticate } from "../shopify.server";
 
-interface ExpectedPayment {
+const BACKEND_URL = "http://localhost:8000";
+
+export interface ExpectedPayment {
   credit_id: number;
   installment_id?: number | null;
   customer_name: string;
@@ -14,82 +20,103 @@ interface ExpectedPayment {
   status: string;
 }
 
-export default function ExpectedPayments() {
-  const { merchantId } = useOutletContext<{ merchantId: string }>();
-  const [payments, setPayments] = useState<ExpectedPayment[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [reminderStatus, setReminderStatus] = useState<Record<string, string>>({});
+export const loader = async ({ request }: LoaderFunctionArgs) => {
+  const { session } = await authenticate.admin(request);
+  const accessToken = await getAccessTokenForShop(session.shop);
+  if (!accessToken) throw new Error("Token no disponible");
 
-  async function loadExpectedPayments() {
-    if (!merchantId) return;
-    try {
-      setLoading(true);
-      const res = await fetch(`http://localhost:8000/api/payments/expected`, {
-        headers: { "X-Merchant-ID": String(merchantId) },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setPayments(data);
-      }
-    } catch (error) {
-      console.error("Error loading expected payments:", error);
-    } finally {
-      setLoading(false);
+  const res = await fetch(`http://localhost:8000/api/payments/expected`, {
+    headers: { "Authorization": `Bearer ${accessToken}` },
+  });
+  if (!res.ok) throw new Error("Error fetching expected payments");
+  
+  const payments: ExpectedPayment[] = await res.json();
+  return { payments };
+};
+
+export const action = async ({ request }: ActionFunctionArgs) => {
+  const { session } = await authenticate.admin(request);
+  const accessToken = await getAccessTokenForShop(session.shop);
+  const formData = await request.formData();
+  const intent = formData.get("intent");
+
+  if (intent === "send_reminder") {
+    const key = formData.get("key") as string;
+    const body = {
+      credit_id: Number(formData.get("credit_id")),
+      installment_id: formData.get("installment_id") ? Number(formData.get("installment_id")) : null,
+      amount: Number(formData.get("amount")),
+      customer_email: formData.get("customer_email") as string
+    };
+
+    const res = await fetch(`http://localhost:8000/api/payments/payment-tokens`, {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json", 
+        "Authorization": `Bearer ${accessToken}` 
+      },
+      body: JSON.stringify(body)
+    });
+    
+    if (!res.ok) {
+      return { error: "No se pudo enviar", key };
     }
+    return { success: true, key };
   }
+  return null;
+};
+
+export const headers = () => ({
+  "Cache-Control": "no-cache, no-store, must-revalidate",
+});
+
+export default function ExpectedPayments() {
+  const { payments } = useLoaderData<typeof loader>();
+  const submit = useSubmit();
+  const navigation = useNavigation();
+  const actionData = useActionData<{ success?: boolean; error?: string; key?: string }>();
+
+  // Use local state ONLY to track successful/error messages temporarily 
+  // since navigation state clears once action finishes.
+  const [statusMap, setStatusMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    void loadExpectedPayments();
-  }, [merchantId]);
+    if (actionData?.key) {
+      const state = actionData.success ? 'sent' : 'error';
+      setStatusMap(prev => ({ ...prev, [actionData.key as string]: state }));
+      
+      // Auto clear after 4s
+      setTimeout(() => {
+        setStatusMap(prev => ({ ...prev, [actionData.key as string]: 'idle' }));
+      }, 4000);
+    }
+  }, [actionData]);
 
-  const handleSendReminder = async (payment: ExpectedPayment) => {
+  const loading = navigation.state === "loading" || navigation.state === "submitting";
+  const submittingKey = navigation.formData?.get("key") as string | undefined;
+
+  const handleSendReminder = (payment: ExpectedPayment) => {
     let email = payment.customer_email;
     
     if (!email) {
       const promptedEmail = window.prompt("El cliente no tiene email registrado. Por favor, ingréselo para enviar el recordatorio:");
-      if (!promptedEmail) return;
-      if (!promptedEmail.includes("@")) {
-          alert("Email no válido.");
+      if (!promptedEmail || !promptedEmail.includes("@")) {
+          alert("Email no válido operacion cancelada.");
           return;
       }
       email = promptedEmail;
     }
 
-    // Unique key for installment
     const key = payment.installment_id ? `${payment.credit_id}-${payment.installment_id}` : `${payment.credit_id}-fiado`;
-    setReminderStatus(s => ({ ...s, [key]: 'sending' }));
-    try {
-      const res = await fetch(`http://localhost:8000/api/payments/payment-tokens`, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json", 
-          "X-Merchant-ID": String(merchantId) 
-        },
-        body: JSON.stringify({ 
-          credit_id: payment.credit_id,
-          installment_id: payment.installment_id || null,
-          amount: payment.expected_amount,
-          customer_email: email 
-        })
-      });
-      
-      if (res.ok) {
-        setReminderStatus(s => ({ ...s, [key]: 'sent' }));
-        if (!payment.customer_email) {
-            setPayments(prev => prev.map(p => 
-                (p.credit_id === payment.credit_id && p.installment_id === payment.installment_id) 
-                ? { ...p, customer_email: email } 
-                : p
-            ));
-        }
-      } else {
-        setReminderStatus(s => ({ ...s, [key]: 'error' }));
-      }
-    } catch {
-      setReminderStatus(s => ({ ...s, [key]: 'error' }));
-    }
-
-    setTimeout(() => setReminderStatus(s => ({ ...s, [key]: 'idle' })), 4000);
+    
+    submit({
+      intent: "send_reminder",
+      key,
+      credit_id: payment.credit_id.toString(),
+      installment_id: payment.installment_id ? payment.installment_id.toString() : "",
+      amount: payment.expected_amount.toString(),
+      customer_email: email
+    }, { method: "post" });
   };
 
   const getStatusTone = (status: string) => {
@@ -128,7 +155,7 @@ export default function ExpectedPayments() {
                         <s-text color="subdued">{payment.customer_email || "Sin email"}</s-text>
                         </s-stack>
                     </s-table-cell>
-                    <s-table-cell>{payment.due_date ? new Date(payment.due_date).toLocaleDateString() : 'Pendiente'}</s-table-cell>
+                    <s-table-cell>{payment.due_date ? <ClientDate dateString={payment.due_date} /> : 'Pendiente'}</s-table-cell>
                     <s-table-cell>{payment.installment_number ? payment.installment_number : 'Fiado (Total)'}</s-table-cell>
                     <s-table-cell>${payment.expected_amount.toFixed(2)}</s-table-cell>
                     <s-table-cell>
@@ -142,18 +169,20 @@ export default function ExpectedPayments() {
                             slot="secondary-actions" 
                             icon="view" 
                             href={`/app/credit_detail/${payment.credit_id}`}
+                            accessibilityLabel="Ver detalles de cuota"
                         >
                             Ver Detalles
                         </s-button>
                         <s-button
                             slot="secondary-actions"
                             tone="auto"
-                            disabled={reminderStatus[key] === 'sending' || undefined}
+                            disabled={submittingKey === key || undefined}
                             onClick={() => handleSendReminder(payment)}
+                            accessibilityLabel="Enviar recordatorio de pago"
                         >
-                            {reminderStatus[key] === 'sending' ? 'Enviando...' : 
-                            reminderStatus[key] === 'sent' ? '¡Enviado!' : 
-                            reminderStatus[key] === 'error' ? 'Reintentar' : 'Enviar Recordatorio'}
+                            {submittingKey === key ? 'Enviando...' : 
+                             statusMap[key] === 'sent' ? '¡Enviado!' : 
+                             statusMap[key] === 'error' ? 'Reintentar' : 'Enviar Recordatorio'}
                         </s-button>
                         </s-button-group>
                     </s-table-cell>

@@ -27,7 +27,13 @@ optional_scopes = [ ]
 use_legacy_install_flow = false
 
 [auth]
-redirect_urls = [ ]
+redirect_urls = [
+  "https://credit-app.com/auth/callback",
+  "https://credit-app.com/auth/shopify/callback",
+  "https://credit-app.com/api/auth/callback",
+  "http://localhost:3457/auth/callback",
+  "http://localhost:3457/auth/shopify/callback"
+]
 
 [app_preferences]
 url = "https://credit-app.com"

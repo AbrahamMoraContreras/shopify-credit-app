@@ -1,17 +1,23 @@
 import os
+import sys
 from logging.config import fileConfig
+from pathlib import Path
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 from alembic import context
 
-# Import the Base where all models are registered
-from app.db.base import Base
-import app.models  # <-- NECESARIO
+# Add src/ to path so alembic can find app modules
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
+
 from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
+
+# Import the Base where all models are registered
+from db.base import Base
+import models  # <-- NECESARIO para registrar todos los modelos
 
 # Alembic Config object
 config = context.config

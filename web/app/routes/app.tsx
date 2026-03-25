@@ -1,45 +1,49 @@
-'use client'
+import * as React from "react";
+import {
+  UIModalAttributes,
+  SAppWindowAttributes,
+  UINavMenuAttributes,
+  SAppNavAttributes,
+  UISaveBarAttributes,
+  UITitleBarAttributes,
+} from '@shopify/app-bridge-types';
 
+interface AppBridgeElements {
+  'ui-modal': UIModalAttributes;
+  's-app-window': SAppWindowAttributes;
+  'ui-nav-menu': UINavMenuAttributes;
+  's-app-nav': SAppNavAttributes;
+  'ui-save-bar': UISaveBarAttributes;
+  'ui-title-bar': UITitleBarAttributes;
+}
+
+declare global {
+  namespace JSX {
+    interface IntrinsicElements extends AppBridgeElements { }
+  }
+}
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { Outlet, useLoaderData, useRouteError } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AppProvider } from "@shopify/shopify-app-react-router/react";
-
 import { authenticate } from "../shopify.server";
-
-const BACKEND_URL = "http://localhost:8000";
+import { getAccessTokenForShop } from "../lib/auth.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
 
-  // Resolve or auto-register the merchant using the Shopify shop domain
-  let merchantId = "";
-  try {
-    const res = await fetch(`${BACKEND_URL}/api/merchants/register`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ shop_domain: session.shop }),
-    });
-
-    if (res.ok) {
-      const data = await res.json();
-      merchantId = data.id;
-    } else {
-      console.error("[app.tsx] Failed to register merchant:", res.status);
-    }
-  } catch (err) {
-    console.error("[app.tsx] Backend unreachable for merchant registration:", err);
-  }
+  const accessToken = await getAccessTokenForShop(session.shop) || "";
 
   return {
     apiKey: process.env.SHOPIFY_API_KEY || "",
-    merchantId,
+    merchantId: "",
     shopDomain: session.shop,
+    accessToken,
   };
 };
 
 export default function App() {
-  const { apiKey, merchantId, shopDomain } = useLoaderData<typeof loader>();
+  const { apiKey, merchantId, shopDomain, accessToken } = useLoaderData<typeof loader>();
 
   return (
 
@@ -56,7 +60,7 @@ export default function App() {
         <s-link href="/app/registre_payment">Registrar Pago</s-link>
         <s-link href="/app/settings">Configuracion</s-link>
       </s-app-nav>
-      <Outlet context={{ merchantId, shopDomain }} />
+      <Outlet context={{ merchantId, shopDomain, accessToken }} />
     </AppProvider>
 
 

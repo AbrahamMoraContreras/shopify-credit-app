@@ -3,6 +3,7 @@
 import { type LoaderFunctionArgs } from "react-router";
 import { useLoaderData } from "react-router";
 import { authenticate } from "../shopify.server";
+import { getAccessTokenForShop } from "../lib/auth.server";
 
 // Define the shape of our data
 interface CustomerSummary {
@@ -26,33 +27,36 @@ interface DashboardData {
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
   let dashboardData: DashboardData | null = null;
+  const BACKEND_URL = "http://localhost:8000";
 
   try {
-    // 1. Resolve merchant ID safely
-    const merchantRes = await fetch("http://localhost:8000/api/merchants/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ shop_domain: session.shop }),
-    });
+    // Request a token directly using the shop domain securely authenticated by Shopify session
+    let accessToken = await getAccessTokenForShop(session.shop);
 
-    if (merchantRes.ok) {
-        const merchant = await merchantRes.json();
-        
-        // 2. Fetch the Dashboard snapshot
-        const dashRes = await fetch("http://localhost:8000/api/dashboard", {
-            headers: { "X-Merchant-ID": merchant.id }
+    if (accessToken) {
+        // Fetch the Dashboard snapshot using Bearer token
+        const dashRes = await fetch(`${BACKEND_URL}/api/dashboard`, {
+            headers: { "Authorization": `Bearer ${accessToken}` }
         });
         
         if (dashRes.ok) {
             dashboardData = await dashRes.json();
+        } else {
+            console.error("[Home Loader] Dashboard API error:", dashRes.status);
         }
+    } else {
+        console.error("[Home Loader] Critical: Could not retrieve an access token for Home.");
     }
   } catch (err) {
-    console.error("[Home Loader] Fetch error:", err);
+    console.error("[Home Loader] Fetch exception:", err);
   }
 
   return { dashboardData };
 };
+
+export const headers = () => ({
+  "Cache-Control": "no-cache, no-store, must-revalidate",
+});
 
 export default function Home() {
   const { dashboardData } = useLoaderData<typeof loader>();
@@ -74,7 +78,7 @@ export default function Home() {
 
   return (
     <s-page heading="Gestión de cobro y crédito">
-      <s-button slot="primary-action">Seleccionar tasa de cambio</s-button>
+      <s-button variant="primary" slot="primary-action" accessibilityLabel="Establecer tasa de cambio">Seleccionar tasa de cambio</s-button>
 
       <s-stack gap="base">
 
@@ -118,16 +122,16 @@ export default function Home() {
               {/* Totals Row */}
               <s-table-row>
                 <s-table-cell>
-                  <s-text appearance="strong">Totales</s-text>
+                  <s-text font-weight="bold">Totales</s-text>
                 </s-table-cell>
                 <s-table-cell>
-                  <s-text appearance="strong">{totalPendingOrders}</s-text>
+                  <s-text font-weight="bold">{totalPendingOrders}</s-text>
                 </s-table-cell>
                 <s-table-cell>
-                  <s-text appearance="strong">{formatCurrency(totalDebt)}</s-text>
+                  <s-text font-weight="bold">{formatCurrency(totalDebt)}</s-text>
                 </s-table-cell>
                 <s-table-cell>
-                  <s-text appearance="strong">{formatCurrency(totalBalance)}</s-text>
+                  <s-text font-weight="bold">{formatCurrency(totalBalance)}</s-text>
                 </s-table-cell>
                 <s-table-cell></s-table-cell>
               </s-table-row>

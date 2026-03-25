@@ -3,7 +3,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from uuid import UUID
 from core.dependencies import get_db, get_merchant_id
-from schemas.payment import PaymentCreate, PaymentResponse, PaymentReview
+from core.config import settings
+from schemas.payment import PaymentCreate, PaymentResponse, PaymentReview, PaymentDetailResponse
 from crud.payment import (
     create_payment, 
     get_payment_with_products, 
@@ -73,7 +74,7 @@ def batch_delete_endpoint(
 
 # ── Expected Payments (Pagos Esperados) ───────────────────────────────────
 
-from typing import Optional, List
+from typing import Optional, List, Any
 from pydantic import BaseModel
 from datetime import datetime, date
 from models.credit import Credit
@@ -161,7 +162,7 @@ from models.payment import Payment
 from models.credit import Credit
 from services.email import send_payment_reminder
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Any
 from datetime import datetime, timedelta
 import uuid as _uuid
 import os
@@ -261,16 +262,16 @@ class PaymentProofResponse(BaseModel):
 
 @router.get("/payment-proofs", summary="Listar comprobantes pendientes de revisión", response_model=List[PaymentProofResponse])
 def list_payment_proofs(
+    status: Optional[str] = None,
     db: Session = Depends(get_db),
     merchant_id: UUID = Depends(get_merchant_id),
 ):
-    proofs = (
-        db.query(PaymentProof)
-        .join(PaymentToken, PaymentProof.token_id == PaymentToken.id)
-        .filter(PaymentToken.merchant_id == merchant_id)
-        .order_by(PaymentProof.submitted_at.desc())
-        .all()
-    )
+    query = db.query(PaymentProof).join(PaymentToken, PaymentProof.token_id == PaymentToken.id).filter(PaymentToken.merchant_id == merchant_id)
+    
+    if status:
+        query = query.filter(PaymentProof.status == status)
+        
+    proofs = query.order_by(PaymentProof.submitted_at.desc()).all()
     result = []
     for p in proofs:
         pt = p.token
@@ -309,7 +310,17 @@ def mark_proof_reviewed(
     db.commit()
     return {"ok": True}
 
-@router.get("/{payment_id}", response_model=PaymentResponse)
+@router.delete("/payment-proofs", summary="Vaciar todos los comprobantes pendientes")
+def clear_pending_proofs(
+    db: Session = Depends(get_db),
+    merchant_id: UUID = Depends(get_merchant_id),
+):
+    from crud.payment import delete_all_pending_proofs
+    count = delete_all_pending_proofs(db, merchant_id)
+    return {"deleted_count": count}
+
+
+@router.get("/{payment_id}", response_model=PaymentDetailResponse)
 def get_payment_detail(
     payment_id: int,
     db: Session = Depends(get_db),
@@ -326,7 +337,34 @@ def get_payment_detail(
             status_code=404,
             detail="Pago no encontrado"
         )
-    return payment
+    
+    # Extract proof if exists
+    proof = None
+    if payment.payment_tokens:
+        for pt in payment.payment_tokens:
+            if pt.proof:
+                proof = pt.proof
+                break
+
+    return {
+        "id": payment.id,
+        "merchant_id": payment.merchant_id,
+        "credit_id": payment.credit_id,
+        "installment_id": payment.installment_id,
+        "amount": payment.amount,
+        "payment_method": payment.payment_method,
+        "reference_number": payment.reference_number,
+        "status": payment.status,
+        "payment_date": payment.payment_date,
+        "reviewed_at": payment.reviewed_at,
+        "reviewed_by": payment.reviewed_by,
+        "notes": payment.notes,
+        "installments_covered": payment.installments_covered,
+        "created_at": payment.created_at,
+        "updated_at": payment.updated_at,
+        "credit": payment.credit,
+        "proof": proof
+    }
 
 @router.patch("/{payment_id}/review", response_model=PaymentResponse)
 def review_payment_endpoint(

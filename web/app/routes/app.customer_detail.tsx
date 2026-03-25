@@ -3,7 +3,7 @@
   export default function CustomerDetail() {
     return (
       <s-page heading="Detalle de Cliente">
-        <s-button slot="primary-action" href="">Editar Cliente</s-button>
+        <s-button slot="primary-action" href="" accessibilityLabel="Editar datos del cliente">Editar Cliente</s-button>
 
         <s-stack gap="base">
           {/* Customer header */}
@@ -80,9 +80,8 @@
 
                 />
                 <s-button
-
                   variant="secondary"
-                  accessibilityLabel="Sort"
+                  accessibilityLabel="Filtrar lista de operaciones"
                   interestFor="sort-tooltip"
                   commandFor="sort-actions"
                 />
@@ -106,8 +105,8 @@
               </s-grid>
               <s-table-header-row>
                 <s-table-header listSlot="primary">Fecha</s-table-header>
-                <s-table-header format="numeric">Número de Orden</s-table-header>
-                <s-table-header format="numeric">Monto</s-table-header>
+                <s-table-header listSlot="primary" format="numeric">Número de Orden</s-table-header>
+                <s-table-header listSlot="primary" format="numeric">Monto</s-table-header>
                 <s-table-header listSlot="secondary">Estatus de Pago</s-table-header>
                 <s-table-header listSlot="secondary">Detalles de Orden</s-table-header>
               </s-table-header-row>
@@ -173,9 +172,8 @@
 
                 />
                 <s-button
-
                   variant="secondary"
-                  accessibilityLabel="Sort"
+                  accessibilityLabel="Filtrar lista de historial"
                   interestFor="sort-tooltip"
                   commandFor="sort-actions"
                 />

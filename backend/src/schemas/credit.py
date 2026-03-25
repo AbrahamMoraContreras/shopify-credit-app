@@ -47,6 +47,9 @@ class CreditResponse(BaseModel):
     balance: Decimal
     last_payment_amount: Optional[Decimal] = None
     last_payment_notes: Optional[str] = None
+    last_payment_date: Optional[datetime] = None
+    last_payment_method: Optional[str] = None
+    last_payment_reference: Optional[str] = None
     installments_count: int
     status: CreditStatus
     created_at: datetime
