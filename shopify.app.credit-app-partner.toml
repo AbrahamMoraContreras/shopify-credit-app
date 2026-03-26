@@ -29,9 +29,6 @@ redirect_urls = [
   "https://credit-app-frontend.onrender.com/auth/callback",
   "https://credit-app-frontend.onrender.com/auth/shopify/callback",
   "https://credit-app-frontend.onrender.com/api/auth/callback",
-  "https://credit-app.com/auth/callback",
-  "https://credit-app.com/auth/shopify/callback",
-  "https://credit-app.com/api/auth/callback",
   "http://localhost:3457/auth/callback",
   "http://localhost:3457/auth/shopify/callback"
 ]
