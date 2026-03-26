@@ -48,7 +48,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   // 2. Fetch backend customers to get favorable balances
   let favorableBalanceMap: Record<number, number> = {};
   let reputationMap: Record<number, { score: number | null; label: string | null }> = {};
-  const BACKEND_URL = "http://localhost:8000";
+  const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
 
   try {
     let accessToken = await getAccessTokenForShop(session.shop);
@@ -85,8 +85,9 @@ export const action = async ({ request }: LoaderFunctionArgs) => {
   const intent = formData.get("intent");
 
   if (intent === "reset-balance" && shopifyNumericId) {
+    const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
     try {
-      const res = await fetch(`http://localhost:8000/api/customers/shopify/${shopifyNumericId}/reset-balance`, {
+      const res = await fetch(`${BACKEND_URL}/api/customers/shopify/${shopifyNumericId}/reset-balance`, {
         method: "PATCH",
         headers: { "Authorization": `Bearer ${accessToken}` },
       });

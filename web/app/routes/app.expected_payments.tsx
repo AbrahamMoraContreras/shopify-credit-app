@@ -7,7 +7,7 @@ import { ClientDate } from "../components/ClientDate";
 import { getAccessTokenForShop } from "../lib/auth.server";
 import { authenticate } from "../shopify.server";
 
-const BACKEND_URL = "http://localhost:8000";
+const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
 
 export interface ExpectedPayment {
   credit_id: number;
@@ -25,7 +25,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const accessToken = await getAccessTokenForShop(session.shop);
   if (!accessToken) throw new Error("Token no disponible");
 
-  const res = await fetch(`http://localhost:8000/api/payments/expected`, {
+  const res = await fetch(`${BACKEND_URL}/api/payments/expected`, {
     headers: { "Authorization": `Bearer ${accessToken}` },
   });
   if (!res.ok) throw new Error("Error fetching expected payments");
@@ -49,7 +49,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       customer_email: formData.get("customer_email") as string
     };
 
-    const res = await fetch(`http://localhost:8000/api/payments/payment-tokens`, {
+    const res = await fetch(`${BACKEND_URL}/api/payments/payment-tokens`, {
       method: "POST",
       headers: { 
         "Content-Type": "application/json", 

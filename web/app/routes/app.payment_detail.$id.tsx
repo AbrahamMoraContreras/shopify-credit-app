@@ -46,7 +46,8 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   if (!accessToken) throw new Error("Token no disponible");
   const { id } = params;
 
-  const res = await fetch(`http://localhost:8000/api/payments/${id}`, {
+  const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
+  const res = await fetch(`${BACKEND_URL}/api/payments/${id}`, {
     headers: { "Authorization": `Bearer ${accessToken}` },
   });
   if (!res.ok) throw new Error("Pago no encontrado");
@@ -63,7 +64,8 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 
   if (intent === "cancel") {
     try {
-      const res = await fetch(`http://localhost:8000/api/payments/${id}/review`, {
+      const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
+      const res = await fetch(`${BACKEND_URL}/api/payments/${id}/review`, {
         method: "PATCH",
         headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
         body: JSON.stringify({ status: "CANCELADO" })

@@ -3,6 +3,7 @@ import { type LoaderFunctionArgs, type ActionFunctionArgs } from "react-router";
 import { useLoaderData, useSubmit, useNavigation, useActionData } from "react-router";
 import { getAccessTokenForShop } from "../lib/auth.server";
 import { authenticate } from "../shopify.server";
+import {Page} from "@shopify/polaris"
 
 const VENEZUELAN_BANKS = [
   "(0001) BANCO CENTRAL DE VENEZUELA",
@@ -54,7 +55,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const accessToken = await getAccessTokenForShop(session.shop);
   if (!accessToken) throw new Error("Token no disponible");
 
-  const res = await fetch(`http://localhost:8000/api/merchants/settings`, {
+  const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
+  const res = await fetch(`${BACKEND_URL}/api/merchants/settings`, {
     headers: { "Authorization": `Bearer ${accessToken}` }
   });
   if (!res.ok) throw new Error("Error cargando settings");
@@ -70,7 +72,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const pagoMovil = JSON.parse(formData.get("pagoMovil") as string);
   const transferencia = JSON.parse(formData.get("transferencia") as string);
 
-  const res = await fetch(`http://localhost:8000/api/merchants/settings`, {
+  const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
+  const res = await fetch(`${BACKEND_URL}/api/merchants/settings`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -119,7 +122,7 @@ export default function Settings() {
   };
 
   return(
-    <s-page heading="Configuraciones" inlineSize="base">
+    <Page>
       <s-section heading="Métodos de Pago">
           <s-grid
             gridTemplateColumns="repeat(3, 1fr)"
@@ -347,7 +350,7 @@ export default function Settings() {
     <s-stack padding="base" alignItems="center">
       <s-text>¿Tienes alguna duda?<s-link href="">Contáctanos</s-link>.</s-text>
     </s-stack>
-  </s-page>
+  </Page>
 
   );
 }

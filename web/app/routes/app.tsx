@@ -49,7 +49,7 @@ export default function App() {
 
     <AppProvider embedded apiKey={apiKey}>
 
-      <s-app-nav>
+      <ui-nav-menu>
 
         <s-link href="/app">Home</s-link>
         <s-link href="/app/shopify_customers">Clientes Shopify</s-link>
@@ -59,7 +59,7 @@ export default function App() {
         <s-link href="/app/expected_payments">Pagos Esperados</s-link>
         <s-link href="/app/registre_payment">Registrar Pago</s-link>
         <s-link href="/app/settings">Configuracion</s-link>
-      </s-app-nav>
+      </ui-nav-menu>
       <Outlet context={{ merchantId, shopDomain, accessToken }} />
     </AppProvider>
 

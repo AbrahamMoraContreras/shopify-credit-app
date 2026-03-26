@@ -13,7 +13,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const accessToken = await getAccessTokenForShop(session.shop);
   if (!accessToken) throw new Error("Token no disponible");
 
-  const response = await fetch('http://localhost:8000/api/credits', {
+  const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
+  const response = await fetch(`${BACKEND_URL}/api/credits`, {
     headers: { "Authorization": `Bearer ${accessToken}` }
   });
   if (!response.ok) throw new Error("Error cargando créditos");
@@ -29,8 +30,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const intent = formData.get("intent");
   const id = formData.get("id");
 
+  const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
+
   if (intent === "delete") {
-    const res = await fetch(`http://localhost:8000/api/credits/${id}`, {
+    const res = await fetch(`${BACKEND_URL}/api/credits/${id}`, {
       method: "DELETE",
       headers: { "Authorization": `Bearer ${accessToken}` }
     });
@@ -39,7 +42,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   }
 
   if (intent === "cancel") {
-    const res = await fetch(`http://localhost:8000/api/credits/${id}/cancel`, {
+    const res = await fetch(`${BACKEND_URL}/api/credits/${id}/cancel`, {
       method: "PUT",
       headers: { "Authorization": `Bearer ${accessToken}` }
     });

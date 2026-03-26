@@ -27,7 +27,7 @@ interface DashboardData {
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
   let dashboardData: DashboardData | null = null;
-  const BACKEND_URL = "http://localhost:8000";
+  const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
 
   try {
     // Request a token directly using the shop domain securely authenticated by Shopify session

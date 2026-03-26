@@ -50,7 +50,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const searchCustomer = url.searchParams.get("customer_id");
     const searchCreditId = url.searchParams.get("credit_id");
     const searchDate = url.searchParams.get("created_at_date");
-    let apiUrl = `http://localhost:8000/api/credits?status=EMITIDO&status=PENDIENTE_ACTIVACION&status=EN_PROGRESO`;
+    const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
+    let apiUrl = `${BACKEND_URL}/api/credits?status=EMITIDO&status=PENDIENTE_ACTIVACION&status=EN_PROGRESO`;
     
     if (searchCustomer) apiUrl += `&customer_id=${searchCustomer}`;
     if (searchCreditId) apiUrl += `&credit_id=${searchCreditId}`;
@@ -126,7 +127,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             punctuality_feedback: paymentData.punctualityFeedback ?? undefined
         };
 
-        const res = await fetch('http://localhost:8000/api/payments', {
+        const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
+        const res = await fetch(`${BACKEND_URL}/api/payments`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -145,7 +147,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
         // Auto-approve if user selected "El pago fue revisado y aprobado"
         if (approvalStatus === "APROBADO" && created?.id) {
-            await fetch(`http://localhost:8000/api/payments/batch-review`, {
+            await fetch(`${BACKEND_URL}/api/payments/batch-review`, {
                 method: "PATCH",
                 headers: {
                 "Content-Type": "application/json",

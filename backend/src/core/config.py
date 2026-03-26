@@ -39,6 +39,9 @@ class Settings(BaseSettings):
     # URL Pública para recordatorios
     PUBLIC_PAGE_URL: str = Field(default="http://localhost:5173/pago")
 
+    # URL del Frontend (para CORS)
+    FRONTEND_URL: str = Field(default="http://localhost:5173")
+
     # URL de base de datos (Render proporciona DATABASE_URL)
     DATABASE_URL: str = Field(default="")
 

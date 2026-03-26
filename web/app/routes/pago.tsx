@@ -1,5 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router';
+import { useSearchParams, useLoaderData } from 'react-router';
+
+export const loader = () => {
+  return { BACKEND_URL: process.env.BACKEND_URL || "http://localhost:8000" };
+};
 
 const VENEZUELAN_BANKS = [
   "(0102) BANCO DE VENEZUELA, S.A. BANCO UNIVERSAL",
@@ -13,7 +17,7 @@ const VENEZUELAN_BANKS = [
   "Otro",
 ];
 
-const API = "http://localhost:8000/api";
+// API URL is derived from loader data dynamically
 
 interface PaymentInfo {
   customer_name: string;
@@ -27,6 +31,8 @@ interface PaymentInfo {
 
 export default function PagoPublico() {
   const [searchParams] = useSearchParams();
+  const { BACKEND_URL } = useLoaderData<typeof loader>();
+  const API = `${BACKEND_URL}/api`;
   const token = searchParams.get("token") ?? "";
 
   const [info, setInfo] = useState<PaymentInfo | null>(null);

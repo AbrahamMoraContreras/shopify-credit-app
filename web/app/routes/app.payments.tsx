@@ -49,9 +49,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const pageSize = 20;
   const offset = (Number(page) - 1) * pageSize;
 
+  const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
   const [paymentsRes, proofsRes] = await Promise.all([
-    fetch(`http://localhost:8000/api/payments?limit=${pageSize}&offset=${offset}`, { headers: { "Authorization": `Bearer ${accessToken}` } }),
-    fetch(`http://localhost:8000/api/payments/payment-proofs?status=PENDIENTE`, { headers: { "Authorization": `Bearer ${accessToken}` } })
+    fetch(`${BACKEND_URL}/api/payments?limit=${pageSize}&offset=${offset}`, { headers: { "Authorization": `Bearer ${accessToken}` } }),
+    fetch(`${BACKEND_URL}/api/payments/payment-proofs?status=PENDIENTE`, { headers: { "Authorization": `Bearer ${accessToken}` } })
   ]);
 
   const payments = await paymentsRes.json();
@@ -72,26 +73,27 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   const authHeaders = { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" };
 
+  const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
   try {
     if (intent === "batch-review") {
       const payment_ids = JSON.parse(formData.get("payment_ids") as string);
       const status = formData.get("status");
-      await fetch(`http://localhost:8000/api/payments/batch-review`, {
+      await fetch(`${BACKEND_URL}/api/payments/batch-review`, {
         method: "PATCH", headers: authHeaders, body: JSON.stringify({ payment_ids, status })
       });
     } else if (intent === "batch-delete") {
       const payment_ids = JSON.parse(formData.get("payment_ids") as string);
-      await fetch(`http://localhost:8000/api/payments/batch-delete`, {
+      await fetch(`${BACKEND_URL}/api/payments/batch-delete`, {
         method: "POST", headers: authHeaders, body: JSON.stringify({ payment_ids })
       });
     } else if (intent === "batch-cancel") {
       const payment_ids = JSON.parse(formData.get("payment_ids") as string);
-      await fetch(`http://localhost:8000/api/payments/batch-review`, {
+      await fetch(`${BACKEND_URL}/api/payments/batch-review`, {
         method: "PATCH", headers: authHeaders, body: JSON.stringify({ payment_ids, status: "CANCELADO" })
       });
     } else if (intent === "revert") {
       const id = formData.get("id");
-      await fetch(`http://localhost:8000/api/payments/${id}/review`, {
+      await fetch(`${BACKEND_URL}/api/payments/${id}/review`, {
         method: "PATCH", headers: authHeaders, body: JSON.stringify({ status: "EN_REVISION" })
       });
     } else if (intent === "approve-proof" || intent === "reject-proof") {
@@ -99,16 +101,16 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       const proof_id = formData.get("proof_id");
       const status = intent === "approve-proof" ? "APROBADO" : "RECHAZADO";
 
-      const res = await fetch(`http://localhost:8000/api/payments/batch-review`, {
+      const res = await fetch(`${BACKEND_URL}/api/payments/batch-review`, {
         method: "PATCH", headers: authHeaders, body: JSON.stringify({ payment_ids: [payment_id], status })
       });
       if (res.ok) {
-        await fetch(`http://localhost:8000/api/payments/payment-proofs/${proof_id}/mark-reviewed`, {
+        await fetch(`${BACKEND_URL}/api/payments/payment-proofs/${proof_id}/mark-reviewed`, {
           method: "PATCH", headers: { "Authorization": `Bearer ${accessToken}` }
         });
       }
     } else if (intent === "clear-proofs") {
-      await fetch(`http://localhost:8000/api/payments/payment-proofs`, {
+      await fetch(`${BACKEND_URL}/api/payments/payment-proofs`, {
         method: "DELETE", headers: { "Authorization": `Bearer ${accessToken}` }
       });
     }

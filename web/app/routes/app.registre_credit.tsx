@@ -45,7 +45,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       return { error: "No se pudo obtener el token de acceso desde el servidor." };
     }
 
-    const response = await fetch("http://localhost:8000/api/credits", {
+    const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
+    const response = await fetch(`${BACKEND_URL}/api/credits`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -119,7 +120,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const searchId = url.searchParams.get("customerReputationId");
     if (!searchId) return { reputation: null };
     try {
-      const r = await fetch(`http://localhost:8000/api/customers?shopify_customer_id=${searchId}&limit=1`, {
+      const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
+      const r = await fetch(`${BACKEND_URL}/api/customers?shopify_customer_id=${searchId}&limit=1`, {
         headers: { 'Authorization': `Bearer ${accessToken}` }
       });
       if (r.ok) {

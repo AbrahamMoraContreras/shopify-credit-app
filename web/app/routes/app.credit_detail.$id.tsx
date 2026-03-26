@@ -15,9 +15,10 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   if (!accessToken) throw new Error("Token no disponible");
   const { id } = params;
 
+  const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
   const [creditRes, paymentsRes] = await Promise.all([
-    fetch(`http://localhost:8000/api/credits/${id}`, { headers: { "Authorization": `Bearer ${accessToken}` } }),
-    fetch(`http://localhost:8000/api/credits/payments/by-credit/${id}`, { headers: { "Authorization": `Bearer ${accessToken}` } })
+    fetch(`${BACKEND_URL}/api/credits/${id}`, { headers: { "Authorization": `Bearer ${accessToken}` } }),
+    fetch(`${BACKEND_URL}/api/credits/payments/by-credit/${id}`, { headers: { "Authorization": `Bearer ${accessToken}` } })
   ]);
   
   if (!creditRes.ok) throw new Error("Credit no encontrado");
@@ -35,10 +36,12 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 
   const authHeaders = { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` };
 
+  const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
+
   if (intent === "approve") {
     const concept = formData.get("concept");
     try {
-      const response = await fetch(`http://localhost:8000/api/credits/${id}`, {
+      const response = await fetch(`${BACKEND_URL}/api/credits/${id}`, {
         method: "PUT", headers: authHeaders, body: JSON.stringify({ status: "EMITIDO", concept })
       });
       if (!response.ok) {
@@ -51,7 +54,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 
   if (intent === "cancel") {
     try {
-      const response = await fetch(`http://localhost:8000/api/credits/${id}/cancel`, {
+      const response = await fetch(`${BACKEND_URL}/api/credits/${id}/cancel`, {
         method: "PUT", headers: { "Authorization": `Bearer ${accessToken}` }
       });
       if (!response.ok) {
@@ -70,7 +73,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
       customer_email: formData.get("customer_email")
     };
     try {
-      const res = await fetch(`http://localhost:8000/api/payments/payment-tokens`, {
+      const res = await fetch(`${BACKEND_URL}/api/payments/payment-tokens`, {
         method: "POST", headers: authHeaders, body: JSON.stringify(body)
       });
       if (!res.ok) return { error: "No se pudo enviar", key: formData.get("key") as string };
