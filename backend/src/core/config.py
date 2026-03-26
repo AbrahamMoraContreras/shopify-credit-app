@@ -11,12 +11,12 @@ class Settings(BaseSettings):
     # Entorno
     ENV: str = Field("dev")
 
-    # Base de datos
-    POSTGRES_USER: str
-    POSTGRES_PASSWORD: str
-    POSTGRES_DB: str
-    POSTGRES_HOST: str
-    POSTGRES_PORT: int
+    # Base de datos (individual fields - only needed for local dev fallback)
+    POSTGRES_USER: str = Field(default="")
+    POSTGRES_PASSWORD: str = Field(default="")
+    POSTGRES_DB: str = Field(default="")
+    POSTGRES_HOST: str = Field(default="")
+    POSTGRES_PORT: int = Field(default=5432)
 
     # Redis
     REDIS_URL: str = Field(default="redis://localhost:6379/0")
