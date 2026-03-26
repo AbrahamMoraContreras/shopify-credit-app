@@ -37,3 +37,4 @@ redirect_urls = [
 
 [app_preferences]
 url = "https://credit-app.com"
+ 
