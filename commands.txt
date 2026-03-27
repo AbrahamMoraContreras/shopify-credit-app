@@ -4,7 +4,8 @@ uvicorn app.main:app --reload
 name = "React Router"
 roles = ["frontend", "backend"]
 webhooks_path = "/webhooks/app/uninstalled"
-
+Obsoleto
+SHOPIFY_API_SECRET=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
 [commands]
 predev = "npx prisma generate"
 dev = "npx prisma migrate deploy && npm exec react-router dev"
