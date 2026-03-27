@@ -5,7 +5,7 @@ services:
 
   # Backend FastAPI Service
   - type: web
-    name: credit-app-backend
+    name: shopify-credit-app-backend
     env: python
     buildCommand: "cd backend && pip install poetry && poetry config virtualenvs.create false && poetry install --only main"
     startCommand: "cd backend && alembic upgrade head && cd src && uvicorn main:app --host 0.0.0.0 --port $PORT"
@@ -45,7 +45,7 @@ services:
           property: connectionString
       - key: BACKEND_URL
         # Reemplazar con la URL final del backend en Render cuando se genere
-        value: "https://credit-app-backend.onrender.com"
+        value: "https://shopify-credit-app-backend.onrender.com"
       - key: SHOPIFY_API_KEY
         sync: false
       - key: SHOPIFY_API_SECRET
