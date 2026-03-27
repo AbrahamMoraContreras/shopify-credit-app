@@ -2,7 +2,7 @@
 
 client_id = "d18e2cf79009e12e8b74d3d7ea5a6aba"
 name = "credit-app-partner"
-application_url = "https://credit-app-frontend.onrender.com"
+application_url = "https://shopify-credit-app-frontend.onrender.com"
 embedded = true
 
 [build]
@@ -26,9 +26,9 @@ use_legacy_install_flow = false
 
 [auth]
 redirect_urls = [
-  "https://credit-app-frontend.onrender.com/auth/callback",
-  "https://credit-app-frontend.onrender.com/auth/shopify/callback",
-  "https://credit-app-frontend.onrender.com/api/auth/callback",
+  "https://shopify-credit-app-frontend.onrender.com/auth/callback",
+  "https://shopify-credit-app-frontend.onrender.com/auth/shopify/callback",
+  "https://shopify-credit-app-frontend.onrender.com/api/auth/callback",
   "http://localhost:3457/auth/callback",
   "http://localhost:3457/auth/shopify/callback"
 ]

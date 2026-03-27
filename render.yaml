@@ -18,7 +18,7 @@ services:
           property: connectionString
       - key: FRONTEND_URL
         # Reemplazar con la URL final del frontend en Render cuando se genere
-        value: "https://credit-app-frontend.onrender.com"
+        value: "https://shopify-credit-app-frontend.onrender.com"
       - key: INTERNAL_AUTH_SECRET
         generateValue: true
       - key: JWT_ACCESS_TOKEN_SECRET
