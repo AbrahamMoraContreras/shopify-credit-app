@@ -4,23 +4,25 @@ client_id = "d18e2cf79009e12e8b74d3d7ea5a6aba"
 name = "credit-app-partner"
 application_url = "https://shopify-credit-app-frontend.onrender.com"
 embedded = true
+handle = "opentech-credit-app-test"
 
 [build]
 automatically_update_urls_on_dev = true
 
 [webhooks]
 api_version = "2026-04"
-  [[webhooks.subscriptions]]
-  topics = [ "app/scopes_update" ]
-  uri = "/webhooks/app/scopes_update"
 
   [[webhooks.subscriptions]]
   topics = [ "app/uninstalled" ]
   uri = "/webhooks/app/uninstalled"
 
+  [[webhooks.subscriptions]]
+  topics = [ "app/scopes_update" ]
+  uri = "/webhooks/app/scopes_update"
+
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "write_products,read_products,write_customers,read_customers,write_orders,read_orders"
+scopes = "read_customers,read_orders,read_products,write_customers,write_orders,write_products"
 optional_scopes = [ ]
 use_legacy_install_flow = false
 
@@ -29,8 +31,5 @@ redirect_urls = [
   "https://shopify-credit-app-frontend.onrender.com/auth/callback",
   "https://shopify-credit-app-frontend.onrender.com/auth/shopify/callback",
   "https://shopify-credit-app-frontend.onrender.com/api/auth/callback",
-  "http://localhost:3457/auth/callback",
-  "http://localhost:3457/auth/shopify/callback"
-]
 
-# En shopify.app.toml o shopify.app.dev-sin-partner.toml
+]
