@@ -1,7 +1,5 @@
-'use client'
-
 import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
-import { useLoaderData, useSubmit, useNavigation, useOutletContext, useActionData, useFetcher } from "react-router";
+import { useLoaderData, useSubmit, useNavigation, useActionData, useFetcher } from "react-router";
 import { authenticate } from "../shopify.server";
 import { getAccessTokenForShop } from "../lib/auth.server";
 import { useState, useMemo, useEffect } from "react";
@@ -172,7 +170,6 @@ export const headers = () => ({
 export default function RegistrePayment() {
   const { customers = [] } = useLoaderData<typeof loader>();
   const actionData = useActionData<{ error?: string }>();
-  const { accessToken } = useOutletContext<{ accessToken: string }>();
   const submit = useSubmit();
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting";

@@ -22,28 +22,24 @@ declare global {
     interface IntrinsicElements extends AppBridgeElements { }
   }
 }
-import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { Outlet, useLoaderData, useRouteError } from "react-router";
+
+import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AppProvider } from "@shopify/shopify-app-react-router/react";
 import { authenticate } from "../shopify.server";
-import { getAccessTokenForShop } from "../lib/auth.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
 
-  const accessToken = await getAccessTokenForShop(session.shop) || "";
-
   return {
     apiKey: process.env.SHOPIFY_API_KEY || "",
-    merchantId: "",
     shopDomain: session.shop,
-    accessToken,
   };
 };
 
 export default function App() {
-  const { apiKey, merchantId, shopDomain, accessToken } = useLoaderData<typeof loader>();
+  const { apiKey, shopDomain } = useLoaderData<typeof loader>();
 
   return (
 
@@ -60,7 +56,7 @@ export default function App() {
         <s-link href="/app/registre_payment">Registrar Pago</s-link>
         <s-link href="/app/settings">Configuracion</s-link>
       </ui-nav-menu>
-      <Outlet context={{ merchantId, shopDomain, accessToken }} />
+      <Outlet context={{ shopDomain }} />
     </AppProvider>
 
 

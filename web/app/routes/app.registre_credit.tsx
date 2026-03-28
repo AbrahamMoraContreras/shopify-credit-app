@@ -1,7 +1,5 @@
-'use client'
-
 import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
-import { useLoaderData, Form, useActionData, useSubmit, useNavigation, redirect, useOutletContext, useFetcher } from "react-router";
+import { useLoaderData, useActionData, useSubmit, useNavigation, redirect, useFetcher } from "react-router";
 import { authenticate } from "../shopify.server";
 import { getAccessTokenForShop } from "../lib/auth.server";
 import { toNumber, calculateInstallmentAmount } from './components/utils/app.number';
@@ -182,7 +180,7 @@ export default function RegistreCredit() {
   const submit = useSubmit();
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting" || navigation.state === "loading";
-  const { accessToken } = (useOutletContext as any)() as { accessToken: string };
+
 
   const [clientError, setClientError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
