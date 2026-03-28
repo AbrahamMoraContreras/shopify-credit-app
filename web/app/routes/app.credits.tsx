@@ -4,22 +4,54 @@
 import { type LoaderFunctionArgs, type ActionFunctionArgs } from "react-router";
 import { useLoaderData, useSubmit, useNavigation } from "react-router";
 import { Credit } from "web/app/types/credit";
+import { redirect } from "@remix-run/node";
 import { useState } from "react";
 import { getAccessTokenForShop } from "../lib/auth.server";
 import { authenticate } from "../shopify.server";
 
+function isDocumentRequest(request: Request) {
+  const accept = request.headers.get("Accept") || "";
+  const xrw = request.headers.get("X-Requested-With") || "";
+  // Heurística simple: si acepta HTML y no es XHR, lo tratamos como documento
+  return accept.includes("text/html") && xrw !== "XMLHttpRequest";
+}
+
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  let session;
+
+  try {
+    ({ session } = await authenticate.admin(request));
+  } catch (error: any) {
+    // Si authenticate.admin lanza un Response (por ejemplo 401 inválido)
+    if (error instanceof Response && error.status === 401 && isDocumentRequest(request)) {
+      // Para peticiones de documento: redirigir a /auth (o tu bounce page)
+      const url = new URL(request.url);
+      const shop = url.searchParams.get("shop");
+      if (shop) {
+        return redirect(`/auth?shop=${shop}`);
+      }
+    }
+
+    // Para XHR, o si no podemos inferir shop, dejamos que el 401 se propague
+    throw error;
+  }
+
   const accessToken = await getAccessTokenForShop(session.shop);
-  if (!accessToken) throw new Error("Token no disponible");
+  if (!accessToken) {
+    throw new Error("Token no disponible");
+  }
 
   const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
   const response = await fetch(`${BACKEND_URL}/api/credits`, {
-    headers: { "Authorization": `Bearer ${accessToken}` }
+    headers: { Authorization: `Bearer ${accessToken}` },
   });
-  if (!response.ok) throw new Error("Error cargando créditos");
-  
+
+  if (!response.ok) {
+    throw new Error("Error cargando créditos");
+  }
+
   const credits: Credit[] = await response.json();
+  // En Remix es recomendable devolver `json({ credits })`, pero tu runtime puede aceptar POJOs
   return { credits };
 };
 
