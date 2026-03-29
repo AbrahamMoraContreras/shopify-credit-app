@@ -660,7 +660,7 @@ const route4 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProper
   loader: loader$b
 }, Symbol.toStringTag, { value: "Module" }));
 const BACKEND_URL$1 = process.env.BACKEND_URL || "http://localhost:8000";
-const INTERNAL_AUTH_SECRET = process.env.INTERNAL_AUTH_SECRET || "my-internal-secret-change-in-prod";
+const INTERNAL_AUTH_SECRET = process.env.INTERNAL_AUTH_SECRET || "adiel2001";
 const tokenCacheMap = /* @__PURE__ */ new Map();
 async function getAccessTokenForShop(shop) {
   const now = Date.now();

@@ -1,7 +1,7 @@
 import { redirect } from "react-router";
 
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
-const INTERNAL_AUTH_SECRET = process.env.INTERNAL_AUTH_SECRET || "my-internal-secret-change-in-prod";
+const INTERNAL_AUTH_SECRET = process.env.INTERNAL_AUTH_SECRET || "adiel2001";
 
 interface TokenCache {
     token: string;
