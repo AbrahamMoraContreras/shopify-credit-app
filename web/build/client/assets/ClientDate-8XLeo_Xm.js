@@ -1,1 +1,0 @@
-import{r as n,o as t}from"./chunk-JMJ3UQ3L-DsNebswn.js";function i({dateString:e,format:o="date",fallback:a=""}){const[s,c]=n.useState(!1);if(n.useEffect(()=>{c(!0)},[]),!s||!e)return t.jsx(t.Fragment,{children:a});const r=new Date(e);return t.jsx(t.Fragment,{children:o==="date"?r.toLocaleDateString():r.toLocaleString()})}export{i as C};

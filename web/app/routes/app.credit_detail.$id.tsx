@@ -1,4 +1,3 @@
-'use client'
 
 import { useParams, useSubmit, useNavigation, useActionData, useLoaderData } from 'react-router';
 import { useEffect, useState } from 'react';

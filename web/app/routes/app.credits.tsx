@@ -1,5 +1,4 @@
 //app.credits.tsx
-'use client'
 
 import { type LoaderFunctionArgs, type ActionFunctionArgs } from "react-router";
 import { useLoaderData, useSubmit, useNavigation } from "react-router";

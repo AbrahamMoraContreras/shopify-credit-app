@@ -1,4 +1,3 @@
-'use client'
 
 import { type LoaderFunctionArgs } from "react-router";
 import { useLoaderData } from "react-router";
