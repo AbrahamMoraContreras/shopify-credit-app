@@ -421,9 +421,10 @@ export default function CreditHistorial() {
       <s-divider /> 
 
           {/*Footer*/}
-          <s-stack padding="base" alignItems="center">
-            <s-text>¿Tienes alguna duda?<s-link href="/app/credit_detail">Contáctanos</s-link>.</s-text>
-          </s-stack>
+          <s-stack padding="base" alignItems="center" gap="base">
+          <s-text color="subdued">Desarrollado por Opentech LCC</s-text>
+          <s-text>¿Tienes alguna duda? <s-link href="https://lccopen.tech/contact" target="_blank">Contáctanos</s-link>.</s-text>
+        </s-stack>
     </s-page>
   );
 }

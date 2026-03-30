@@ -167,6 +167,7 @@ export default function ShopifyCustomers() {
                 <s-table-header format="numeric">Órdenes</s-table-header>
                 <s-table-header listSlot="primary" format="numeric">Saldo a Favor</s-table-header>
                 <s-table-header>Reputación Crediticia</s-table-header>
+                <s-table-header>Acciones</s-table-header>
               </s-table-header-row>
 
               <s-table-body>
@@ -189,8 +190,17 @@ export default function ShopifyCustomers() {
                       <s-table-cell>{customer.numberOfOrders}</s-table-cell>
                       <s-table-cell>
                         {hasSaldo ? (
-                          <s-stack gap="small-100" direction="inline" alignItems="center">
-                            <s-badge tone="success">${saldo.toFixed(2)}</s-badge>
+                          <s-badge tone="success">${saldo.toFixed(2)}</s-badge>
+                        ) : (
+                          <s-text color="subdued">—</s-text>
+                        )}
+                      </s-table-cell>
+                      <s-table-cell>
+                        {reputationBadge(reputationMap[numericId]?.label ?? null)}
+                      </s-table-cell>
+                      <s-table-cell>
+                        <s-stack direction="inline" gap="small-100" alignItems="center" justifyContent="center">
+                          {hasSaldo && (
                             <s-button
                               id={`reset-balance-${numericId}`}
                               tone="critical"
@@ -198,15 +208,16 @@ export default function ShopifyCustomers() {
                               disabled={resetting[numericId]}
                               accessibilityLabel="Vaciar saldo a favor del cliente"
                             >
-                              Vaciar
+                              Vaciar Saldo
                             </s-button>
-                          </s-stack>
-                        ) : (
-                          <s-text color="subdued">—</s-text>
-                        )}
-                      </s-table-cell>
-                      <s-table-cell>
-                        {reputationBadge(reputationMap[numericId]?.label ?? null)}
+                          )}
+                          <s-button 
+                            href={`/app/customer_detail/${numericId}`} 
+                            accessibilityLabel="Ver detalles del cliente"
+                          >
+                            Ver cliente
+                          </s-button>
+                        </s-stack>
                       </s-table-cell>
                     </s-table-row>
                   );
@@ -217,10 +228,9 @@ export default function ShopifyCustomers() {
         </s-section>
 
         {/* Footer */}
-        <s-stack padding="base" alignItems="center">
-          <s-text>
-            ¿Tienes alguna duda? <s-link href="">Contáctanos</s-link>.
-          </s-text>
+        <s-stack padding="base" alignItems="center" gap="base">
+          <s-text color="subdued">Desarrollado por Opentech LCC</s-text>
+          <s-text>¿Tienes alguna duda? <s-link href="https://lccopen.tech/contact" target="_blank">Contáctanos</s-link>.</s-text>
         </s-stack>
       </s-stack>
     </s-page>

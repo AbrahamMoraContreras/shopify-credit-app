@@ -170,7 +170,7 @@ export default function PaymentDetail() {
                         <s-text>{payment.proof.notes}</s-text>
                     </s-grid-item>
                 )}
-            </s-grid>
+              </s-grid>
             </s-stack>
             
           </s-section>
@@ -215,9 +215,10 @@ export default function PaymentDetail() {
         </s-stack>
       </s-stack>
 
-      <s-stack padding="base" alignItems="center">
-        <s-text>¿Tienes alguna duda? <s-link href="">Contáctanos</s-link>.</s-text>
-      </s-stack>
+      <s-stack padding="base" alignItems="center" gap="tight">
+          <s-text color="subdued" variant="bodySm">Desarrollado por Opentech LCC</s-text>
+          <s-text>¿Tienes alguna duda? <s-link href="https://lccopen.tech/contact" target="_blank">Contáctanos</s-link>.</s-text>
+        </s-stack>
     </s-page>
   );
 }

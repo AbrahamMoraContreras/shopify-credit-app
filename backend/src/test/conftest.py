@@ -14,7 +14,7 @@ from sqlalchemy.orm import sessionmaker
 from db.base import Base
 
 # Fuerza carga de modelos
-from models import credit, installment, payment
+from models import credit, installment, payment  # noqa: F401
 
 from uuid import uuid4
 

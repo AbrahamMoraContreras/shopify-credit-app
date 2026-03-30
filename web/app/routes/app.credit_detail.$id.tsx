@@ -157,27 +157,27 @@ export default function CreditDetail() {
           {/* Header Section */}
           <s-grid gridTemplateColumns="fr" alignItems="center" gap="base">
             <s-stack alignItems="center" gap="base">
-                <s-section accessibilityLabel="Sección de detalles de orden">
-                  <s-stack alignItems="center">
-                    <s-heading><strong>Detalles de orden</strong></s-heading>
-                      <s-text>{credit.customer?.full_name || 'Error al obtener nombre de cliente'}</s-text>
-                        <s-section>
-                          <s-text>{credit.customer?.email || 'Error al obtener correo de cliente'}</s-text>
-                        </s-section>
-                        <s-text color="subdued">ID: {credit.invoice_code || credit.id}</s-text>
-                  </s-stack>
-                </s-section>
-                <s-badge 
-                    tone={
-                      credit.status === 'EMITIDO' ? 'neutral' : 
-                      credit.status === 'PENDIENTE_ACTIVACION' ? 'warning' : 
-                      credit.status === 'EN_PROGRESO' ? 'info' : 
-                      credit.status === 'PAGADO' ? 'success' : 
-                      'info'
-                    }
-                >
-                  {credit.status}
-                </s-badge>
+              <s-section accessibilityLabel="Sección de detalles de orden">
+                <s-stack alignItems="center">
+                  <s-heading><strong>Detalles de orden</strong></s-heading>
+                  <s-text>{credit.customer?.full_name || 'Error al obtener nombre de cliente'}</s-text>
+                  <s-section>
+                    <s-text>{credit.customer?.email || 'Error al obtener correo de cliente'}</s-text>
+                  </s-section>
+                  <s-text color="subdued">ID: {credit.invoice_code || credit.id}</s-text>
+                </s-stack>
+              </s-section>
+              <s-badge 
+                tone={
+                  credit.status === 'EMITIDO' ? 'neutral' : 
+                  credit.status === 'PENDIENTE_ACTIVACION' ? 'warning' : 
+                  credit.status === 'EN_PROGRESO' ? 'info' : 
+                  credit.status === 'PAGADO' ? 'success' : 
+                  'info'
+                }
+              >
+                {credit.status}
+              </s-badge>
             </s-stack>
             <s-stack alignItems="end">
                 {credit.status === 'PENDIENTE_ACTIVACION' && (
@@ -458,9 +458,10 @@ export default function CreditDetail() {
         </s-stack>
       )}
 
-      <s-stack padding="base" alignItems="center">
-        <s-text>¿Tienes alguna duda? <s-link href="">Contáctanos</s-link>.</s-text>
-      </s-stack>
+      <s-stack padding="base" alignItems="center" gap="base">
+          <s-text color="subdued">Desarrollado por Opentech LCC</s-text>
+          <s-text>¿Tienes alguna duda? <s-link href="https://lccopen.tech/contact" target="_blank">Contáctanos</s-link>.</s-text>
+        </s-stack>
     </s-page>
   );
 }

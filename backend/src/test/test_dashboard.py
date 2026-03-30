@@ -2,7 +2,6 @@
 
 from datetime import date, timedelta
 from uuid import uuid4
-from db.base import Base
 from crud import dashboard as dashboard_crud
 from models.credit import Credit
 from models.installment import CreditInstallment

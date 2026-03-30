@@ -122,10 +122,10 @@ export default function Settings() {
   };
 
   return(
-    <Page>
+    <s-page inlineSize="base">
       <s-section heading="Métodos de Pago">
           <s-grid
-            gridTemplateColumns="repeat(3, 1fr)"
+            gridTemplateColumns="repeat(2, 1fr)"
             gap="base"
             padding="base"
           >
@@ -207,24 +207,7 @@ export default function Settings() {
               </s-box>
             </s-grid-item>
 
-            <s-grid-item>
-              <s-box border="base" borderRadius="base" padding="base">
-                <s-stack gap="base">
-                  <s-heading>PayPal</s-heading>
-                  <s-divider />
-                  <s-text-field
-                    label="Email"
-                    value={paypal.email}
-                    onChange={(e: any) => setPaypal({...paypal, email: e.target.value})}
-                  />
-                  <s-text-field
-                    label="Titular"
-                    value={paypal.titular}
-                    onChange={(e: any) => setPaypal({...paypal, titular: e.target.value})}
-                  />
-                </s-stack>
-              </s-box>
-            </s-grid-item>
+
           </s-grid>
           <s-stack direction="inline" justifyContent="end" padding="base" gap="small" alignItems="center">
             {saveStatus === "saved" && <s-text tone="success">✓ Cambios guardados</s-text>}
@@ -347,10 +330,11 @@ export default function Settings() {
         </s-stack>
     </s-section>
     {/*Footer*/}
-    <s-stack padding="base" alignItems="center">
-      <s-text>¿Tienes alguna duda?<s-link href="">Contáctanos</s-link>.</s-text>
-    </s-stack>
-  </Page>
+    <s-stack padding="base" alignItems="center" gap="base">
+          <s-text color="subdued">Desarrollado por Opentech LCC</s-text>
+          <s-text>¿Tienes alguna duda? <s-link href="https://lccopen.tech/contact" target="_blank">Contáctanos</s-link>.</s-text>
+        </s-stack>
+  </s-page>
 
   );
 }

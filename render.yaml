@@ -25,10 +25,26 @@ services:
         generateValue: true
       - key: JWT_REFRESH_TOKEN_SECRET
         generateValue: true
+      - key: PUBLIC_PAGE_URL
+        value: "https://shopify-credit-app-page.onrender.com/pago"
       - key: SHOPIFY_API_KEY
         sync: false
       - key: SHOPIFY_API_SECRET
         sync: false
+
+  # Página Pública de Pago (React + Vite)
+  - type: web
+    name: shopify-credit-app-page
+    env: static
+    buildCommand: "cd page && npm install && npm run build"
+    staticPublishPath: page/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        value: "https://shopify-credit-app-backend.onrender.com/api"
 
   # Frontend Remix Service
   - type: web

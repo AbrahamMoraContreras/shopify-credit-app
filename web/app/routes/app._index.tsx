@@ -166,10 +166,9 @@ export default function Home() {
         </s-section>
 
         {/* Footer */}
-        <s-stack padding="base" alignItems="center">
-          <s-text>
-            ¿Tienes alguna duda? <s-link href="">Contáctanos</s-link>.
-          </s-text>
+        <s-stack padding="base" alignItems="center" gap="tight">
+          <s-text color="subdued" variant="bodySm">Desarrollado por Opentech LCC</s-text>
+          <s-text>¿Tienes alguna duda? <s-link href="https://lccopen.tech/contact" target="_blank">Contáctanos</s-link>.</s-text>
         </s-stack>
       </s-stack>
     </s-page>
