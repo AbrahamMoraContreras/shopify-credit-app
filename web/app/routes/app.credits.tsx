@@ -96,7 +96,6 @@ export default function CreditHistorial() {
   const submit = useSubmit();
   const navigation = useNavigation();
 
-  // Remix re-ejecuta el loader exitosamente después de cada action.
   const loading =
     navigation.state === "loading" || navigation.state === "submitting";
 

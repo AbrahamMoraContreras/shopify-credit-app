@@ -72,8 +72,6 @@ def batch_delete_endpoint(
     return {"deleted_count": count}
 
 
-# ── Expected Payments (Pagos Esperados) ───────────────────────────────────
-
 from typing import Optional, List, Any
 from pydantic import BaseModel
 from datetime import datetime, date
@@ -111,7 +109,6 @@ def get_expected_payments(
     
     result = []
     
-    # 1. Add regular installments
     for inst in installments:
         credit = inst.credit
         customer = credit.customer
@@ -126,7 +123,6 @@ def get_expected_payments(
             status=inst.status.value,
         ))
 
-    # 2. Add Fiado credits (no installments, but with remaining balance)
     fiados = (
         db.query(Credit)
         .join(Customer, Credit.customer_id == Customer.id)
@@ -147,15 +143,13 @@ def get_expected_payments(
             customer_name=customer.full_name,
             customer_email=customer.email,
             installment_number=None,
-            due_date=None,  # Or fiado.created_at/some expected date if desired
+            due_date=None, 
             expected_amount=float(fiado.balance),
             status="PENDIENTE"
         ))
 
     return result
 
-
-# ── Payment Token & Proof endpoints (admin only) ──────────────────────────────
 
 from models.payment_token import PaymentToken, PaymentProof
 from models.payment import Payment
@@ -192,7 +186,6 @@ def create_payment_token(
     if credit.merchant_id != merchant_id:
         raise HTTPException(status_code=403, detail="Acceso denegado al crédito.")
 
-    # Create Payment Intent
     intent = Payment(
         merchant_id=merchant_id,
         credit_id=payload.credit_id,
@@ -220,7 +213,6 @@ def create_payment_token(
     )
     db.add(pt)
     
-    # Sync email to customer record if missing
     if credit.customer and not credit.customer.email:
         credit.customer.email = payload.customer_email
         db.add(credit.customer)
@@ -338,7 +330,6 @@ def get_payment_detail(
             detail="Pago no encontrado"
         )
     
-    # Extract proof if exists
     proof = None
     if payment.payment_tokens:
         for pt in payment.payment_tokens:

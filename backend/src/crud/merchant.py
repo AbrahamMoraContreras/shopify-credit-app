@@ -15,7 +15,7 @@ def get_or_create_merchant(db: Session, shop_domain: str) -> Merchant:
     if merchant:
         return merchant
 
-    # Auto-register new merchant
+    # Registrar nuevo merchant
     merchant = Merchant(shop_domain=shop_domain)
     db.add(merchant)
     db.commit()

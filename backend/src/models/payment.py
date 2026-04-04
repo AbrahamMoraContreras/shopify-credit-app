@@ -38,7 +38,7 @@ class Payment(Base):
 
     payment_date = Column(DateTime, default=datetime.utcnow)
 
-    # ✅ NUEVOS CAMPOS (CRÍTICOS)
+    # NUEVOS CAMPOS
     reviewed_at = Column(DateTime, nullable=True)
     reviewed_by = Column(UUID(as_uuid=True), nullable=True)
     notes = Column(String, nullable=True)

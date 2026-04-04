@@ -51,7 +51,6 @@ class CreditItem(Base):
         nullable=False
     )
 
-    # 🔗 RELACIONES
     credit = relationship(
         "Credit",
         back_populates="items"

@@ -39,7 +39,6 @@ def create_customer(db: Session, payload: CustomerCreate) -> CustomerModel:
     return db_obj
 
 def update_customer(db: Session, db_obj: CustomerModel, updates: CustomerUpdate) -> CustomerModel:
-    # Validate potential unique fields
     if updates.email and updates.email != db_obj.email:
         exists = db.query(CustomerModel).filter(CustomerModel.email == updates.email, CustomerModel.id != db_obj.id).first()
         if exists:

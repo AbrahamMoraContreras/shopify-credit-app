@@ -15,9 +15,7 @@ from crud.customer import (
     get_customer_by_shopify_id
 )
 
-# --------------------------------------------------------------
-# 🔐 Función temporal para obtener el merchant autenticado
-# --------------------------------------------------------------
+# Función temporal para obtener el merchant autenticado
 def get_current_merchant():
     """
     Esta función será reemplazada por el sistema de autenticación real de Shopify.
@@ -149,15 +147,11 @@ def api_sync_from_shopify(
     db: Session = Depends(get_db),
     merchant_id: str = Depends(get_merchant_id)
 ):
-    # 1) Buscar si ya existe
+    #Buscar si ya existe
     existing = get_customer_by_shopify_id(db=db, shopify_customer_id=shopify_customer_id, merchant_id=merchant_id)
 
     if existing:
         return existing
-
-    # 2) En un sistema real, aquí llamarías a Shopify Admin API con access_token:
-    # shopify_customer = shopify_client.fetch_customer(shopify_customer_id)
-    # y usar sus datos.
 
     placeholder = CustomerCreate(
         full_name=f"Shopify Customer {shopify_customer_id}",

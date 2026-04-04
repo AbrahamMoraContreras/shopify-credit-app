@@ -10,9 +10,6 @@ from sqlalchemy.orm import relationship
 from db.base import Base
 from models.enums import CreditStatus
 
-# ------------------------------
-# MODELO
-# ------------------------------
 class Credit(Base):
     __tablename__ = "credits"
 
@@ -65,7 +62,7 @@ class Credit(Base):
     @property
     def last_payment_amount(self):
         from decimal import Decimal
-        # Filter related payments for APROBADO
+        # Filtrar pagos relacionados para APROBADO
         approved = [p for p in self.payments if getattr(p.status, "value", p.status) == "APROBADO"]
         if not approved:
             return Decimal("0.00")

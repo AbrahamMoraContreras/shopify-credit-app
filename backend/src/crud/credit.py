@@ -35,8 +35,8 @@ def _generate_installments(total_amount, installments_count, first_due_date, fre
     
     current_due_date = first_due_date
     for i in range(1, installments_count + 1):
-        # Increment due date BEFORE adding the installment to the list
-        # This aligns with the frontend preview (Today + 1 Period)
+        # Incrementar la fecha de vencimiento antes de agregar la cuota a la lista
+
         if frequency == "quincenal":
             current_due_date += timedelta(days=15)
         else:
@@ -79,7 +79,7 @@ def create_credit(db: Session, merchant_id: str, payload: CreditCreate):
         )
         customer = create_customer(db, payload=placeholder)
     else:
-        # Update email if missing
+        # Actualizar email si falta
         updated = False
         if payload.customer_email and not customer.email:
             customer.email = payload.customer_email
@@ -105,7 +105,7 @@ def create_credit(db: Session, merchant_id: str, payload: CreditCreate):
     db.commit()
     db.refresh(credit)
 
-    # 4) Installments items
+    # Items del crédito
     if payload.items:
         for item_data in payload.items:
             db.add(CreditItem(
@@ -192,7 +192,7 @@ def delete_credit(db: Session, credit: Credit):
 
 def cancel_credit(db: Session, credit: Credit):
     credit.status = CreditStatus.CANCELADO
-    # Cancel pending or overdue installments to stop them from appearing in expected payments
+    # Cancelar cuotas pendientes o vencidas para que no aparezcan en pagos esperados
     for inst in credit.installments:
         if inst.status in [InstallmentStatus.PENDIENTE, InstallmentStatus.VENCIDO]:
             inst.status = InstallmentStatus.CANCELADA

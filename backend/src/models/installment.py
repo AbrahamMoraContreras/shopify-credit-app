@@ -35,7 +35,7 @@ class CreditInstallment(Base):
         """Derivado de status: True si la cuota está completamente pagada."""
         return self.status == InstallmentStatus.PAGADA
 
-    # 🔗 RELACIONES
+    # RELACIONES
     credit = relationship("Credit", back_populates="installments")
     payments = relationship(
         "Payment",

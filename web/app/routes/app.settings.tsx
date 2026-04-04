@@ -1,9 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import { type LoaderFunctionArgs, type ActionFunctionArgs } from "react-router";
-import { useLoaderData, useSubmit, useNavigation, useActionData } from "react-router";
+import {
+  useLoaderData,
+  useSubmit,
+  useNavigation,
+  useActionData,
+} from "react-router";
 import { getAccessTokenForShop } from "../lib/auth.server";
 import { authenticate } from "../shopify.server";
-import {Page} from "@shopify/polaris"
+import { Page } from "@shopify/polaris";
 
 const VENEZUELAN_BANKS = [
   "(0001) BANCO CENTRAL DE VENEZUELA",
@@ -40,14 +45,14 @@ const DEFAULT_PAGO_MOVIL = {
   banco: "(0102) BANCO DE VENEZUELA, S.A. BANCO UNIVERSAL",
   telefono: "",
   tipoCi: "V",
-  ci: ""
+  ci: "",
 };
 
 const DEFAULT_TRANSFERENCIA = {
   banco: "(0102) BANCO DE VENEZUELA, S.A. BANCO UNIVERSAL",
   numero: "",
   tipoCi: "V",
-  ci: ""
+  ci: "",
 };
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -57,7 +62,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
   const res = await fetch(`${BACKEND_URL}/api/merchants/settings`, {
-    headers: { "Authorization": `Bearer ${accessToken}` }
+    headers: { Authorization: `Bearer ${accessToken}` },
   });
   if (!res.ok) throw new Error("Error cargando settings");
   const data = await res.json();
@@ -68,7 +73,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const { session } = await authenticate.admin(request);
   const accessToken = await getAccessTokenForShop(session.shop);
   const formData = await request.formData();
-  
+
   const pagoMovil = JSON.parse(formData.get("pagoMovil") as string);
   const transferencia = JSON.parse(formData.get("transferencia") as string);
 
@@ -77,11 +82,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${accessToken}`
+      Authorization: `Bearer ${accessToken}`,
     },
-    body: JSON.stringify({ pago_movil: pagoMovil, transferencia })
+    body: JSON.stringify({ pago_movil: pagoMovil, transferencia }),
   });
-  
+
   if (!res.ok) return { success: false };
   return { success: true };
 };
@@ -96,10 +101,20 @@ export default function Settings() {
   const navigation = useNavigation();
   const actionData = useActionData<{ success?: boolean }>();
 
-  const [pagoMovil, setPagoMovil] = useState(settings?.pago_movil ? { ...DEFAULT_PAGO_MOVIL, ...settings.pago_movil } : DEFAULT_PAGO_MOVIL);
-  const [transferencia, setTransferencia] = useState(settings?.transferencia ? { ...DEFAULT_TRANSFERENCIA, ...settings.transferencia } : DEFAULT_TRANSFERENCIA);
+  const [pagoMovil, setPagoMovil] = useState(
+    settings?.pago_movil
+      ? { ...DEFAULT_PAGO_MOVIL, ...settings.pago_movil }
+      : DEFAULT_PAGO_MOVIL,
+  );
+  const [transferencia, setTransferencia] = useState(
+    settings?.transferencia
+      ? { ...DEFAULT_TRANSFERENCIA, ...settings.transferencia }
+      : DEFAULT_TRANSFERENCIA,
+  );
   const [paypal, setPaypal] = useState({ email: "", titular: "" });
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [saveStatus, setSaveStatus] = useState<
+    "idle" | "saving" | "saved" | "error"
+  >("idle");
 
   useEffect(() => {
     if (navigation.state === "submitting") {
@@ -113,119 +128,157 @@ export default function Settings() {
 
   const handleSave = () => {
     submit(
-      { 
-        pagoMovil: JSON.stringify(pagoMovil), 
-        transferencia: JSON.stringify(transferencia) 
-      }, 
-      { method: "post" }
+      {
+        pagoMovil: JSON.stringify(pagoMovil),
+        transferencia: JSON.stringify(transferencia),
+      },
+      { method: "post" },
     );
   };
 
-  return(
+  return (
     <s-page inlineSize="base">
       <s-section heading="Métodos de Pago">
-          <s-grid
-            gridTemplateColumns="repeat(2, 1fr)"
-            gap="base"
-            padding="base"
+        <s-grid gridTemplateColumns="repeat(2, 1fr)" gap="base" padding="base">
+          <s-grid-item>
+            <s-box border="base" borderRadius="base" padding="base">
+              <s-stack gap="base">
+                <s-heading>Pago Móvil</s-heading>
+                <s-divider />
+                <s-select
+                  label="Banco"
+                  value={pagoMovil.banco}
+                  onChange={(e: any) =>
+                    setPagoMovil({ ...pagoMovil, banco: e.target.value })
+                  }
+                >
+                  {VENEZUELAN_BANKS.map((bank) => (
+                    <s-option key={bank} value={bank}>
+                      {bank}
+                    </s-option>
+                  ))}
+                </s-select>
+                <s-text-field
+                  label="Teléfono"
+                  value={pagoMovil.telefono}
+                  onChange={(e: any) =>
+                    setPagoMovil({ ...pagoMovil, telefono: e.target.value })
+                  }
+                />
+                <s-grid
+                  gridTemplateColumns="1fr 3fr"
+                  gap="small"
+                  alignItems="end"
+                >
+                  <s-select
+                    label="Tipo"
+                    value={pagoMovil.tipoCi}
+                    onChange={(e: any) =>
+                      setPagoMovil({ ...pagoMovil, tipoCi: e.target.value })
+                    }
+                  >
+                    <s-option value="V">V</s-option>
+                    <s-option value="J">J</s-option>
+                    <s-option value="E">E</s-option>
+                  </s-select>
+                  <s-text-field
+                    label="Documento de Identidad"
+                    value={pagoMovil.ci}
+                    onChange={(e: any) =>
+                      setPagoMovil({ ...pagoMovil, ci: e.target.value })
+                    }
+                  />
+                </s-grid>
+              </s-stack>
+            </s-box>
+          </s-grid-item>
+
+          <s-grid-item>
+            <s-box border="base" borderRadius="base" padding="base">
+              <s-stack gap="base">
+                <s-heading>Transferencia Bancaria</s-heading>
+                <s-divider />
+                <s-select
+                  label="Banco"
+                  value={transferencia.banco}
+                  onChange={(e: any) =>
+                    setTransferencia({
+                      ...transferencia,
+                      banco: e.target.value,
+                    })
+                  }
+                >
+                  {VENEZUELAN_BANKS.map((bank) => (
+                    <s-option key={bank} value={bank}>
+                      {bank}
+                    </s-option>
+                  ))}
+                </s-select>
+                <s-text-field
+                  label="Número de Cuenta"
+                  value={transferencia.numero}
+                  onChange={(e: any) =>
+                    setTransferencia({
+                      ...transferencia,
+                      numero: e.target.value,
+                    })
+                  }
+                />
+                <s-grid
+                  gridTemplateColumns="1fr 3fr"
+                  gap="small"
+                  alignItems="end"
+                >
+                  <s-select
+                    label="Tipo"
+                    value={transferencia.tipoCi}
+                    onChange={(e: any) =>
+                      setTransferencia({
+                        ...transferencia,
+                        tipoCi: e.target.value,
+                      })
+                    }
+                  >
+                    <s-option value="V">V</s-option>
+                    <s-option value="J">J</s-option>
+                    <s-option value="E">E</s-option>
+                  </s-select>
+                  <s-text-field
+                    label="Documento de Identidad"
+                    value={transferencia.ci}
+                    onChange={(e: any) =>
+                      setTransferencia({ ...transferencia, ci: e.target.value })
+                    }
+                  />
+                </s-grid>
+              </s-stack>
+            </s-box>
+          </s-grid-item>
+        </s-grid>
+        <s-stack
+          direction="inline"
+          justifyContent="end"
+          padding="base"
+          gap="small"
+          alignItems="center"
+        >
+          {saveStatus === "saved" && (
+            <s-text tone="success">✓ Cambios guardados</s-text>
+          )}
+          {saveStatus === "error" && (
+            <s-text tone="critical">✗ Error al guardar</s-text>
+          )}
+          <s-button
+            variant="primary"
+            onClick={handleSave}
+            disabled={saveStatus === "saving" || undefined}
+            accessibilityLabel="Guardar cambios de configuración"
           >
-            <s-grid-item>
-              <s-box border="base" borderRadius="base" padding="base">
-                <s-stack gap="base">
-                  <s-heading>Pago Móvil</s-heading>
-                  <s-divider />
-                  <s-select
-                    label="Banco"
-                    value={pagoMovil.banco}
-                    onChange={(e: any) => setPagoMovil({...pagoMovil, banco: e.target.value})}
-                  >
-                    {VENEZUELAN_BANKS.map(bank => (
-                      <s-option key={bank} value={bank}>{bank}</s-option>
-                    ))}
-                  </s-select>
-                  <s-text-field
-                    label="Teléfono"
-                    value={pagoMovil.telefono}
-                    onChange={(e: any) => setPagoMovil({...pagoMovil, telefono: e.target.value})}
-                  />
-                  <s-grid gridTemplateColumns="1fr 3fr" gap="small" alignItems="end">
-                    <s-select
-                      label="Tipo"
-                      value={pagoMovil.tipoCi}
-                      onChange={(e: any) => setPagoMovil({...pagoMovil, tipoCi: e.target.value})}
-                    >
-                      <s-option value="V">V</s-option>
-                      <s-option value="J">J</s-option>
-                      <s-option value="E">E</s-option>
-                    </s-select>
-                    <s-text-field
-                      label="Documento de Identidad"
-                      value={pagoMovil.ci}
-                      onChange={(e: any) => setPagoMovil({...pagoMovil, ci: e.target.value})}
-                    />
-                  </s-grid>
-                </s-stack>
-              </s-box>
-            </s-grid-item>
-
-            <s-grid-item>
-              <s-box border="base" borderRadius="base" padding="base">
-                <s-stack gap="base">
-                  <s-heading>Transferencia Bancaria</s-heading>
-                  <s-divider />
-                  <s-select
-                    label="Banco"
-                    value={transferencia.banco}
-                    onChange={(e: any) => setTransferencia({...transferencia, banco: e.target.value})}
-                  >
-                    {VENEZUELAN_BANKS.map(bank => (
-                      <s-option key={bank} value={bank}>{bank}</s-option>
-                    ))}
-                  </s-select>
-                  <s-text-field
-                    label="Número de Cuenta"
-                    value={transferencia.numero}
-                    onChange={(e: any) => setTransferencia({...transferencia, numero: e.target.value})}
-                  />
-                  <s-grid gridTemplateColumns="1fr 3fr" gap="small" alignItems="end">
-                    <s-select
-                      label="Tipo"
-                      value={transferencia.tipoCi}
-                      onChange={(e: any) => setTransferencia({...transferencia, tipoCi: e.target.value})}
-                    >
-                      <s-option value="V">V</s-option>
-                      <s-option value="J">J</s-option>
-                      <s-option value="E">E</s-option>
-                    </s-select>
-                    <s-text-field
-                      label="Documento de Identidad"
-                      value={transferencia.ci}
-                      onChange={(e: any) => setTransferencia({...transferencia, ci: e.target.value})}
-                    />
-                  </s-grid>
-                </s-stack>
-              </s-box>
-            </s-grid-item>
-
-
-          </s-grid>
-          <s-stack direction="inline" justifyContent="end" padding="base" gap="small" alignItems="center">
-            {saveStatus === "saved" && <s-text tone="success">✓ Cambios guardados</s-text>}
-            {saveStatus === "error" && <s-text tone="critical">✗ Error al guardar</s-text>}
-            <s-button 
-              variant="primary" 
-              onClick={handleSave}
-              disabled={saveStatus === "saving" || undefined}
-              accessibilityLabel="Guardar cambios de configuración"
-            >
-              {saveStatus === "saving" ? "Guardando..." : "Guardar Cambios"}
-            </s-button>
-          </s-stack>
+            {saveStatus === "saving" ? "Guardando..." : "Guardar Cambios"}
+          </s-button>
+        </s-stack>
       </s-section>
 
-      {/* === */}
-      {/* Notifications */}
-      {/* === */}
       <s-section heading="Notifications">
         <s-select
           label="Frecuencia de Notificaciones"
@@ -242,13 +295,13 @@ export default function Settings() {
           name="notifications-type"
           multiple
         >
-          <s-choice value="new-order" selected>New order notifications</s-choice>
+          <s-choice value="new-order" selected>
+            New order notifications
+          </s-choice>
           <s-choice value="low-stock">Low stock alerts</s-choice>
-
         </s-choice-list>
       </s-section>
 
-      {/* Preferences */}
       <s-section heading="Preferencias">
         <s-box border="base" borderRadius="base">
           <s-clickable
@@ -264,7 +317,8 @@ export default function Settings() {
               <s-box>
                 <s-heading>Límite crediticio para clientes</s-heading>
                 <s-paragraph color="subdued">
-                  Establece el límite máximo o mínimo permitido para las operaciones con clientes.
+                  Establece el límite máximo o mínimo permitido para las
+                  operaciones con clientes.
                 </s-paragraph>
               </s-box>
               <s-icon type="chevron-right" />
@@ -303,12 +357,7 @@ export default function Settings() {
       {/* Tools */}
       {/* === */}
       <s-section heading="Tools">
-        <s-stack
-          gap="none"
-          border="base"
-          borderRadius="base"
-          overflow="hidden"
-        >
+        <s-stack gap="none" border="base" borderRadius="base" overflow="hidden">
           <s-box padding="small-100">
             <s-grid
               gridTemplateColumns="1fr auto"
@@ -318,23 +367,34 @@ export default function Settings() {
               <s-box>
                 <s-heading>Restablecer configuraciones de la app</s-heading>
                 <s-paragraph color="subdued">
-                  Restablecer todas las configuraciones por defecti. Esta acción no puede deshacerse.
+                  Restablecer todas las configuraciones por defecti. Esta acción
+                  no puede deshacerse.
                 </s-paragraph>
               </s-box>
-              <s-button tone="critical" accessibilityLabel="Restablecer configuraciones de la aplicación">Restablecer</s-button>
+              <s-button
+                tone="critical"
+                accessibilityLabel="Restablecer configuraciones de la aplicación"
+              >
+                Restablecer
+              </s-button>
             </s-grid>
           </s-box>
           <s-box paddingInline="small-100">
             <s-divider />
           </s-box>
         </s-stack>
-    </s-section>
-    {/*Footer*/}
-    <s-stack padding="base" alignItems="center" gap="base">
-          <s-text color="subdued">Desarrollado por Opentech LCC</s-text>
-          <s-text>¿Tienes alguna duda? <s-link href="https://lccopen.tech/contact" target="_blank">Contáctanos</s-link>.</s-text>
-        </s-stack>
-  </s-page>
-
+      </s-section>
+      {/*Footer*/}
+      <s-stack padding="base" alignItems="center" gap="base">
+        <s-text color="subdued">Desarrollado por Opentech LCC</s-text>
+        <s-text>
+          ¿Tienes alguna duda?{" "}
+          <s-link href="https://lccopen.tech/contact" target="_blank">
+            Contáctanos
+          </s-link>
+          .
+        </s-text>
+      </s-stack>
+    </s-page>
   );
 }

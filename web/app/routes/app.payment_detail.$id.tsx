@@ -113,7 +113,6 @@ export default function PaymentDetail() {
   return (
     <s-page heading={`Detalles de Pago #${payment.id}`}>
       <s-stack gap="base">
-        {/* Basic Info & Customer */}
         <s-grid gridTemplateColumns="1fr 1fr" gap="base">
           <s-section padding="base">
             <s-stack alignItems="center" gap="base">
@@ -193,7 +192,6 @@ export default function PaymentDetail() {
             </s-stack>
           </s-section>
         </s-grid>
-        {/* Proof Info if exists */}
         {payment.proof && (
           <s-section padding="base">
             <s-stack gap="small" padding="base">

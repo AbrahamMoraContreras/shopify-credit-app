@@ -83,7 +83,7 @@ def morosity_ratio(db: Session, merchant_id: UUID) -> float:
     return round((morose / total) * 100, 2)
 
 def customers_summary_data(db: Session, merchant_id: UUID):
-    # Retrieve all customers for the merchant
+    # Regresa todos los clientes del merchant
     customers = db.query(Customer).filter(Customer.merchant_id == merchant_id).all()
     
     summary = []
@@ -91,7 +91,7 @@ def customers_summary_data(db: Session, merchant_id: UUID):
     total_customers = len(customers)
     
     for customer in customers:
-        # Sum only active credits (unpaid)
+        # Suma solo créditos activos (sin pagar)
         active_credits = [
             c for c in customer.credits 
             if getattr(c.status, "value", c.status) in ["PENDIENTE_ACTIVACION", "EMITIDO", "EN_PROGRESO", "MOROSO"]
@@ -100,7 +100,7 @@ def customers_summary_data(db: Session, merchant_id: UUID):
         pending_debt = sum(c.balance for c in active_credits)
         favorable_balance = customer.favorable_balance
         
-        # We only list them if they have pending orders OR a favorable balance
+        # Solo los listamos si tienen pedidos pendientes O un saldo a favor
         if pending_orders > 0 or favorable_balance > 0:
             if pending_debt > 0:
                 clients_with_debt += 1
@@ -113,7 +113,6 @@ def customers_summary_data(db: Session, merchant_id: UUID):
                 "balance": float(favorable_balance),
             })
             
-    # Sort by debt descending
     summary.sort(key=lambda x: x["pendingDebt"], reverse=True)
     
     return {

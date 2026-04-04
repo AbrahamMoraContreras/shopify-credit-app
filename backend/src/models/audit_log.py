@@ -13,9 +13,6 @@ class AuditLog(Base):
     action = Column(String, index=True, nullable=False)  # "CREATE" or "DELETE"
     timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
     
-    # Store the actual data of the entity being created or deleted
-    # We use JSONB for PostgreSQL to allow flexible querying if needed
+    # Almacena los datos reales de la entidad que se está creando o eliminando
+    # Se usa JSONB para PostgreSQL para permitir consultas flexibles si es necesario
     changes = Column(JSONB, nullable=True)
-
-    # Optional: If we want to track who did it (if merchant_id or user_id is available in context)
-    # merchant_id = Column(UUID(as_uuid=True), nullable=True)

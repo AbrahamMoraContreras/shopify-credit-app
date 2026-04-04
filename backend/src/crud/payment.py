@@ -23,7 +23,6 @@ def update_customer_punctuality(db: Session, customer: Customer):
         Payment.punctuality_value.isnot(None)
     ).scalar()
     
-    # avg_score can be None if there are no eligible payments
     if avg_score is not None:
         customer.punctuality_score = Decimal(str(avg_score))
     else:
@@ -133,7 +132,7 @@ def create_payment(
 
     payload_amount = Decimal(str(payload.amount))
 
-    # --- SALDO A FAVOR LOGIC ---
+    # Logica de saldo a favor
     if payload.use_favorable_balance:
         customer = credit.customer
         if not customer:
@@ -143,7 +142,6 @@ def create_payment(
         if favorable <= Decimal("0.00"):
             raise ValueError("El cliente no tiene Saldo a Favor disponible.")
 
-        # If paying with favorable balance, we only consume what we asked for, or up to what is available
         amount_to_apply = min(favorable, payload_amount)
 
         customer.favorable_balance -= amount_to_apply
@@ -171,7 +169,6 @@ def create_payment(
                 raise ValueError("El número de referencia ya ha sido utilizado para este comercio.")
             raise e
 
-        # Since it's approved immediately, assign funds
         _apply_payment_distribution(db, payment, credit, payload.apply_to_installments, payload.distribute_excess, customer)
         
     else:
@@ -224,25 +221,23 @@ def _apply_payment_distribution(db: Session, payment: Payment, credit: Credit, t
     
     amount_to_apply_to_credit = payment_amount
     excess_for_favorable_balance = Decimal("0.00")
-    
-    # 1. Determine Overflow Behavior
-    # Check for explicit [OVERPAYMENT: X] annotation in payment notes (set by public submission)
+
     import re
     overpayment_match = re.search(r'\[OVERPAYMENT: ([\d.]+)\]', payment.notes or "")
     if overpayment_match:
         excess_for_favorable_balance = Decimal(overpayment_match.group(1))
         amount_to_apply_to_credit = payment_amount - excess_for_favorable_balance
-        # Cap at credit balance
+
         if amount_to_apply_to_credit > initial_balance:
             excess_for_favorable_balance += amount_to_apply_to_credit - initial_balance
             amount_to_apply_to_credit = initial_balance
     elif credit.installments_count == 0:
-        # Fiado (No installments): Only cap by the initial_balance
+        # Fiado (Sin cuotas): Solo limitar por el saldo inicial
         if initial_balance < payment_amount:
             amount_to_apply_to_credit = initial_balance
             excess_for_favorable_balance = payment_amount - initial_balance
     else:
-        # Installment-based credit
+        # Crédito basado en cuotas
         if not distribute_excess and payment_amount > target_debt:
             amount_to_apply_to_credit = target_debt
             excess_for_favorable_balance = payment_amount - target_debt
@@ -250,19 +245,19 @@ def _apply_payment_distribution(db: Session, payment: Payment, credit: Credit, t
             amount_to_apply_to_credit = initial_balance
             excess_for_favorable_balance = payment_amount - initial_balance
 
-    # 2. Update Balances
+    # Actualizar balances
     credit.balance -= amount_to_apply_to_credit
     if customer and excess_for_favorable_balance > Decimal("0.00"):
         customer.favorable_balance += excess_for_favorable_balance
 
-    # 3. Queue Installments
+    # Colas de cuotas
     distribution_queue = target_installments
     if distribute_excess:
         distribution_queue.extend(other_installments)
         
     remaining_to_distribute = amount_to_apply_to_credit
 
-    # 4. Drain the Remaining Funds into Installments (if any)
+    # Distribuir el resto de los fondos en las cuotas si existen
     fully_paid_installments: list[CreditInstallment] = []
     for inst in distribution_queue:
         if remaining_to_distribute <= Decimal("0.00"):
@@ -282,24 +277,22 @@ def _apply_payment_distribution(db: Session, payment: Payment, credit: Credit, t
             inst.paid_amount += remaining_to_distribute
             remaining_to_distribute = Decimal("0.00")
 
-    # 5. Auto-compute punctuality for installment-based credits (monthly/biweekly).
-    #    Only runs when: at least one installment was fully paid, the credit has installments,
-    #    and punctuality_value was NOT already set manually (e.g., Fiado feedback).
+    # Calcular la puntualidad para créditos basados en cuotas (mensuales/quincenales).
+    # Solo se ejecuta cuando: al menos una cuota fue pagada por completo, el crédito tiene cuotas,
+    # y punctuality_value no se estableció manualmente (por ejemplo, retroalimentación de Fiado).
     if fully_paid_installments and credit.installments_count > 0 and payment.punctuality_value is None:
         payment_date_only = payment.payment_date.date() if payment.payment_date else datetime.utcnow().date()
-        # Use the earliest due_date among the fully-paid installments as the reference
+        # Usar la fecha de vencimiento más temprana entre las cuotas pagadas como referencia
         covered_due_dates = [
-            inst.due_date  # already a date object (SQLAlchemy Date column)
+            inst.due_date
             for inst in fully_paid_installments
         ]
         valid_due_dates = [d for d in covered_due_dates if d is not None]
         if valid_due_dates:
             earliest_due = min(valid_due_dates)
-            # On-time: paid on or before the due date → 100. Late: paid after → 0.
             payment.punctuality_value = Decimal("100") if payment_date_only <= earliest_due else Decimal("0")
 
     # Última actualización del status del crédito
-    # Even if there were no installments (Fiado), `credit.balance` was already reduced in Step 2 above.
     if credit.balance <= 0:
         credit.balance = Decimal("0.00")
         credit.status = CreditStatus.PAGADO
@@ -326,13 +319,10 @@ def review_payment(
     if not credit:
         raise HTTPException(status_code=400, detail="Crédito no encontrado")
 
-    # --- REVERSAL LOGIC ---
+    # LÓGICA DE REVERSIÓN
     if payment.status == PaymentStatus.APROBADO:
-        # Reversing a bulk payment is extremely complex because it scattered amounts across multiple installments.
-        # En una arquitectura real usaríamos ledger/transactions. Aquí, para simplificar, si se revierte:
-        # 1. Devolvemos el monto original al balance (y si restamos saldo a favor, lo descontamos).
-        # 2. Hacemos que todas las cuotas marcadas en `installments_covered` vuelvan a 0.
-        # ESTO ES UN WORKAROUND SIMPLE, SOLO MANTENER DE PRECAUCIÓN. (Si se necesita anular parciales, es otra historia)
+        # Devolvemos el monto original al balance (y si restamos saldo a favor, lo descontamos).
+        # Hacemos que todas las cuotas marcadas en `installments_covered` vuelvan a 0.
         amount_to_reverse = Decimal(str(payment.amount))
         
         target_ids = []
@@ -364,7 +354,6 @@ def review_payment(
         if credit.status == CreditStatus.PAGADO and credit.balance > 0:
             credit.status = CreditStatus.EN_PROGRESO
 
-    # --- APPLY NEW STATUS ---
     payment.status = status
     payment.reviewed_at = datetime.utcnow()
     payment.reviewed_by = reviewer_id
@@ -416,9 +405,9 @@ def batch_delete_payments(
     ).all()
     
     for p in payments:
-        # If it was approved, reverse it before deleting!
+        # Si fue aprobado revierte antes de eliminar
         if p.status == PaymentStatus.APROBADO:
-            review_payment(db, p.id, PaymentStatus.RECHAZADO, merchant_id, notes="Automatic reversal due to deletion")
+            review_payment(db, p.id, PaymentStatus.RECHAZADO, merchant_id, notes="Reversión automática debido a eliminación")
         
         db.delete(p)
     
@@ -432,7 +421,7 @@ def delete_all_pending_proofs(
 ):
     from models.payment_token import PaymentProof, PaymentToken
     
-    # Get all pending proofs for this merchant
+    # Obtener todas las pruebas pendientes para este merchant
     proofs_to_delete = (
         db.query(PaymentProof)
         .join(PaymentToken, PaymentProof.token_id == PaymentToken.id)

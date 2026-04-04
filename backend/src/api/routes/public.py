@@ -179,7 +179,6 @@ def submit_payment_proof(payload: ProofSubmission, db: Session = Depends(get_db)
     if payload.notes:
         notes_parts.append(f"Extra: {payload.notes}")
 
-    # ── Check for over/partial payment ───────────────────────────────
     if payment:
         expected_amount = Decimal(str(payment.amount))
         declared_amount = Decimal(str(payload.amount))
@@ -190,7 +189,6 @@ def submit_payment_proof(payload: ProofSubmission, db: Session = Depends(get_db)
         elif declared_amount < expected_amount:
             notes_parts.append(f"[PARTIAL_PAYMENT: paid {declared_amount} of {expected_amount}]")
 
-        # Update the Payment with the actual declared amount
         payment.status = PaymentStatus.EN_REVISION
         payment.amount = declared_amount
         payment.reference_number = payload.reference_number

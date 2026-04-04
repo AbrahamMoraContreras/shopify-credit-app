@@ -5,7 +5,7 @@ import { useState } from "react";
 import { authenticate } from "../shopify.server";
 import { getAccessTokenForShop } from "../lib/auth.server";
 
-// Shopify customer node shape from GraphQL
+// Shopify customer sacado desde GraphQL
 interface ShopifyCustomer {
   id: string;
   displayName: string;
@@ -26,7 +26,7 @@ interface BackendCustomer {
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
 
-  // 1. Fetch Shopify customers from GraphQL
+  // Hacer fetch Shopify customers desde GraphQL
   const response = await admin.graphql(`
     {
       customers(first: 50) {
@@ -45,9 +45,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { data } = await response.json();
   const customers: ShopifyCustomer[] = data?.customers?.nodes ?? [];
 
-  // 2. Fetch backend customers to get favorable balances
+  // Hacer Fetch backend customers para obtener balances favorables
   let favorableBalanceMap: Record<number, number> = {};
-  let reputationMap: Record<number, { score: number | null; label: string | null }> = {};
+  let reputationMap: Record<
+    number,
+    { score: number | null; label: string | null }
+  > = {};
   const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
 
   try {
@@ -55,13 +58,15 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
     if (accessToken) {
       const backendRes = await fetch(`${BACKEND_URL}/api/customers?limit=200`, {
-        headers: { "Authorization": `Bearer ${accessToken}` },
+        headers: { Authorization: `Bearer ${accessToken}` },
       });
       if (backendRes.ok) {
         const backendCustomers: BackendCustomer[] = await backendRes.json();
         for (const bc of backendCustomers) {
           if (bc.shopify_customer_id != null) {
-            favorableBalanceMap[bc.shopify_customer_id] = Number(bc.favorable_balance);
+            favorableBalanceMap[bc.shopify_customer_id] = Number(
+              bc.favorable_balance,
+            );
             reputationMap[bc.shopify_customer_id] = {
               score: bc.punctuality_score,
               label: bc.reputation,
@@ -87,13 +92,18 @@ export const action = async ({ request }: LoaderFunctionArgs) => {
   if (intent === "reset-balance" && shopifyNumericId) {
     const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
     try {
-      const res = await fetch(`${BACKEND_URL}/api/customers/shopify/${shopifyNumericId}/reset-balance`, {
-        method: "PATCH",
-        headers: { "Authorization": `Bearer ${accessToken}` },
-      });
+      const res = await fetch(
+        `${BACKEND_URL}/api/customers/shopify/${shopifyNumericId}/reset-balance`,
+        {
+          method: "PATCH",
+          headers: { Authorization: `Bearer ${accessToken}` },
+        },
+      );
       if (!res.ok) return { error: "Error al resetear balance" };
       return { success: true };
-    } catch { return { error: "Error de red" }; }
+    } catch {
+      return { error: "Error de red" };
+    }
   }
   return null;
 };
@@ -103,20 +113,31 @@ export const headers = () => ({
 });
 
 export default function ShopifyCustomers() {
-  const { customers, favorableBalanceMap, reputationMap } = useLoaderData<typeof loader>();
+  const { customers, favorableBalanceMap, reputationMap } =
+    useLoaderData<typeof loader>();
   const submit = useSubmit();
   const navigation = useNavigation();
   const [resetting, setResetting] = useState<Record<number, boolean>>({});
 
   const handleResetBalance = (shopifyNumericId: number) => {
-    if (!window.confirm("¿Estás seguro de que deseas vaciar el saldo a favor de este cliente? Esta acción no se puede deshacer.")) {
-        return;
+    if (
+      !window.confirm(
+        "¿Estás seguro de que deseas vaciar el saldo a favor de este cliente? Esta acción no se puede deshacer.",
+      )
+    ) {
+      return;
     }
-    submit({ intent: "reset-balance", shopifyNumericId: String(shopifyNumericId) }, { method: "post" });
+    submit(
+      { intent: "reset-balance", shopifyNumericId: String(shopifyNumericId) },
+      { method: "post" },
+    );
   };
 
   const reputationBadge = (label: string | null) => {
-    const config: Record<string, { tone: string; emoji: string; text: string }> = {
+    const config: Record<
+      string,
+      { tone: string; emoji: string; text: string }
+    > = {
       excelente: { tone: "success", emoji: "⭐", text: "Excelente" },
       buena: { tone: "info", emoji: "👍", text: "Buena" },
       regular: { tone: "attention", emoji: "⚠️", text: "Regular" },
@@ -126,7 +147,11 @@ export default function ShopifyCustomers() {
     const c = config[label ?? "sin_historial"] ?? config["sin_historial"];
     if (!c.tone) return <s-text color="subdued">{c.emoji}</s-text>;
     const badgeTone = (c.tone as any) || "info";
-    return <s-badge tone={badgeTone}>{c.emoji} {c.text}</s-badge>;
+    return (
+      <s-badge tone={badgeTone}>
+        {c.emoji} {c.text}
+      </s-badge>
+    );
   };
 
   const getShopifyNumericId = (gid: string) => {
@@ -137,13 +162,8 @@ export default function ShopifyCustomers() {
   return (
     <s-page heading="Clientes de Shopify">
       <s-stack gap="base">
-
         {/* Summary */}
-        <s-grid
-          gridTemplateColumns="repeat(1, 1fr)"
-          gap="small"
-          padding="base"
-        >
+        <s-grid gridTemplateColumns="repeat(1, 1fr)" gap="small" padding="base">
           <s-grid-item gridColumn="span 1">
             <s-section>
               <s-stack alignItems="center" gap="small-200">
@@ -155,9 +175,14 @@ export default function ShopifyCustomers() {
         </s-grid>
 
         {/* Customers Table */}
-        <s-section padding="base" accessibilityLabel="Lista de Clientes Shopify">
+        <s-section
+          padding="base"
+          accessibilityLabel="Lista de Clientes Shopify"
+        >
           {customers.length === 0 ? (
-            <s-text color="subdued">No hay clientes registrados en esta tienda.</s-text>
+            <s-text color="subdued">
+              No hay clientes registrados en esta tienda.
+            </s-text>
           ) : (
             <s-table>
               <s-table-header-row>
@@ -165,7 +190,9 @@ export default function ShopifyCustomers() {
                 <s-table-header>Email</s-table-header>
                 <s-table-header>Teléfono</s-table-header>
                 <s-table-header format="numeric">Órdenes</s-table-header>
-                <s-table-header listSlot="primary" format="numeric">Saldo a Favor</s-table-header>
+                <s-table-header listSlot="primary" format="numeric">
+                  Saldo a Favor
+                </s-table-header>
                 <s-table-header>Reputación Crediticia</s-table-header>
                 <s-table-header>Acciones</s-table-header>
               </s-table-header-row>
@@ -196,10 +223,17 @@ export default function ShopifyCustomers() {
                         )}
                       </s-table-cell>
                       <s-table-cell>
-                        {reputationBadge(reputationMap[numericId]?.label ?? null)}
+                        {reputationBadge(
+                          reputationMap[numericId]?.label ?? null,
+                        )}
                       </s-table-cell>
                       <s-table-cell>
-                        <s-stack direction="inline" gap="small-100" alignItems="center" justifyContent="center">
+                        <s-stack
+                          direction="inline"
+                          gap="small-100"
+                          alignItems="center"
+                          justifyContent="center"
+                        >
                           {hasSaldo && (
                             <s-button
                               id={`reset-balance-${numericId}`}
@@ -211,8 +245,8 @@ export default function ShopifyCustomers() {
                               Vaciar Saldo
                             </s-button>
                           )}
-                          <s-button 
-                            href={`/app/customer_detail/${numericId}`} 
+                          <s-button
+                            href={`/app/customer_detail/${numericId}`}
                             accessibilityLabel="Ver detalles del cliente"
                           >
                             Ver cliente
@@ -230,7 +264,13 @@ export default function ShopifyCustomers() {
         {/* Footer */}
         <s-stack padding="base" alignItems="center" gap="base">
           <s-text color="subdued">Desarrollado por Opentech LCC</s-text>
-          <s-text>¿Tienes alguna duda? <s-link href="https://lccopen.tech/contact" target="_blank">Contáctanos</s-link>.</s-text>
+          <s-text>
+            ¿Tienes alguna duda?{" "}
+            <s-link href="https://lccopen.tech/contact" target="_blank">
+              Contáctanos
+            </s-link>
+            .
+          </s-text>
         </s-stack>
       </s-stack>
     </s-page>

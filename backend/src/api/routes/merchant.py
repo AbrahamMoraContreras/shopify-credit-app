@@ -67,14 +67,13 @@ def register_merchant(
         }
     )
     
-    # Set HttpOnly cookie for refresh token
     response.set_cookie(
         key="refresh_token",
         value=refresh_token,
         httponly=True,
         max_age=7 * 24 * 60 * 60, # 7 days
         samesite="lax",
-        secure=False, # Set to True in production (HTTPS)
+        secure=False, 
     )
     
     return response

@@ -8,7 +8,7 @@ class Customer(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
-    # 🔥 NUEVO — Merchant que es dueño del cliente
+    # NUEVO — Merchant que es dueño del cliente
     merchant_id = Column(
         UUID(as_uuid=True),
         ForeignKey("merchants.id"),
@@ -16,7 +16,6 @@ class Customer(Base):
         index=True
     )
 
-    # ----- Datos base -----
     full_name = Column(String, nullable=False)
     email = Column(String, nullable=True)
 
@@ -24,10 +23,10 @@ class Customer(Base):
     shopify_customer_id = Column(BigInteger, nullable=True, index=True)
     favorable_balance = Column(Numeric(12, 2), nullable=False, default=0.00)
     
-    # Reputación y Puntualidad (0.00 a 100.00 %)
+    # Puntualidad (0.00 a 100.00 %)
     punctuality_score = Column(Numeric(5, 2), nullable=True, default=None)
 
-    # Relationships
+    # Relaciones
     credits = relationship("Credit", back_populates="customer")
 
     @property
