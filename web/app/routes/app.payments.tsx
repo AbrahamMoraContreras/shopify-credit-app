@@ -1,4 +1,7 @@
 import { useEffect, useState } from "react";
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { type LoaderFunctionArgs, type ActionFunctionArgs } from "react-router";
 import { useLoaderData, useSubmit, useNavigation } from "react-router";
 import { getAccessTokenForShop } from "../lib/auth.server";
@@ -47,9 +50,23 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const pageSize = 20;
   const offset = (Number(page) - 1) * pageSize;
 
+  const payment_id = url.searchParams.get("payment_id") || "";
+  const credit_id = url.searchParams.get("credit_id") || "";
+  const customer_name = url.searchParams.get("customer_name") || "";
+  const payment_date = url.searchParams.get("payment_date") || "";
+
+  const params = new URLSearchParams({
+    limit: pageSize.toString(),
+    offset: offset.toString(),
+  });
+  if (payment_id) params.append("payment_id", payment_id);
+  if (credit_id) params.append("credit_id", credit_id);
+  if (customer_name) params.append("customer_name", customer_name);
+  if (payment_date) params.append("payment_date", payment_date);
+
   const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
   const [paymentsRes, proofsRes] = await Promise.all([
-    fetch(`${BACKEND_URL}/api/payments?limit=${pageSize}&offset=${offset}`, {
+    fetch(`${BACKEND_URL}/api/payments?${params.toString()}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     }),
     fetch(`${BACKEND_URL}/api/payments/payment-proofs?status=PENDIENTE`, {
@@ -66,6 +83,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       ? proofs.filter((p: any) => p.status === "PENDIENTE")
       : [],
     page: Number(page),
+    filters: { payment_id, credit_id, customer_name, payment_date },
   };
 };
 
@@ -151,10 +169,12 @@ export default function PaymentHistorial() {
     payments,
     proofs,
     page: loaderPage,
+    filters,
   } = useLoaderData<typeof loader>() as {
     payments: PaymentListItem[];
     proofs: PaymentProof[];
     page: number;
+    filters: any;
   };
   const submit = useSubmit();
   const navigation = useNavigation();
@@ -164,6 +184,7 @@ export default function PaymentHistorial() {
   const proofsLoading = false;
   const [page, setPage] = useState(loaderPage || 1);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [filterState, setFilterState] = useState(filters);
   const pageSize = 20;
 
   useEffect(() => {
@@ -185,6 +206,25 @@ export default function PaymentHistorial() {
     } else {
       setSelectedIds(new Set());
     }
+  };
+
+  const handleSearch = () => {
+    const fd = new FormData();
+    Object.entries(filterState).forEach(([k, v]) => {
+      if (v) fd.append(k, v as string);
+    });
+    fd.append("page", "1");
+    submit(fd, { method: "get" });
+  };
+
+  const clearSearch = () => {
+    setFilterState({
+      payment_id: "",
+      credit_id: "",
+      customer_name: "",
+      payment_date: "",
+    });
+    submit({ page: "1" }, { method: "get" });
   };
 
   const handleBatchReview = (status: string) => {
@@ -299,6 +339,81 @@ export default function PaymentHistorial() {
     (id) => payments.find((p) => p.id === id)?.status === "APROBADO",
   );
 
+  const handleExport = (format: string) => {
+    if (!format || !payments.length) return;
+
+    // We export the loaded payments taking care of calculated fields like Balance Restante.
+    const exportData = payments.map((p) => {
+      const creditTotal = Number(p.credit_total_amount);
+      const abono = Number(p.amount);
+      const diff = creditTotal - abono;
+      const saldoRestante = Math.max(0, diff);
+      const saldoAFavor = Math.max(0, abono - creditTotal);
+
+      let cuotasCubiertas = "-";
+      if (p.installments_covered) {
+        cuotasCubiertas = p.installments_covered
+          .split(",")
+          .filter((x: string) => x.trim())
+          .length.toString();
+      }
+
+      return {
+        "ID Pago": p.id,
+        "ID Crédito": p.credit_id,
+        Fecha: new Date(p.payment_date).toLocaleDateString("es-ES"),
+        Cliente: p.customer_name,
+        "Total Crédito": `$${creditTotal.toFixed(2)}`,
+        "Cuotas Pagadas": cuotasCubiertas,
+        Abono: `$${abono.toFixed(2)}`,
+        "Balance Cliente": `$${saldoAFavor.toFixed(2)}`,
+        "Balance Restante": `$${saldoRestante.toFixed(2)}`,
+        Referencia: p.reference_number,
+        Estado: p.status,
+      };
+    });
+
+    if (format === "csv" || format === "xlsx") {
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Pagos");
+      if (format === "csv") {
+        XLSX.writeFile(wb, "pagos.csv");
+      } else {
+        XLSX.writeFile(wb, "pagos.xlsx");
+      }
+    } else if (format === "pdf") {
+      const doc = new jsPDF("landscape");
+      doc.text("Reporte de Pagos", 14, 15);
+      autoTable(doc, {
+        startY: 20,
+        head: [
+          [
+            "ID Pago",
+            "ID Crédito",
+            "Fecha",
+            "Cliente",
+            "Total Crédito",
+            "Abono",
+            "Balance Restante",
+            "Estado",
+          ],
+        ],
+        body: exportData.map((d) => [
+          d["ID Pago"],
+          d["ID Crédito"],
+          d["Fecha"],
+          d.Cliente,
+          d["Total Crédito"],
+          d.Abono,
+          d["Balance Restante"],
+          d.Estado,
+        ]),
+      });
+      doc.save("pagos.pdf");
+    }
+  };
+
   return (
     <s-page heading="Historial de Pagos" inlineSize="large">
       <s-button
@@ -405,21 +520,85 @@ export default function PaymentHistorial() {
       <s-divider />
 
       <s-section padding="base">
-        <s-heading>Lista de Pagos</s-heading>
+        <s-stack
+          direction="inline"
+          justifyContent="space-between"
+          alignItems="center"
+          paddingBlockEnd="base"
+        >
+          <s-heading>Lista de Pagos</s-heading>
+          <s-select
+            value=""
+            onChange={(e: any) => handleExport(e.target.value)}
+          >
+            <s-option value="" disabled>
+              Exportar Datos...
+            </s-option>
+            <s-option value="csv">Exportar a CSV</s-option>
+            <s-option value="xlsx">Exportar a XLSX</s-option>
+            <s-option value="pdf">Exportar a PDF</s-option>
+          </s-select>
+        </s-stack>
+
+        <s-stack direction="block" gap="base" paddingBlockEnd="base">
+          <s-stack direction="inline" gap="small" alignItems="end">
+            <s-text-field
+              type="number"
+              label="ID Pago"
+              value={filterState.payment_id}
+              onInput={(e: any) =>
+                setFilterState({ ...filterState, payment_id: e.target.value })
+              }
+            />
+            <s-text-field
+              type="number"
+              label="ID Crédito"
+              value={filterState.credit_id}
+              onInput={(e: any) =>
+                setFilterState({ ...filterState, credit_id: e.target.value })
+              }
+            />
+            <s-text-field
+              type="text"
+              label="Cliente"
+              value={filterState.customer_name}
+              onInput={(e: any) =>
+                setFilterState({
+                  ...filterState,
+                  customer_name: e.target.value,
+                })
+              }
+            />
+            <s-text-field
+              type="date"
+              label="Fecha"
+              value={filterState.payment_date}
+              onInput={(e: any) =>
+                setFilterState({ ...filterState, payment_date: e.target.value })
+              }
+            />
+            <s-button onClick={handleSearch} variant="primary">
+              Buscar
+            </s-button>
+            <s-button onClick={clearSearch}>Limpiar</s-button>
+          </s-stack>
+        </s-stack>
+
         <s-table
           paginate
           loading={loading || undefined}
           hasNextPage={payments.length === pageSize}
           hasPreviousPage={loaderPage > 1}
-          onNextPage={() =>
-            submit({ page: String(loaderPage + 1) }, { method: "get" })
-          }
-          onPreviousPage={() =>
-            submit(
-              { page: String(Math.max(1, loaderPage - 1)) },
-              { method: "get" },
-            )
-          }
+          onNextPage={() => {
+            const searchParams = new URLSearchParams(window.location.search);
+            searchParams.set("page", String(loaderPage + 1));
+            submit(searchParams, { method: "get" });
+          }}
+          onPreviousPage={() => {
+            const searchParams = new URLSearchParams(window.location.search);
+            searchParams.set("page", String(Math.max(1, loaderPage - 1)));
+            submit(searchParams, { method: "get" });
+          }}
         >
           <s-table-header-row>
             <s-table-header>

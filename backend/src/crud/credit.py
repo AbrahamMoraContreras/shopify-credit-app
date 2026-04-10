@@ -12,6 +12,7 @@ from models.history import CreditHistory
 from models.customer import Customer
 from models.credit_item import CreditItem
 from schemas.credit import CreditCreate, CreditUpdate
+from crud.audit import log_audit_action
 from crud.customer import get_customer_by_shopify_id, create_customer
 from schemas.customer import CustomerCreate
 from models.enums import InstallmentStatus
@@ -139,6 +140,15 @@ def create_credit(db: Session, merchant_id: str, payload: CreditCreate):
             ))
         db.commit()
         _log_history(db, credit.id, "CUOTAS_GENERADAS", f"{credit.installments_count} cuotas generadas automáticamente")
+        
+    log_audit_action(
+        db=db,
+        merchant_id=merchant_id,
+        entity_name="CREDIT",
+        action="CREATE_CREDIT",
+        entity_id=str(credit.id),
+        changes={"total_amount": float(credit.total_amount), "customer": customer.full_name}
+    )
     return credit
 
 def get_credit(db: Session, credit_id: int) -> Optional[Credit]:
@@ -157,7 +167,9 @@ def list_credits(
     status: Optional[Union[CreditStatus, List[CreditStatus]]] = None,
     customer_id: Optional[int] = None,
     credit_id: Optional[int] = None,
-    created_at_date: Optional[date] = None
+    created_at_date: Optional[date] = None,
+    customer_name: Optional[str] = None,
+    due_date: Optional[date] = None
 ) -> Tuple[List[Credit], int]:
     query = db.query(Credit).options(joinedload(Credit.customer)).filter(Credit.merchant_id == merchant_id)
     if status:
@@ -165,14 +177,23 @@ def list_credits(
             query = query.filter(Credit.status.in_(status))
         else:
             query = query.filter(Credit.status == status)
-    if customer_id:
-        query = query.join(Credit.customer).filter(
-            (Credit.customer_id == customer_id) | (Customer.shopify_customer_id == str(customer_id))
-        )
+    
+    if customer_id or customer_name:
+        query = query.join(Credit.customer)
+        if customer_id:
+            query = query.filter(
+                (Credit.customer_id == customer_id) | (Customer.shopify_customer_id == str(customer_id))
+            )
+        if customer_name:
+            query = query.filter(Customer.full_name.ilike(f"%{customer_name}%"))
+
     if credit_id:
         query = query.filter(Credit.id == credit_id)
     if created_at_date:
         query = query.filter(func.date(Credit.created_at) == created_at_date)
+    if due_date:
+        query = query.join(Credit.installments).filter(CreditInstallment.due_date == due_date)
+        
     total = query.count()
     items = query.order_by(Credit.id.desc()).offset(skip).limit(limit).all()
     return items, total
@@ -187,8 +208,18 @@ def update_credit(db: Session, credit: Credit, payload: CreditUpdate):
     return credit
 
 def delete_credit(db: Session, credit: Credit):
+    merchant_id = credit.merchant_id
+    credit_id = credit.id
     db.delete(credit)
     db.commit()
+    log_audit_action(
+        db=db,
+        merchant_id=merchant_id,
+        entity_name="CREDIT",
+        action="DELETE_CREDIT",
+        entity_id=str(credit_id),
+        changes={"action": "Credit deleted"}
+    )
 
 def cancel_credit(db: Session, credit: Credit):
     credit.status = CreditStatus.CANCELADO
@@ -200,6 +231,15 @@ def cancel_credit(db: Session, credit: Credit):
     _log_history(db, credit.id, "CREDITO_CANCELADO", "El crédito fue cancelado manualmente")
     db.commit()
     db.refresh(credit)
+    
+    log_audit_action(
+        db=db,
+        merchant_id=credit.merchant_id,
+        entity_name="CREDIT",
+        action="CANCEL_CREDIT",
+        entity_id=str(credit.id),
+        changes={"action": "Credit cancelled"}
+    )
     return credit
 
 

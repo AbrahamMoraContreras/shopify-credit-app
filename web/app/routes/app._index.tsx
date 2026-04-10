@@ -1,4 +1,3 @@
-
 import { type LoaderFunctionArgs } from "react-router";
 import { useLoaderData } from "react-router";
 import { authenticate } from "../shopify.server";
@@ -33,18 +32,26 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     let accessToken = await getAccessTokenForShop(session.shop);
 
     if (accessToken) {
-        // Fetch the Dashboard snapshot using Bearer token
-        const dashRes = await fetch(`${BACKEND_URL}/api/dashboard`, {
-            headers: { "Authorization": `Bearer ${accessToken}` }
-        });
-        
-        if (dashRes.ok) {
-            dashboardData = await dashRes.json();
-        } else {
-            console.error("[Home Loader] Dashboard API error:", dashRes.status);
-        }
+      // Fetch the Dashboard snapshot using Bearer token
+      const dashRes = await fetch(`${BACKEND_URL}/api/dashboard`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+
+      if (dashRes.ok) {
+        dashboardData = await dashRes.json();
+
+        // Ping audit silently
+        fetch(`${BACKEND_URL}/api/audit/login`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }).catch((ignored) => {});
+      } else {
+        console.error("[Home Loader] Dashboard API error:", dashRes.status);
+      }
     } else {
-        console.error("[Home Loader] Critical: Could not retrieve an access token for Home.");
+      console.error(
+        "[Home Loader] Critical: Could not retrieve an access token for Home.",
+      );
     }
   } catch (err) {
     console.error("[Home Loader] Fetch exception:", err);
@@ -65,7 +72,10 @@ export default function Home() {
   const clientsWithDebt = dashboardData?.customers?.clients_with_debt || 0;
   const customers = dashboardData?.customers_summary || [];
 
-  const totalPendingOrders = customers.reduce((sum, c) => sum + c.pendingOrders, 0);
+  const totalPendingOrders = customers.reduce(
+    (sum, c) => sum + c.pendingOrders,
+    0,
+  );
   const totalBalance = customers.reduce((sum, c) => sum + c.balance, 0);
 
   const formatCurrency = (amount: number) => {
@@ -77,16 +87,17 @@ export default function Home() {
 
   return (
     <s-page heading="Gestión de cobro y crédito">
-      <s-button variant="primary" slot="primary-action" accessibilityLabel="Establecer tasa de cambio">Seleccionar tasa de cambio</s-button>
+      <s-button
+        variant="primary"
+        slot="primary-action"
+        accessibilityLabel="Establecer tasa de cambio"
+      >
+        Seleccionar tasa de cambio
+      </s-button>
 
       <s-stack gap="base">
-
         {/* Summary Cards */}
-        <s-grid
-          gridTemplateColumns="repeat(2, 1fr)"
-          gap="small"
-          padding="base"
-        >
+        <s-grid gridTemplateColumns="repeat(2, 1fr)" gap="small" padding="base">
           <s-grid-item gridColumn="span 1">
             <s-section>
               <s-stack alignItems="center" gap="small-200">
@@ -111,7 +122,9 @@ export default function Home() {
           <s-table>
             <s-table-header-row>
               <s-table-header listSlot="primary">Cliente</s-table-header>
-              <s-table-header format="numeric">Ordenes Pendientes</s-table-header>
+              <s-table-header format="numeric">
+                Ordenes Pendientes
+              </s-table-header>
               <s-table-header format="numeric">Deuda Pendiente</s-table-header>
               <s-table-header format="numeric">Saldo a favor</s-table-header>
               <s-table-header listSlot="secondary">Detalles</s-table-header>
@@ -127,10 +140,14 @@ export default function Home() {
                   <s-text font-weight="bold">{totalPendingOrders}</s-text>
                 </s-table-cell>
                 <s-table-cell>
-                  <s-text font-weight="bold">{formatCurrency(totalDebt)}</s-text>
+                  <s-text font-weight="bold">
+                    {formatCurrency(totalDebt)}
+                  </s-text>
                 </s-table-cell>
                 <s-table-cell>
-                  <s-text font-weight="bold">{formatCurrency(totalBalance)}</s-text>
+                  <s-text font-weight="bold">
+                    {formatCurrency(totalBalance)}
+                  </s-text>
                 </s-table-cell>
                 <s-table-cell></s-table-cell>
               </s-table-row>
@@ -143,10 +160,16 @@ export default function Home() {
                       <s-text>{customer.name}</s-text>
                     </s-table-cell>
                     <s-table-cell>{customer.pendingOrders}</s-table-cell>
-                    <s-table-cell>{formatCurrency(customer.pendingDebt)}</s-table-cell>
-                    <s-table-cell>{formatCurrency(customer.balance)}</s-table-cell>
                     <s-table-cell>
-                      <s-link href={`/app/customer_detail?name=${encodeURIComponent(customer.name)}`}>
+                      {formatCurrency(customer.pendingDebt)}
+                    </s-table-cell>
+                    <s-table-cell>
+                      {formatCurrency(customer.balance)}
+                    </s-table-cell>
+                    <s-table-cell>
+                      <s-link
+                        href={`/app/customer_detail?name=${encodeURIComponent(customer.name)}`}
+                      >
                         <s-text color="subdued">Ver órdenes</s-text>
                       </s-link>
                     </s-table-cell>
@@ -154,7 +177,10 @@ export default function Home() {
                 ))
               ) : (
                 <s-table-row>
-                  <s-table-cell>No hay clientes con deudas activas o saldos a favor en este momento.</s-table-cell>
+                  <s-table-cell>
+                    No hay clientes con deudas activas o saldos a favor en este
+                    momento.
+                  </s-table-cell>
                   <s-table-cell></s-table-cell>
                   <s-table-cell></s-table-cell>
                   <s-table-cell></s-table-cell>
@@ -167,8 +193,16 @@ export default function Home() {
 
         {/* Footer */}
         <s-stack padding="base" alignItems="center" gap="tight">
-          <s-text color="subdued" variant="bodySm">Desarrollado por Opentech LCC</s-text>
-          <s-text>¿Tienes alguna duda? <s-link href="https://lccopen.tech/contact" target="_blank">Contáctanos</s-link>.</s-text>
+          <s-text color="subdued" variant="bodySm">
+            Desarrollado por Opentech LCC
+          </s-text>
+          <s-text>
+            ¿Tienes alguna duda?{" "}
+            <s-link href="https://lccopen.tech/contact" target="_blank">
+              Contáctanos
+            </s-link>
+            .
+          </s-text>
         </s-stack>
       </s-stack>
     </s-page>

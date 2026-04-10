@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { type LoaderFunctionArgs, type ActionFunctionArgs } from "react-router";
+import { useRouteError, isRouteErrorResponse } from "react-router";
 import {
   useLoaderData,
   useSubmit,
@@ -248,6 +249,28 @@ export default function ExpectedPayments() {
             </s-table-body>
           </s-table>
         </s-box>
+      </s-section>
+    </s-page>
+  );
+}
+
+export function ErrorBoundary() {
+  const error = useRouteError();
+  const errorMessage = isRouteErrorResponse(error)
+    ? `${error.status} ${error.statusText}`
+    : error instanceof Error
+      ? error.message
+      : "Ocurrió un error inesperado al conectar con el servidor.";
+
+  return (
+    <s-page heading="Error" inlineSize="large">
+      <s-section padding="base">
+        <s-banner tone="critical" heading="Ha ocurrido un problema">
+          <p>{errorMessage}</p>
+          <p style={{ marginTop: "10px" }}>
+            Por favor, reintenta más tarde o revisa tu conexión.
+          </p>
+        </s-banner>
       </s-section>
     </s-page>
   );

@@ -1,5 +1,8 @@
 import { useLoaderData, useNavigation } from "react-router";
 import type { LoaderFunctionArgs } from "react-router";
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { authenticate } from "../shopify.server";
 import { getAccessTokenForShop } from "../lib/auth.server";
 import { ClientDate } from "../components/ClientDate";
@@ -105,15 +108,111 @@ export default function CustomerDetail() {
     );
   };
 
+  const handleExport = (format: string) => {
+    if (!format || !customer) return;
+
+    const summaryHeader = [["Atributo", "Valor"]];
+    const summaryData = [
+      ["Nombre", customer.full_name || ""],
+      ["Email", customer.email || "Sin correo registrado"],
+      ["ID Interno", customer.id?.toString() || ""],
+      ["ID Shopify", shopifyCustomerId?.toString() || ""],
+      ["Deuda Total Pendiente", `$${totalDebt.toFixed(2)}`],
+      [
+        "Saldo a Favor",
+        `$${Number(customer.favorable_balance || 0).toFixed(2)}`,
+      ],
+      [
+        "Límite de Crédito",
+        customer.credit_limit
+          ? `$${Number(customer.credit_limit).toFixed(2)}`
+          : "Ilimitado",
+      ],
+      ["Reputación", customer.reputation || "sin_historial"],
+    ];
+
+    const operationsData = operations.map((op) => ({
+      Fecha: new Date(op.date).toLocaleDateString(),
+      "Tipo Operación": op.label,
+      Referencia: op.reference,
+      Monto: `$${Number(op.amount).toFixed(2)}`,
+      Estatus: op.status,
+    }));
+
+    if (format === "csv" || format === "xlsx") {
+      const wb = XLSX.utils.book_new();
+
+      const wsSummary = XLSX.utils.aoa_to_sheet([
+        ...summaryHeader,
+        ...summaryData,
+      ]);
+      XLSX.utils.book_append_sheet(wb, wsSummary, "Resumen Cliente");
+
+      if (operationsData.length > 0) {
+        const wsOperations = XLSX.utils.json_to_sheet(operationsData);
+        XLSX.utils.book_append_sheet(wb, wsOperations, "Historial Operaciones");
+      }
+
+      if (format === "csv") {
+        const allData = [
+          ["--- Resumen Cliente ---"],
+          ...summaryHeader,
+          ...summaryData,
+          [],
+          ["--- Historial de Operaciones ---"],
+          operationsData.length > 0 ? Object.keys(operationsData[0]) : [],
+          ...operationsData.map(Object.values),
+        ];
+        const wbCsv = XLSX.utils.book_new();
+        const wsCombined = XLSX.utils.aoa_to_sheet(allData);
+        XLSX.utils.book_append_sheet(wbCsv, wsCombined, "Export");
+        XLSX.writeFile(wbCsv, `cliente_${customer.id}.csv`);
+      } else {
+        XLSX.writeFile(wb, `cliente_${customer.id}.xlsx`);
+      }
+    } else if (format === "pdf") {
+      const doc = new jsPDF();
+      doc.text(`Reporte de Cliente: ${customer.full_name}`, 14, 15);
+
+      autoTable(doc, { startY: 20, head: summaryHeader, body: summaryData });
+      const currentY = (doc as any).lastAutoTable.finalY + 10;
+
+      if (operationsData.length > 0) {
+        doc.text("Historial de Operaciones Completas", 14, currentY);
+        autoTable(doc, {
+          startY: currentY + 5,
+          head: [Object.keys(operationsData[0])],
+          body: operationsData.map(Object.values),
+        });
+      }
+
+      doc.save(`cliente_${customer.id}.pdf`);
+    }
+  };
+
   return (
     <s-page heading="Detalles del Cliente">
-      <s-button
+      <s-stack
+        direction="inline"
+        gap="small"
+        alignItems="center"
         slot="primary-action"
-        href={`shopify:admin/customers/${shopifyCustomerId}`}
-        accessibilityLabel="Ver en Shopify Administrador"
       >
-        Ver en Shopify
-      </s-button>
+        <s-select value="" onChange={(e: any) => handleExport(e.target.value)}>
+          <s-option value="" disabled>
+            Exportar Datos...
+          </s-option>
+          <s-option value="csv">Exportar a CSV</s-option>
+          <s-option value="xlsx">Exportar a XLSX</s-option>
+          <s-option value="pdf">Exportar a PDF</s-option>
+        </s-select>
+        <s-button
+          href={`shopify:admin/customers/${shopifyCustomerId}`}
+          accessibilityLabel="Ver en Shopify Administrador"
+        >
+          Ver en Shopify
+        </s-button>
+      </s-stack>
 
       <s-stack gap="base">
         <s-grid gridTemplateColumns="fr" alignItems="center" gap="base">

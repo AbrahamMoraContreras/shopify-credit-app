@@ -14,6 +14,7 @@ from models.credit_item import CreditItem
 from models.customer import Customer
 from crud.cte import credit_items_agg_cte
 from models.payment_token import PaymentToken
+from crud.audit import log_audit_action
 
 def update_customer_punctuality(db: Session, customer: Customer):
     # Calcula el promedio de la puntualidad de los pagos aprobados
@@ -188,6 +189,15 @@ def create_payment(
             db.add(payment)
             db.commit()
             db.refresh(payment)
+            
+            log_audit_action(
+                db=db,
+                merchant_id=merchant_id,
+                entity_name="PAYMENT",
+                action="REGISTER_PAYMENT",
+                entity_id=str(payment.id),
+                changes={"amount": float(payment.amount), "credit_id": credit.id, "status": payment.status}
+            )
         except Exception as e:
             db.rollback()
             if "uq_payment_reference" in str(e) or "reference_number" in str(e).lower():
@@ -371,6 +381,15 @@ def review_payment(
     db.commit()
     db.refresh(payment)
     
+    log_audit_action(
+        db=db,
+        merchant_id=payment.merchant_id,
+        entity_name="PAYMENT",
+        action="REVIEW_PAYMENT",
+        entity_id=str(payment.id),
+        changes={"status": status}
+    )
+    
     if credit.customer:
         update_customer_punctuality(db, credit.customer)
         db.commit()
@@ -445,6 +464,10 @@ def list_payments(
     merchant_id: UUID,
     limit: int = 20,
     offset: int = 0,
+    payment_id: int | None = None,
+    credit_id: int | None = None,
+    customer_name: str | None = None,
+    payment_date: date | None = None,
 ):
     products_cte = credit_items_agg_cte(db)
 
@@ -474,9 +497,17 @@ def list_payments(
             products_cte.c.credit_id == Payment.credit_id
         )
         .filter(Payment.merchant_id == merchant_id)
-        .order_by(Payment.payment_date.desc())
-        .limit(limit)
-        .offset(offset)
     )
+
+    if payment_id is not None:
+        q = q.filter(Payment.id == payment_id)
+    if credit_id is not None:
+        q = q.filter(Payment.credit_id == credit_id)
+    if customer_name:
+        q = q.filter(Customer.full_name.ilike(f"%{customer_name}%"))
+    if payment_date:
+        q = q.filter(func.date(Payment.payment_date) == payment_date)
+        
+    q = q.order_by(Payment.payment_date.desc()).limit(limit).offset(offset)
 
     return q.all()

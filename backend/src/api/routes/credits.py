@@ -49,8 +49,10 @@ def create_credit_endpoint(
 def list_credits_endpoint(
     status: Optional[List[CreditStatus]] = Query(None),
     customer_id: Optional[int] = Query(None),
+    customer_name: Optional[str] = Query(None),
     credit_id: Optional[int] = Query(None),
     created_at_date: Optional[date] = Query(None),
+    due_date: Optional[date] = Query(None),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     db: Session = Depends(get_db),
@@ -63,8 +65,10 @@ def list_credits_endpoint(
         limit=limit,
         status=status,
         customer_id=customer_id,
+        customer_name=customer_name,
         credit_id=credit_id,
-        created_at_date=created_at_date
+        created_at_date=created_at_date,
+        due_date=due_date
     )
     return items
 

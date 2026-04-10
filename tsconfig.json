@@ -35,6 +35,13 @@
       ".",
       "./.react-router/types"
     ],
+    "paths": {
+      "@/*": [
+        "./web/app/routes/*",
+        "./web/app/*",
+        "./app/*"
+      ]
+    },
     "incremental": true,
     "esModuleInterop": true,
     "plugins": [

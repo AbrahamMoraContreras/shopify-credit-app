@@ -36,12 +36,25 @@ def create_payment_endpoint(
 
 @router.get("", response_model=list[PaymentListItem])
 def get_payments(
+    payment_id: int | None = None,
+    credit_id: int | None = None,
+    customer_name: str | None = None,
+    payment_date: date | None = None,
     limit: int = 20,
     offset: int = 0,
     db: Session = Depends(get_db),
     merchant_id: UUID = Depends(get_merchant_id),
 ):
-    return list_payments(db, merchant_id, limit, offset)
+    return list_payments(
+        db=db, 
+        merchant_id=merchant_id, 
+        limit=limit, 
+        offset=offset,
+        payment_id=payment_id,
+        credit_id=credit_id,
+        customer_name=customer_name,
+        payment_date=payment_date
+    )
 
 
 

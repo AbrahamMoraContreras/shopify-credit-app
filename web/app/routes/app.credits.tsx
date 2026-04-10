@@ -5,6 +5,9 @@ import { useLoaderData, useSubmit, useNavigation } from "react-router";
 import { Credit } from "web/app/types/credit";
 import { redirect } from "@remix-run/node";
 import { useState } from "react";
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { getAccessTokenForShop } from "../lib/auth.server";
 import { authenticate } from "../shopify.server";
 
@@ -44,17 +47,35 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     throw new Error("Token no disponible");
   }
 
+  const url = new URL(request.url);
+  const credit_id = url.searchParams.get("credit_id") || "";
+  const customer_name = url.searchParams.get("customer_name") || "";
+  const created_at_date = url.searchParams.get("created_at_date") || "";
+  const due_date = url.searchParams.get("due_date") || "";
+
+  const params = new URLSearchParams();
+  if (credit_id) params.append("credit_id", credit_id);
+  if (customer_name) params.append("customer_name", customer_name);
+  if (created_at_date) params.append("created_at_date", created_at_date);
+  if (due_date) params.append("due_date", due_date);
+
   const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
-  const response = await fetch(`${BACKEND_URL}/api/credits`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
+  const response = await fetch(
+    `${BACKEND_URL}/api/credits?${params.toString()}`,
+    {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    },
+  );
 
   if (!response.ok) {
     throw new Error("Error cargando créditos");
   }
 
   const credits: Credit[] = await response.json();
-  return { credits };
+  return {
+    credits,
+    filters: { credit_id, customer_name, created_at_date, due_date },
+  };
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -92,7 +113,7 @@ export const headers = () => ({
 });
 
 export default function CreditHistorial() {
-  const { credits: loaderCredits } = useLoaderData<typeof loader>();
+  const { credits: loaderCredits, filters } = useLoaderData<typeof loader>();
   const submit = useSubmit();
   const navigation = useNavigation();
 
@@ -101,10 +122,29 @@ export default function CreditHistorial() {
 
   const credits = loaderCredits;
 
+  const [filterState, setFilterState] = useState(filters);
   const [page, setPage] = useState(1);
   const pageSize = 20;
   const hasNextPage = credits.length === pageSize;
   const hasPreviousPage = page > 1;
+
+  const handleSearch = () => {
+    const fd = new FormData();
+    Object.entries(filterState).forEach(([k, v]) => {
+      if (v) fd.append(k, v as string);
+    });
+    submit(fd, { method: "get" });
+  };
+
+  const clearSearch = () => {
+    setFilterState({
+      credit_id: "",
+      customer_name: "",
+      created_at_date: "",
+      due_date: "",
+    });
+    submit({}, { method: "get" });
+  };
 
   const formatDate = (isoDate: string) => {
     if (!isoDate) return "—";
@@ -156,6 +196,58 @@ export default function CreditHistorial() {
     return cleaned.trim() || "—";
   };
 
+  const handleExport = (format: string) => {
+    if (!format || !credits.length) return;
+
+    const exportData = credits.map((c) => ({
+      ID: c.id,
+      Fecha: formatDate(c.created_at),
+      Cliente: c.customer?.full_name || "Desconocido",
+      "Monto Crédito": formatCurrency(c.total_amount),
+      Balance: formatCurrency(c.balance),
+      "Último Abono": formatCurrency(c.last_payment_amount),
+      Estatus: c.status,
+    }));
+
+    if (format === "csv" || format === "xlsx") {
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Creditos");
+      if (format === "csv") {
+        XLSX.writeFile(wb, "creditos.csv");
+      } else {
+        XLSX.writeFile(wb, "creditos.xlsx");
+      }
+    } else if (format === "pdf") {
+      const doc = new jsPDF();
+      doc.text("Reporte de Créditos", 14, 15);
+      autoTable(doc, {
+        startY: 20,
+        head: [
+          [
+            "ID",
+            "Fecha",
+            "Cliente",
+            "Monto Crédito",
+            "Balance",
+            "Último Abono",
+            "Estatus",
+          ],
+        ],
+        body: exportData.map((d) => [
+          d.ID,
+          d.Fecha,
+          d.Cliente,
+          d["Monto Crédito"],
+          d.Balance,
+          d["Último Abono"],
+          d.Estatus,
+        ]),
+      });
+      doc.save("creditos.pdf");
+    }
+  };
+
   return (
     <s-page heading="Créditos" inlineSize="large">
       <s-button
@@ -168,7 +260,72 @@ export default function CreditHistorial() {
       </s-button>
 
       <s-section>
-        <s-heading>Lista de Créditos Emitidos</s-heading>
+        <s-stack
+          direction="inline"
+          justifyContent="space-between"
+          alignItems="center"
+          paddingBlockEnd="base"
+        >
+          <s-heading>Lista de Créditos Emitidos</s-heading>
+          <s-select
+            value=""
+            onChange={(e: any) => handleExport(e.target.value)}
+          >
+            <s-option value="" disabled>
+              Exportar Datos...
+            </s-option>
+            <s-option value="csv">Exportar a CSV</s-option>
+            <s-option value="xlsx">Exportar a XLSX</s-option>
+            <s-option value="pdf">Exportar a PDF</s-option>
+          </s-select>
+        </s-stack>
+
+        <s-stack direction="block" gap="base" paddingBlockEnd="base">
+          <s-stack direction="inline" gap="small" alignItems="end">
+            <s-text-field
+              type="number"
+              label="ID Crédito"
+              value={filterState.credit_id}
+              onInput={(e: any) =>
+                setFilterState({ ...filterState, credit_id: e.target.value })
+              }
+            />
+            <s-text-field
+              type="text"
+              label="Cliente"
+              value={filterState.customer_name}
+              onInput={(e: any) =>
+                setFilterState({
+                  ...filterState,
+                  customer_name: e.target.value,
+                })
+              }
+            />
+            <s-text-field
+              type="date"
+              label="Emisión"
+              value={filterState.created_at_date}
+              onInput={(e: any) =>
+                setFilterState({
+                  ...filterState,
+                  created_at_date: e.target.value,
+                })
+              }
+            />
+            <s-text-field
+              type="date"
+              label="Vencimiento Cuota"
+              value={filterState.due_date}
+              onInput={(e: any) =>
+                setFilterState({ ...filterState, due_date: e.target.value })
+              }
+            />
+            <s-button onClick={handleSearch} variant="primary">
+              Buscar
+            </s-button>
+            <s-button onClick={clearSearch}>Limpiar</s-button>
+          </s-stack>
+        </s-stack>
 
         <s-table
           paginate

@@ -5,6 +5,10 @@ import {
   useActionData,
   useLoaderData,
 } from "react-router";
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import { useRouteError, isRouteErrorResponse } from "react-router";
 import { useEffect } from "react";
 import { type LoaderFunctionArgs, type ActionFunctionArgs } from "react-router";
 import { ClientDate } from "../components/ClientDate";
@@ -110,8 +114,136 @@ export default function PaymentDetail() {
     submit({ intent: "cancel" }, { method: "post" });
   };
 
+  const handleExport = (format: string) => {
+    if (!format || !payment) return;
+
+    const summaryHeader = [["Atributo", "Valor"]];
+    const summaryData = [
+      ["ID Pago", payment.id?.toString() || ""],
+      ["Cliente", payment.credit?.customer?.full_name || ""],
+      ["Monto Abonado", `$${Number(payment.amount).toFixed(2)}`],
+      ["Fecha", new Date(payment.payment_date).toLocaleDateString()],
+      ["Método", payment.payment_method],
+      ["Referencia", payment.reference_number || "N/A"],
+      ["Estado", payment.status || ""],
+    ];
+
+    const creditDetailsData = [
+      ["ID Crédito", payment.credit?.id?.toString() || ""],
+      ["Concepto", payment.credit?.concept || ""],
+    ];
+
+    const proofData = payment.proof
+      ? [
+          ["Banco Reportante", payment.proof.bank_name],
+          ["Referencia Reportada", payment.proof.reference_number],
+          ["Monto Reportado", `$${Number(payment.proof.amount).toFixed(2)}`],
+          [
+            "Fecha Reporte",
+            new Date(payment.proof.submitted_at).toLocaleDateString(),
+          ],
+          ["Notas Cliente", payment.proof.notes || "N/A"],
+        ]
+      : [];
+
+    const productsData = (payment.credit?.items || []).map((i) => ({
+      Producto: i.product_name,
+      Cantidad: i.quantity.toString(),
+      "Precio Unit.": `$${Number(i.unit_price).toFixed(2)}`,
+      Total: `$${(Number(i.unit_price) * i.quantity).toFixed(2)}`,
+    }));
+
+    if (format === "csv" || format === "xlsx") {
+      const wb = XLSX.utils.book_new();
+
+      const wsSummary = XLSX.utils.aoa_to_sheet([
+        ...summaryHeader,
+        ...summaryData,
+        [],
+        ["--- Crédito Asociado ---", ""],
+        ...creditDetailsData,
+      ]);
+      if (proofData.length > 0) {
+        XLSX.utils.sheet_add_aoa(
+          wsSummary,
+          [[], ["--- Comprobante ---", ""], ...proofData],
+          { origin: -1 },
+        );
+      }
+      XLSX.utils.book_append_sheet(wb, wsSummary, "Resumen Pago");
+
+      if (productsData.length > 0) {
+        const wsProducts = XLSX.utils.json_to_sheet(productsData);
+        XLSX.utils.book_append_sheet(wb, wsProducts, "Productos");
+      }
+
+      if (format === "csv") {
+        const allData = [
+          ["--- Resumen Pago ---"],
+          ...summaryHeader,
+          ...summaryData,
+          [],
+          ["--- Crédito Asociado ---"],
+          ...creditDetailsData,
+          [],
+          ...(proofData.length > 0
+            ? [["--- Comprobante ---"], ...proofData, []]
+            : []),
+          ["--- Productos ---"],
+          productsData.length > 0 ? Object.keys(productsData[0]) : [],
+          ...productsData.map(Object.values),
+        ];
+        const wbCsv = XLSX.utils.book_new();
+        const wsCombined = XLSX.utils.aoa_to_sheet(allData);
+        XLSX.utils.book_append_sheet(wbCsv, wsCombined, "Export");
+        XLSX.writeFile(wbCsv, `pago_${payment.id}.csv`);
+      } else {
+        XLSX.writeFile(wb, `pago_${payment.id}.xlsx`);
+      }
+    } else if (format === "pdf") {
+      const doc = new jsPDF();
+      doc.text(`Detalles de Pago #${payment.id}`, 14, 15);
+
+      autoTable(doc, { startY: 20, head: summaryHeader, body: summaryData });
+      let currentY = (doc as any).lastAutoTable.finalY + 10;
+
+      doc.text("Crédito Asociado", 14, currentY);
+      autoTable(doc, { startY: currentY + 5, body: creditDetailsData });
+      currentY = (doc as any).lastAutoTable.finalY + 10;
+
+      if (proofData.length > 0) {
+        doc.text("Comprobante Reportado", 14, currentY);
+        autoTable(doc, { startY: currentY + 5, body: proofData });
+        currentY = (doc as any).lastAutoTable.finalY + 10;
+      }
+
+      if (productsData.length > 0) {
+        doc.text("Productos en Crédito", 14, currentY);
+        autoTable(doc, {
+          startY: currentY + 5,
+          head: [Object.keys(productsData[0])],
+          body: productsData.map(Object.values),
+        });
+      }
+
+      doc.save(`pago_${payment.id}.pdf`);
+    }
+  };
+
   return (
     <s-page heading={`Detalles de Pago #${payment.id}`}>
+      <s-select
+        value=""
+        onChange={(e: any) => handleExport(e.target.value)}
+        slot="primary-action"
+      >
+        <s-option value="" disabled>
+          Exportar Datos...
+        </s-option>
+        <s-option value="csv">Exportar a CSV</s-option>
+        <s-option value="xlsx">Exportar a XLSX</s-option>
+        <s-option value="pdf">Exportar a PDF</s-option>
+      </s-select>
       <s-stack gap="base">
         <s-grid gridTemplateColumns="1fr 1fr" gap="base">
           <s-section padding="base">
@@ -280,13 +412,6 @@ export default function PaymentDetail() {
               Cancelar
             </s-button>
           )}
-          <s-button
-            variant="primary"
-            icon="export"
-            accessibilityLabel="Generar recibo en PDF"
-          >
-            Generar Recibo (PDF)
-          </s-button>
         </s-stack>
       </s-stack>
 
@@ -300,6 +425,28 @@ export default function PaymentDetail() {
           .
         </s-text>
       </s-stack>
+    </s-page>
+  );
+}
+
+export function ErrorBoundary() {
+  const error = useRouteError();
+  const errorMessage = isRouteErrorResponse(error)
+    ? `${error.status} ${error.statusText}`
+    : error instanceof Error
+      ? error.message
+      : "Ocurrió un error inesperado al conectar con el servidor.";
+
+  return (
+    <s-page heading="Error in Payment Detail" inlineSize="large">
+      <s-section padding="base">
+        <s-banner tone="critical" heading="Ha ocurrido un problema">
+          <p>{errorMessage}</p>
+          <p style={{ marginTop: "10px" }}>
+            Por favor, reintenta más tarde o revisa tu conexión.
+          </p>
+        </s-banner>
+      </s-section>
     </s-page>
   );
 }

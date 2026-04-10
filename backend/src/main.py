@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from api.routes import customer, credits, payments, dashboard, merchant, public
+from api.routes import customer, credits, payments, dashboard, merchant, public, audit
 from core.dependencies import get_db
 from core.config import settings
 from crud.payment import create_payment
@@ -20,6 +20,7 @@ app.include_router(payments.router, prefix="/api")
 app.include_router(dashboard.router, prefix="/api")
 app.include_router(merchant.router, prefix="/api")
 app.include_router(public.router, prefix="/api")
+app.include_router(audit.router, prefix="/api")
 
 
 app.add_middleware(
@@ -31,7 +32,7 @@ app.add_middleware(
         "http://127.0.0.1:3000",
         settings.FRONTEND_URL,
     ],
-    allow_origin_regex=r"https://.*", # Allow any https origin (like ngrok/cloudflare tunnels for shopify apps)
+    allow_origin_regex=r"^https://.*\.(trycloudflare\.com|loca\.lt|ngrok\.io|ngrok-free\.app|myshopify\.com)$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
