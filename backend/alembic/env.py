@@ -25,14 +25,24 @@ config = context.config
 # Setup loggers
 fileConfig(config.config_file_name)
 
-# Build database URL from .env
-DB_USER = os.getenv("POSTGRES_USER")
-DB_PASSWORD = os.getenv("POSTGRES_PASSWORD")
-DB_HOST = os.getenv("POSTGRES_HOST")
-DB_PORT = os.getenv("POSTGRES_PORT")
-DB_NAME = os.getenv("POSTGRES_DB")
+# Build database URL from .env or Render's DATABASE_URL
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-DATABASE_URL = f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+if not DATABASE_URL:
+    DB_USER = os.getenv("POSTGRES_USER", "postgres")
+    DB_PASSWORD = os.getenv("POSTGRES_PASSWORD", "postgres")
+    DB_HOST = os.getenv("POSTGRES_HOST", "localhost")
+    DB_PORT = os.getenv("POSTGRES_PORT", "5432")
+    DB_NAME = os.getenv("POSTGRES_DB", "postgres")
+    DATABASE_URL = f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+
+# SQLAlchemy 1.4+ requiere que empiece con postgresql:// en vez de postgres://
+if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+# Asegurar usar psycopg2 si no está usando un driver async explícito en este entorno
+if DATABASE_URL and DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
 
 # Inject URL into Alembic config
 config.set_main_option("sqlalchemy.url", DATABASE_URL)
