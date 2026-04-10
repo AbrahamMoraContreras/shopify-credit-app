@@ -2,6 +2,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from uuid import UUID
+from typing import Optional, List, Any
+from datetime import datetime, date, timedelta
+from decimal import Decimal
+import uuid as _uuid
+import os
+from pydantic import BaseModel
 from core.dependencies import get_db, get_merchant_id
 from core.config import settings
 from schemas.payment import PaymentCreate, PaymentResponse, PaymentReview, PaymentDetailResponse
@@ -16,6 +22,13 @@ from crud.payment import (
 )
 from schemas.payment_list import PaymentListItem
 from schemas.batch_payment import BatchReviewRequest, BatchDeleteRequest
+from models.credit import Credit
+from models.installment import CreditInstallment
+from models.customer import Customer
+from models.enums import InstallmentStatus, CreditStatus, PaymentStatus
+from models.payment_token import PaymentToken, PaymentProof
+from models.payment import Payment
+from services.email import send_payment_reminder
 
 router = APIRouter(prefix="/payments", tags=["Payments"])
 
@@ -85,13 +98,7 @@ def batch_delete_endpoint(
     return {"deleted_count": count}
 
 
-from typing import Optional, List, Any
-from pydantic import BaseModel
-from datetime import datetime, date
-from models.credit import Credit
-from models.installment import CreditInstallment
-from models.customer import Customer
-from models.enums import InstallmentStatus, CreditStatus
+
 
 class ExpectedPaymentResponse(BaseModel):
     credit_id: int
@@ -164,19 +171,7 @@ def get_expected_payments(
     return result
 
 
-from models.payment_token import PaymentToken, PaymentProof
-from models.payment import Payment
-from models.credit import Credit
-from services.email import send_payment_reminder
-from pydantic import BaseModel
-from typing import Optional, List, Any
-from datetime import datetime, timedelta
-import uuid as _uuid
-import os
 
-
-from decimal import Decimal
-from models.enums import PaymentStatus
 
 class TokenCreateRequest(BaseModel):
     credit_id: int
