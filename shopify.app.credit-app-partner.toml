@@ -31,5 +31,15 @@ redirect_urls = [
   "https://shopify-credit-app-frontend.onrender.com/auth/callback",
   "https://shopify-credit-app-frontend.onrender.com/auth/shopify/callback",
   "https://shopify-credit-app-frontend.onrender.com/api/auth/callback",
-
 ]
+
+# Metafields de cliente para documento de identidad
+[customer.metafields.app.document_type]
+type = "single_line_text_field"
+name = "Tipo de Documento (Doc)"
+access.admin = "merchant_read_write"
+
+[customer.metafields.app.document_number]
+type = "single_line_text_field"
+name = "Número de Documento (N°)"
+access.admin = "merchant_read_write"

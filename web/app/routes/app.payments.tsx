@@ -520,47 +520,19 @@ export default function PaymentHistorial() {
       <s-divider />
 
       <s-section padding="base">
+        <s-heading paddingBlockEnd="base">Lista de Pagos</s-heading>
+
         <s-stack
           direction="inline"
-          justifyContent="space-between"
-          alignItems="center"
+          inlineAlignment="space-between"
+          blockAlignment="center"
+          gap="base"
           paddingBlockEnd="base"
         >
-          <s-heading>Lista de Pagos</s-heading>
-          <s-select
-            value=""
-            onChange={(e: any) => handleExport(e.target.value)}
-          >
-            <s-option value="" disabled>
-              Exportar Datos...
-            </s-option>
-            <s-option value="csv">Exportar a CSV</s-option>
-            <s-option value="xlsx">Exportar a XLSX</s-option>
-            <s-option value="pdf">Exportar a PDF</s-option>
-          </s-select>
-        </s-stack>
-
-        <s-stack direction="block" gap="base" paddingBlockEnd="base">
-          <s-stack direction="inline" gap="small" alignItems="end">
-            <s-text-field
-              type="number"
-              label="ID Pago"
-              value={filterState.payment_id}
-              onInput={(e: any) =>
-                setFilterState({ ...filterState, payment_id: e.target.value })
-              }
-            />
-            <s-text-field
-              type="number"
-              label="ID Crédito"
-              value={filterState.credit_id}
-              onInput={(e: any) =>
-                setFilterState({ ...filterState, credit_id: e.target.value })
-              }
-            />
-            <s-text-field
-              type="text"
-              label="Cliente"
+          {/* IZQUIERDA: búsqueda + menú */}
+          <s-stack direction="inline" blockAlignment="center" gap="base">
+            <s-search-field
+              placeholder="Buscar por cliente..."
               value={filterState.customer_name}
               onInput={(e: any) =>
                 setFilterState({
@@ -568,19 +540,68 @@ export default function PaymentHistorial() {
                   customer_name: e.target.value,
                 })
               }
-            />
-            <s-text-field
-              type="date"
-              label="Fecha"
-              value={filterState.payment_date}
-              onInput={(e: any) =>
-                setFilterState({ ...filterState, payment_date: e.target.value })
-              }
-            />
+            ></s-search-field>
+
+            <s-popover>
+              <s-button slot="activator" variant="secondary" icon="filter">
+                Más Filtros
+              </s-button>
+              <s-box padding="base" style={{ minWidth: "260px" }}>
+                <s-stack direction="block" gap="base">
+                  <s-text-field
+                    type="number"
+                    label="ID Pago"
+                    value={filterState.payment_id}
+                    onInput={(e: any) =>
+                      setFilterState({
+                        ...filterState,
+                        payment_id: e.target.value,
+                      })
+                    }
+                  />
+                  <s-text-field
+                    type="number"
+                    label="ID Crédito"
+                    value={filterState.credit_id}
+                    onInput={(e: any) =>
+                      setFilterState({
+                        ...filterState,
+                        credit_id: e.target.value,
+                      })
+                    }
+                  />
+                  <s-text-field
+                    type="date"
+                    label="Fecha de Pago"
+                    value={filterState.payment_date}
+                    onInput={(e: any) =>
+                      setFilterState({
+                        ...filterState,
+                        payment_date: e.target.value,
+                      })
+                    }
+                  />
+                </s-stack>
+              </s-box>
+            </s-popover>
+
             <s-button onClick={handleSearch} variant="primary">
               Buscar
             </s-button>
             <s-button onClick={clearSearch}>Limpiar</s-button>
+          </s-stack>
+
+          {/* DERECHA: acciones */}
+          <s-stack direction="inline" gap="base">
+            <s-button variant="secondary" onClick={() => handleExport("csv")}>
+              Exportar CSV
+            </s-button>
+            <s-button variant="secondary" onClick={() => handleExport("xlsx")}>
+              Exportar XLSX
+            </s-button>
+            <s-button variant="secondary" onClick={() => handleExport("pdf")}>
+              Exportar PDF
+            </s-button>
           </s-stack>
         </s-stack>
 

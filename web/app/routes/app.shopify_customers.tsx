@@ -13,6 +13,8 @@ interface ShopifyCustomer {
   phone: string | null;
   numberOfOrders: string;
   createdAt: string;
+  metafield_doc_type?: { value: string } | null;
+  metafield_doc_num?: { value: string } | null;
 }
 
 interface BackendCustomer {
@@ -37,6 +39,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           phone
           numberOfOrders
           createdAt
+          metafield_doc_type: metafield(namespace: "$app:app", key: "document_type") {
+            value
+          }
+          metafield_doc_num: metafield(namespace: "$app:app", key: "document_number") {
+            value
+          }
         }
       }
     }
@@ -187,6 +195,7 @@ export default function ShopifyCustomers() {
             <s-table>
               <s-table-header-row>
                 <s-table-header listSlot="primary">Nombre</s-table-header>
+                <s-table-header>Documento</s-table-header>
                 <s-table-header>Email</s-table-header>
                 <s-table-header>Teléfono</s-table-header>
                 <s-table-header format="numeric">Órdenes</s-table-header>
@@ -203,10 +212,18 @@ export default function ShopifyCustomers() {
                   const saldo = favorableBalanceMap[numericId];
                   const hasSaldo = saldo != null && saldo > 0;
 
+                  const docType = customer.metafield_doc_type?.value || "";
+                  const docNum = customer.metafield_doc_num?.value || "";
+                  const displayDoc =
+                    docType && docNum ? `${docType}-${docNum}` : "—";
+
                   return (
                     <s-table-row key={customer.id}>
                       <s-table-cell>
                         <s-text>{customer.displayName}</s-text>
+                      </s-table-cell>
+                      <s-table-cell>
+                        <s-text>{displayDoc}</s-text>
                       </s-table-cell>
                       <s-table-cell>
                         <s-text>{customer.email ?? "—"}</s-text>
