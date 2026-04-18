@@ -543,6 +543,7 @@ export default function PaymentHistorial() {
               <s-box padding="base" minInlineSize="260px">
                 <s-stack direction="block" gap="base">
                   <s-text-field
+                    type="number"
                     label="ID Pago"
                     value={filterState.payment_id}
                     onInput={(e: any) =>
@@ -553,6 +554,7 @@ export default function PaymentHistorial() {
                     }
                   />
                   <s-text-field
+                    type="number"
                     label="ID Crédito"
                     value={filterState.credit_id}
                     onInput={(e: any) =>
@@ -563,6 +565,7 @@ export default function PaymentHistorial() {
                     }
                   />
                   <s-text-field
+                    type="date"
                     label="Fecha de Pago"
                     value={filterState.payment_date}
                     onInput={(e: any) =>

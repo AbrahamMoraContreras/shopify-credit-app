@@ -283,6 +283,7 @@ export default function CreditHistorial() {
               <s-box padding="base" minInlineSize="260px">
                 <s-stack direction="block" gap="base">
                   <s-text-field
+                    type="number"
                     label="ID Crédito"
                     value={filterState.credit_id}
                     onInput={(e: any) =>
@@ -293,6 +294,7 @@ export default function CreditHistorial() {
                     }
                   />
                   <s-text-field
+                    type="date"
                     label="Fecha de Emisión"
                     value={filterState.created_at_date}
                     onInput={(e: any) =>
@@ -303,6 +305,7 @@ export default function CreditHistorial() {
                     }
                   />
                   <s-text-field
+                    type="date"
                     label="Vencimiento Cuota"
                     value={filterState.due_date}
                     onInput={(e: any) =>
