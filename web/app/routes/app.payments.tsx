@@ -520,17 +520,11 @@ export default function PaymentHistorial() {
       <s-divider />
 
       <s-section padding="base">
-        <s-heading paddingBlockEnd="base">Lista de Pagos</s-heading>
+        <s-heading>Lista de Pagos</s-heading>
 
-        <s-stack
-          direction="inline"
-          inlineAlignment="space-between"
-          blockAlignment="center"
-          gap="base"
-          paddingBlockEnd="base"
-        >
+        <s-stack direction="inline" gap="base" paddingBlockEnd="base">
           {/* IZQUIERDA: búsqueda + menú */}
-          <s-stack direction="inline" blockAlignment="center" gap="base">
+          <s-stack direction="inline" gap="base">
             <s-search-field
               placeholder="Buscar por cliente..."
               value={filterState.customer_name}
@@ -546,10 +540,9 @@ export default function PaymentHistorial() {
               <s-button slot="activator" variant="secondary" icon="filter">
                 Más Filtros
               </s-button>
-              <s-box padding="base" style={{ minWidth: "260px" }}>
+              <s-box padding="base" minInlineSize="260px">
                 <s-stack direction="block" gap="base">
                   <s-text-field
-                    type="number"
                     label="ID Pago"
                     value={filterState.payment_id}
                     onInput={(e: any) =>
@@ -560,7 +553,6 @@ export default function PaymentHistorial() {
                     }
                   />
                   <s-text-field
-                    type="number"
                     label="ID Crédito"
                     value={filterState.credit_id}
                     onInput={(e: any) =>
@@ -571,7 +563,6 @@ export default function PaymentHistorial() {
                     }
                   />
                   <s-text-field
-                    type="date"
                     label="Fecha de Pago"
                     value={filterState.payment_date}
                     onInput={(e: any) =>
