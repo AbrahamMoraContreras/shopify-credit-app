@@ -276,10 +276,11 @@ export default function CreditHistorial() {
               }
             ></s-search-field>
 
-            <s-popover>
-              <s-button slot="activator" variant="secondary" icon="filter">
-                Más Filtros
-              </s-button>
+            <s-button commandFor="filter-popover" id="filter-btn">
+              Mas Filtros
+            </s-button>
+
+            <s-popover id="filter-popover" inlineSize="250px">
               <s-box padding="base" minInlineSize="260px">
                 <s-stack direction="block" gap="base">
                   <s-text-field
