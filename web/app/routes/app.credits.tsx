@@ -270,50 +270,58 @@ export default function CreditHistorial() {
             justifyContent="space-between"
           >
             <s-stack direction="inline" gap="small">
-              <s-date-field
-                label="Cliente"
-                placeholder="Buscar por cliente..."
-                value={filterState.customer_name}
-                onInput={(e) =>
-                  setFilterState({
-                    ...filterState,
-                    customer_name: e.currentTarget.value,
-                  })
-                }
-              />
+              <s-box inlineSize="220px">
+                <s-search-field
+                  label="Cliente"
+                  placeholder="Buscar por cliente..."
+                  value={filterState.customer_name}
+                  onInput={(e) =>
+                    setFilterState({
+                      ...filterState,
+                      customer_name: e.currentTarget.value,
+                    })
+                  }
+                />
+              </s-box>
 
-              <s-date-field
-                label="ID crédito"
-                value={filterState.credit_id}
-                onInput={(e) =>
-                  setFilterState({
-                    ...filterState,
-                    credit_id: e.currentTarget.value,
-                  })
-                }
-              />
+              <s-box inlineSize="220px">
+                <s-search-field
+                  label="ID crédito"
+                  value={filterState.credit_id}
+                  onInput={(e) =>
+                    setFilterState({
+                      ...filterState,
+                      credit_id: e.currentTarget.value,
+                    })
+                  }
+                />
+              </s-box>
 
-              <s-date-field
-                label="Fecha de emisión"
-                value={filterState.created_at_date}
-                onInput={(e) =>
-                  setFilterState({
-                    ...filterState,
-                    created_at_date: e.currentTarget.value,
-                  })
-                }
-              />
+              <s-box inlineSize="220px">
+                <s-date-field
+                  label="Fecha de emisión"
+                  value={filterState.created_at_date}
+                  onInput={(e) =>
+                    setFilterState({
+                      ...filterState,
+                      created_at_date: e.currentTarget.value,
+                    })
+                  }
+                />
+              </s-box>
 
-              <s-date-field
-                label="Vencimiento cuota"
-                value={filterState.due_date}
-                onInput={(e) =>
-                  setFilterState({
-                    ...filterState,
-                    due_date: e.currentTarget.value,
-                  })
-                }
-              />
+              <s-box inlineSize="220px">
+                <s-date-field
+                  label="Vencimiento cuota"
+                  value={filterState.due_date}
+                  onInput={(e) =>
+                    setFilterState({
+                      ...filterState,
+                      due_date: e.currentTarget.value,
+                    })
+                  }
+                />
+              </s-box>
             </s-stack>
           </s-stack>
 
