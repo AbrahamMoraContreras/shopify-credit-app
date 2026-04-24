@@ -2,6 +2,7 @@ import { type LoaderFunctionArgs } from "react-router";
 import { useLoaderData } from "react-router";
 import { authenticate } from "../shopify.server";
 import { getAccessTokenForShop } from "../lib/auth.server";
+import { useState } from "react";
 
 // Define the shape of our data
 interface CustomerSummary {
@@ -66,6 +67,7 @@ export const headers = () => ({
 
 export default function Home() {
   const { dashboardData } = useLoaderData<typeof loader>();
+  const [showManual, setShowManual] = useState(false);
 
   // Use dashboard data or fallback defaults
   const totalDebt = dashboardData?.amounts?.total_pending || 0;
@@ -96,6 +98,59 @@ export default function Home() {
       </s-button>
 
       <s-stack gap="base">
+        {/* User Manual Toggle */}
+        <s-box paddingBlockEnd="none">
+          <s-button
+            icon="info"
+            onClick={() => setShowManual((prev: boolean) => !prev)}
+            tone="auto"
+          >
+            {showManual ? "Ocultar Manual de Uso" : "Mostrar Manual de Uso"}
+          </s-button>
+        </s-box>
+
+        {showManual && (
+          <s-section padding="base" accessibilityLabel="Manual de Usuario">
+            <s-heading paddingBlockEnd="base">
+              Guía Rápida de la Aplicación
+            </s-heading>
+            <s-grid gridTemplateColumns="repeat(2, 1fr)" gap="base">
+              <s-box>
+                <s-text type="strong">1. Gestión de Créditos</s-text>
+                <s-text color="subdued">
+                  Busca clientes de Shopify para crearles créditos. Ingresa el
+                  concepto, selecciona las compras que fían y planifica el pago
+                  en múltiples cuotas.
+                </s-text>
+              </s-box>
+              <s-box>
+                <s-text type="strong">2. Registro de Pagos</s-text>
+                <s-text color="subdued">
+                  Abona a un crédito existente registrando el método de pago
+                  (Efectivo, Zelle, Pago Móvil), añadiendo referencias o
+                  procesando reportes web de clientes.
+                </s-text>
+              </s-box>
+              <s-box>
+                <s-text type="strong">3. Pagos Esperados</s-text>
+                <s-text color="subdued">
+                  Haz seguimiento de las próximas cuotas a vencer en la pestaña
+                  respectiva. Manda recordatorios al cliente para agilizar la
+                  cobranza.
+                </s-text>
+              </s-box>
+              <s-box>
+                <s-text type="strong">4. Clientes y Documentos</s-text>
+                <s-text color="subdued">
+                  Inspecciona la reputación de tu cliente. Si abonan demás,
+                  quedará guardado como Saldo a Favor. Completa sus tipos
+                  documentos (V, J, E) desde sus perfiles.
+                </s-text>
+              </s-box>
+            </s-grid>
+          </s-section>
+        )}
+
         {/* Summary Cards */}
         <s-grid gridTemplateColumns="repeat(2, 1fr)" gap="small" padding="base">
           <s-grid-item gridColumn="span 1">

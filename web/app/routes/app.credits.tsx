@@ -274,51 +274,38 @@ export default function CreditHistorial() {
                   customer_name: e.target.value,
                 })
               }
-            ></s-search-field>
+            />
 
-            <s-button commandFor="filter-popover" id="filter-btn">
-              Mas Filtros
-            </s-button>
-
-            <s-popover id="filter-popover" inlineSize="250px">
-              <s-box padding="base" minInlineSize="260px">
-                <s-stack direction="block" gap="base">
-                  <s-text-field
-                    type="number"
-                    label="ID Crédito"
-                    value={filterState.credit_id}
-                    onInput={(e: any) =>
-                      setFilterState({
-                        ...filterState,
-                        credit_id: e.target.value,
-                      })
-                    }
-                  />
-                  <s-text-field
-                    type="date"
-                    label="Fecha de Emisión"
-                    value={filterState.created_at_date}
-                    onInput={(e: any) =>
-                      setFilterState({
-                        ...filterState,
-                        created_at_date: e.target.value,
-                      })
-                    }
-                  />
-                  <s-text-field
-                    type="date"
-                    label="Vencimiento Cuota"
-                    value={filterState.due_date}
-                    onInput={(e: any) =>
-                      setFilterState({
-                        ...filterState,
-                        due_date: e.target.value,
-                      })
-                    }
-                  />
-                </s-stack>
-              </s-box>
-            </s-popover>
+            <s-search-field
+              label="ID Crédito"
+              value={filterState.credit_id}
+              onInput={(e: any) =>
+                setFilterState({
+                  ...filterState,
+                  credit_id: e.target.value,
+                })
+              }
+            />
+            <s-date-field
+              label="Fecha de Emisión"
+              value={filterState.created_at_date}
+              onInput={(e: any) =>
+                setFilterState({
+                  ...filterState,
+                  created_at_date: e.target.value,
+                })
+              }
+            />
+            <s-date-field
+              label="Vencimiento Cuota"
+              value={filterState.due_date}
+              onInput={(e: any) =>
+                setFilterState({
+                  ...filterState,
+                  due_date: e.target.value,
+                })
+              }
+            />
 
             <s-button onClick={handleSearch} variant="primary">
               Buscar
@@ -328,13 +315,25 @@ export default function CreditHistorial() {
 
           {/* DERECHA: acciones */}
           <s-stack direction="inline" gap="base">
-            <s-button variant="secondary" onClick={() => handleExport("csv")}>
+            <s-button
+              accessibilityLabel="Export CSV"
+              variant="auto"
+              onClick={() => handleExport("csv")}
+            >
               Exportar CSV
             </s-button>
-            <s-button variant="secondary" onClick={() => handleExport("xlsx")}>
+            <s-button
+              accessibilityLabel="Export XLSX"
+              variant="auto"
+              onClick={() => handleExport("xlsx")}
+            >
               Exportar XLSX
             </s-button>
-            <s-button variant="secondary" onClick={() => handleExport("pdf")}>
+            <s-button
+              accessibilityLabel="Export PDF"
+              variant="auto"
+              onClick={() => handleExport("pdf")}
+            >
               Exportar PDF
             </s-button>
           </s-stack>

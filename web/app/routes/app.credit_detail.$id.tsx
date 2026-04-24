@@ -250,6 +250,13 @@ export default function CreditDetail() {
       Estatus: p.status,
     }));
 
+    const productsData = (credit.items || []).map((i) => ({
+      "Codigo de Producto":
+        i.product_code || i.product_id?.split("/").pop() || "N/A",
+      Producto: i.product_name,
+      Total: `$${Number(i.total_price || 0).toFixed(2)}`,
+    }));
+
     if (format === "csv" || format === "xlsx") {
       const wb = XLSX.utils.book_new();
 
@@ -267,6 +274,10 @@ export default function CreditDetail() {
         const wsPayments = XLSX.utils.json_to_sheet(paymentsData);
         XLSX.utils.book_append_sheet(wb, wsPayments, "Abonos");
       }
+      if (productsData.length > 0) {
+        const wsProducts = XLSX.utils.json_to_sheet(productsData);
+        XLSX.utils.book_append_sheet(wb, wsProducts, "Productos");
+      }
 
       if (format === "csv") {
         const allData = [
@@ -281,6 +292,10 @@ export default function CreditDetail() {
           ["--- Abonos ---"],
           paymentsData.length > 0 ? Object.keys(paymentsData[0]) : [],
           ...paymentsData.map(Object.values),
+          [],
+          ["--- Productos ---"],
+          productsData.length > 0 ? Object.keys(productsData[0]) : [],
+          ...productsData.map(Object.values),
         ];
         const wbCsv = XLSX.utils.book_new();
         const wsCombined = XLSX.utils.aoa_to_sheet(allData);
@@ -313,6 +328,16 @@ export default function CreditDetail() {
           head: [Object.keys(paymentsData[0])],
           body: paymentsData.map(Object.values),
         });
+        currentY = (doc as any).lastAutoTable.finalY + 10;
+      }
+
+      if (productsData.length > 0) {
+        doc.text("Productos Vinculados", 14, currentY);
+        autoTable(doc, {
+          startY: currentY + 5,
+          head: [Object.keys(productsData[0])],
+          body: productsData.map(Object.values),
+        });
       }
 
       doc.save(`credito_${credit.id}.pdf`);
@@ -327,14 +352,9 @@ export default function CreditDetail() {
         alignItems="center"
         slot="primary-action"
       >
-        <s-select value="" onChange={(e: any) => handleExport(e.target.value)}>
-          <s-option value="" disabled>
-            Exportar Datos...
-          </s-option>
-          <s-option value="csv">Exportar a CSV</s-option>
-          <s-option value="xlsx">Exportar a XLSX</s-option>
-          <s-option value="pdf">Exportar a PDF</s-option>
-        </s-select>
+        <s-button onClick={() => handleExport("csv")}>CSV</s-button>
+        <s-button onClick={() => handleExport("xlsx")}>XLSX</s-button>
+        <s-button onClick={() => handleExport("pdf")}>PDF</s-button>
         <s-button
           variant="primary"
           href="/app/registre_payment"

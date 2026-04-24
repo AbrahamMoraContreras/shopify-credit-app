@@ -232,18 +232,16 @@ export default function PaymentDetail() {
 
   return (
     <s-page heading={`Detalles de Pago #${payment.id}`}>
-      <s-select
-        value=""
-        onChange={(e: any) => handleExport(e.target.value)}
+      <s-stack
+        direction="inline"
+        gap="small"
+        alignItems="center"
         slot="primary-action"
       >
-        <s-option value="" disabled>
-          Exportar Datos...
-        </s-option>
-        <s-option value="csv">Exportar a CSV</s-option>
-        <s-option value="xlsx">Exportar a XLSX</s-option>
-        <s-option value="pdf">Exportar a PDF</s-option>
-      </s-select>
+        <s-button onClick={() => handleExport("csv")}>CSV</s-button>
+        <s-button onClick={() => handleExport("xlsx")}>XLSX</s-button>
+        <s-button onClick={() => handleExport("pdf")}>PDF</s-button>
+      </s-stack>
       <s-stack gap="base">
         <s-grid gridTemplateColumns="1fr 1fr" gap="base">
           <s-section padding="base">

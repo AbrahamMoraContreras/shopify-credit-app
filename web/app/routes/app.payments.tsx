@@ -534,50 +534,28 @@ export default function PaymentHistorial() {
                   customer_name: e.target.value,
                 })
               }
-            ></s-search-field>
+            />
 
-            <s-popover>
-              <s-button slot="activator" variant="secondary" icon="filter">
-                Más Filtros
-              </s-button>
-              <s-box padding="base" minInlineSize="260px">
-                <s-stack direction="block" gap="base">
-                  <s-text-field
-                    type="number"
-                    label="ID Pago"
-                    value={filterState.payment_id}
-                    onInput={(e: any) =>
-                      setFilterState({
-                        ...filterState,
-                        payment_id: e.target.value,
-                      })
-                    }
-                  />
-                  <s-text-field
-                    type="number"
-                    label="ID Crédito"
-                    value={filterState.credit_id}
-                    onInput={(e: any) =>
-                      setFilterState({
-                        ...filterState,
-                        credit_id: e.target.value,
-                      })
-                    }
-                  />
-                  <s-text-field
-                    type="date"
-                    label="Fecha de Pago"
-                    value={filterState.payment_date}
-                    onInput={(e: any) =>
-                      setFilterState({
-                        ...filterState,
-                        payment_date: e.target.value,
-                      })
-                    }
-                  />
-                </s-stack>
-              </s-box>
-            </s-popover>
+            <s-search-field
+              label="ID Pago"
+              value={filterState.credit_id}
+              onInput={(e: any) =>
+                setFilterState({
+                  ...filterState,
+                  credit_id: e.target.value,
+                })
+              }
+            />
+            <s-date-field
+              label="Fecha de Pago"
+              value={filterState.created_at_date}
+              onInput={(e: any) =>
+                setFilterState({
+                  ...filterState,
+                  created_at_date: e.target.value,
+                })
+              }
+            />
 
             <s-button onClick={handleSearch} variant="primary">
               Buscar
@@ -587,13 +565,25 @@ export default function PaymentHistorial() {
 
           {/* DERECHA: acciones */}
           <s-stack direction="inline" gap="base">
-            <s-button variant="secondary" onClick={() => handleExport("csv")}>
+            <s-button
+              accessibilityLabel="Export CSV"
+              variant="auto"
+              onClick={() => handleExport("csv")}
+            >
               Exportar CSV
             </s-button>
-            <s-button variant="secondary" onClick={() => handleExport("xlsx")}>
+            <s-button
+              accessibilityLabel="Export XLSX"
+              variant="auto"
+              onClick={() => handleExport("xlsx")}
+            >
               Exportar XLSX
             </s-button>
-            <s-button variant="secondary" onClick={() => handleExport("pdf")}>
+            <s-button
+              accessibilityLabel="Export PDF"
+              variant="auto"
+              onClick={() => handleExport("pdf")}
+            >
               Exportar PDF
             </s-button>
           </s-stack>
