@@ -263,103 +263,95 @@ export default function CreditHistorial() {
         <s-heading>Lista de Créditos Emitidos</s-heading>
 
         <s-grid
-          gridTemplateColumns="@container (inline-size <= 960px) 1fr, 3fr auto"
-          gap="base"
+          gridTemplateColumns="1fr 1fr 1fr"
+          gap="small"
           alignItems="center"
         >
-          <s-grid-item gridColumn="span 1">
-            {/* IZQUIERDA: filtros */}
-            <s-stack direction="inline" gap="small-200">
-              <s-search-field
-                placeholder="Buscar por cliente..."
-                value={filterState.customer_name}
-                onInput={(e) =>
-                  setFilterState({
-                    ...filterState,
-                    customer_name: e.currentTarget.value,
-                  })
-                }
-              />
+          {/* IZQUIERDA: filtros */}
+          <s-stack direction="inline" gap="small-200">
+            <s-search-field
+              placeholder="Buscar por cliente..."
+              value={filterState.customer_name}
+              onInput={(e) =>
+                setFilterState({
+                  ...filterState,
+                  customer_name: e.currentTarget.value,
+                })
+              }
+            />
 
-              <s-text-field
-                label="ID crédito"
-                value={filterState.credit_id}
-                onInput={(e) =>
-                  setFilterState({
-                    ...filterState,
-                    credit_id: e.currentTarget.value,
-                  })
-                }
-              />
+            <s-text-field
+              label="ID crédito"
+              value={filterState.credit_id}
+              onInput={(e) =>
+                setFilterState({
+                  ...filterState,
+                  credit_id: e.currentTarget.value,
+                })
+              }
+            />
 
-              <s-date-field
-                label="Fecha de emisión"
-                value={filterState.created_at_date}
-                onInput={(e) =>
-                  setFilterState({
-                    ...filterState,
-                    created_at_date: e.currentTarget.value,
-                  })
-                }
-              />
+            <s-date-field
+              label="Fecha de emisión"
+              value={filterState.created_at_date}
+              onInput={(e) =>
+                setFilterState({
+                  ...filterState,
+                  created_at_date: e.currentTarget.value,
+                })
+              }
+            />
 
-              <s-date-field
-                label="Vencimiento cuota"
-                value={filterState.due_date}
-                onInput={(e) =>
-                  setFilterState({
-                    ...filterState,
-                    due_date: e.currentTarget.value,
-                  })
-                }
-              />
-
-              <s-stack direction="inline" gap="small-200">
-                <s-button variant="primary" onClick={handleSearch}>
-                  Buscar
-                </s-button>
-                <s-button
-                  variant="tertiary"
-                  tone="neutral"
-                  onClick={clearSearch}
-                >
-                  Limpiar
-                </s-button>
-              </s-stack>
-            </s-stack>
-          </s-grid-item>
+            <s-date-field
+              label="Vencimiento cuota"
+              value={filterState.due_date}
+              onInput={(e) =>
+                setFilterState({
+                  ...filterState,
+                  due_date: e.currentTarget.value,
+                })
+              }
+            />
+          </s-stack>
 
           {/* DERECHA: acciones de export */}
-          <s-grid-item gridColumn="span 1">
-            <s-stack
-              direction="inline"
-              gap="small-200"
-              justifyContent="end"
-              paddingInlineStart="base"
+          <s-stack
+            direction="inline"
+            gap="small-200"
+            justifyContent="end"
+            paddingInlineStart="base"
+          >
+            <s-button
+              accessibilityLabel="Exportar como CSV"
+              variant="secondary"
+              onClick={() => handleExport("csv")}
             >
-              <s-button
-                accessibilityLabel="Exportar como CSV"
-                variant="secondary"
-                onClick={() => handleExport("csv")}
-              >
-                CSV
-              </s-button>
-              <s-button
-                accessibilityLabel="Exportar como XLSX"
-                variant="secondary"
-                onClick={() => handleExport("xlsx")}
-              >
-                XLSX
-              </s-button>
-              <s-button
-                accessibilityLabel="Exportar como PDF"
-                variant="secondary"
-                onClick={() => handleExport("pdf")}
-              >
-                PDF
-              </s-button>
-            </s-stack>
-          </s-grid-item>
+              CSV
+            </s-button>
+            <s-button
+              accessibilityLabel="Exportar como XLSX"
+              variant="secondary"
+              onClick={() => handleExport("xlsx")}
+            >
+              XLSX
+            </s-button>
+            <s-button
+              accessibilityLabel="Exportar como PDF"
+              variant="secondary"
+              onClick={() => handleExport("pdf")}
+            >
+              PDF
+            </s-button>
+          </s-stack>
+
+          <s-stack direction="inline" gap="small-200">
+            <s-button variant="primary" onClick={handleSearch}>
+              Buscar
+            </s-button>
+            <s-button variant="tertiary" tone="neutral" onClick={clearSearch}>
+              Limpiar
+            </s-button>
+          </s-stack>
         </s-grid>
 
         <s-table
