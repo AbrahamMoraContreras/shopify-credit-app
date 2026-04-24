@@ -50,8 +50,6 @@ def list_credits_endpoint(
     status: Optional[List[CreditStatus]] = Query(None),
     customer_id: Optional[int] = Query(None),
     customer_name: Optional[str] = Query(None),
-    document_type: Optional[str] = Query(None),
-    document_number: Optional[str] = Query(None),
     credit_id: Optional[int] = Query(None),
     created_at_date: Optional[date] = Query(None),
     due_date: Optional[date] = Query(None),
@@ -68,8 +66,6 @@ def list_credits_endpoint(
         status=status,
         customer_id=customer_id,
         customer_name=customer_name,
-        document_type=document_type,
-        document_number=document_number,
         credit_id=credit_id,
         created_at_date=created_at_date,
         due_date=due_date

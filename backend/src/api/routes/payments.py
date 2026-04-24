@@ -53,8 +53,6 @@ def get_payments(
     payment_id: int | None = None,
     credit_id: int | None = None,
     customer_name: str | None = None,
-    document_type: str | None = None,
-    document_number: str | None = None,
     payment_date: date | None = None,
     limit: int = 20,
     offset: int = 0,
@@ -69,8 +67,6 @@ def get_payments(
         payment_id=payment_id,
         credit_id=credit_id,
         customer_name=customer_name,
-        document_type=document_type,
-        document_number=document_number,
         payment_date=payment_date
     )
 

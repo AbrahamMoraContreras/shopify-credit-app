@@ -11,8 +11,6 @@ from decimal import Decimal
 class CustomerBase(BaseModel):
     full_name: str = Field(..., example="María Pérez")
     email: Optional[str] = Field(None, example="maria@example.com")
-    document_type: Optional[str] = Field(None, example="V")
-    document_number: Optional[str] = Field(None, example="12345678")
     shopify_customer_id: Optional[int] = Field(None, example=1234567890)
 
 # ------------------------------------------

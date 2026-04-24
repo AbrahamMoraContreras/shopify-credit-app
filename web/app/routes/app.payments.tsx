@@ -53,8 +53,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const payment_id = url.searchParams.get("payment_id") || "";
   const credit_id = url.searchParams.get("credit_id") || "";
   const customer_name = url.searchParams.get("customer_name") || "";
-  const document_type = url.searchParams.get("document_type") || "";
-  const document_number = url.searchParams.get("document_number") || "";
   const payment_date = url.searchParams.get("payment_date") || "";
 
   const params = new URLSearchParams({
@@ -64,8 +62,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   if (payment_id) params.append("payment_id", payment_id);
   if (credit_id) params.append("credit_id", credit_id);
   if (customer_name) params.append("customer_name", customer_name);
-  if (document_type) params.append("document_type", document_type);
-  if (document_number) params.append("document_number", document_number);
   if (payment_date) params.append("payment_date", payment_date);
 
   const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
@@ -87,14 +83,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       ? proofs.filter((p: any) => p.status === "PENDIENTE")
       : [],
     page: Number(page),
-    filters: {
-      payment_id,
-      credit_id,
-      customer_name,
-      document_type,
-      document_number,
-      payment_date,
-    },
+    filters: { payment_id, credit_id, customer_name, payment_date },
   };
 };
 
@@ -233,8 +222,6 @@ export default function PaymentHistorial() {
       payment_id: "",
       credit_id: "",
       customer_name: "",
-      document_type: "",
-      document_number: "",
       payment_date: "",
     });
     submit({ page: "1" }, { method: "get" });
@@ -559,11 +546,11 @@ export default function PaymentHistorial() {
               <s-box inlineSize="220px">
                 <s-search-field
                   placeholder="Tipo de documento"
-                  value={filterState.document_type}
+                  value={filterState.document_id}
                   onInput={(e) =>
                     setFilterState({
                       ...filterState,
-                      document_type: e.currentTarget.value,
+                      document_id: e.currentTarget.value,
                     })
                   }
                 />
@@ -572,11 +559,11 @@ export default function PaymentHistorial() {
               <s-box inlineSize="220px">
                 <s-search-field
                   placeholder="N°"
-                  value={filterState.document_number}
+                  value={filterState.document_id}
                   onInput={(e) =>
                     setFilterState({
                       ...filterState,
-                      document_number: e.currentTarget.value,
+                      document_id: e.currentTarget.value,
                     })
                   }
                 />
