@@ -522,7 +522,12 @@ export default function PaymentHistorial() {
       <s-section padding="base">
         <s-heading>Lista de Pagos</s-heading>
 
-        <s-stack direction="inline" gap="base" paddingBlockEnd="base">
+        <s-grid
+          gridTemplateColumns="@container (inline-size <= 960px) 1fr, 3fr auto"
+          gap="base"
+          alignItems="center"
+        >
+          {" "}
           {/* IZQUIERDA: búsqueda + menú */}
           <s-stack direction="inline" gap="base">
             <s-search-field
@@ -562,7 +567,6 @@ export default function PaymentHistorial() {
             </s-button>
             <s-button onClick={clearSearch}>Limpiar</s-button>
           </s-stack>
-
           {/* DERECHA: acciones */}
           <s-stack direction="inline" gap="base">
             <s-button
@@ -587,7 +591,7 @@ export default function PaymentHistorial() {
               Exportar PDF
             </s-button>
           </s-stack>
-        </s-stack>
+        </s-grid>
 
         <s-table
           paginate

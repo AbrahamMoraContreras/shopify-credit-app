@@ -262,82 +262,97 @@ export default function CreditHistorial() {
       <s-section>
         <s-heading>Lista de Créditos Emitidos</s-heading>
 
-        <s-stack direction="inline" gap="base" paddingBlockEnd="base">
-          {/* IZQUIERDA: búsqueda + menú */}
-          <s-stack direction="inline" gap="base">
+        <s-grid
+          gridTemplateColumns="@container (inline-size <= 960px) 1fr, 3fr auto"
+          gap="base"
+          alignItems="center"
+        >
+          {/* IZQUIERDA: filtros */}
+          <s-stack direction="inline" gap="small-200">
             <s-search-field
               placeholder="Buscar por cliente..."
               value={filterState.customer_name}
-              onInput={(e: any) =>
+              onInput={(e) =>
                 setFilterState({
                   ...filterState,
-                  customer_name: e.target.value,
+                  customer_name: e.currentTarget.value,
                 })
               }
             />
 
-            <s-search-field
-              label="ID Crédito"
+            <s-text-field
+              label="ID crédito"
               value={filterState.credit_id}
-              onInput={(e: any) =>
+              onInput={(e) =>
                 setFilterState({
                   ...filterState,
-                  credit_id: e.target.value,
-                })
-              }
-            />
-            <s-date-field
-              label="Fecha de Emisión"
-              value={filterState.created_at_date}
-              onInput={(e: any) =>
-                setFilterState({
-                  ...filterState,
-                  created_at_date: e.target.value,
-                })
-              }
-            />
-            <s-date-field
-              label="Vencimiento Cuota"
-              value={filterState.due_date}
-              onInput={(e: any) =>
-                setFilterState({
-                  ...filterState,
-                  due_date: e.target.value,
+                  credit_id: e.currentTarget.value,
                 })
               }
             />
 
-            <s-button onClick={handleSearch} variant="primary">
-              Buscar
-            </s-button>
-            <s-button onClick={clearSearch}>Limpiar</s-button>
+            <s-date-field
+              label="Fecha de emisión"
+              value={filterState.created_at_date}
+              onInput={(e) =>
+                setFilterState({
+                  ...filterState,
+                  created_at_date: e.currentTarget.value,
+                })
+              }
+            />
+
+            <s-date-field
+              label="Vencimiento cuota"
+              value={filterState.due_date}
+              onInput={(e) =>
+                setFilterState({
+                  ...filterState,
+                  due_date: e.currentTarget.value,
+                })
+              }
+            />
+
+            <s-stack direction="inline" gap="small-200">
+              <s-button variant="primary" onClick={handleSearch}>
+                Buscar
+              </s-button>
+              <s-button variant="tertiary" tone="neutral" onClick={clearSearch}>
+                Limpiar
+              </s-button>
+            </s-stack>
           </s-stack>
 
-          {/* DERECHA: acciones */}
-          <s-stack direction="inline" gap="base">
+          {/* DERECHA: acciones de export */}
+          <s-stack
+            direction="inline"
+            gap="small-200"
+            justifyContent="end"
+            paddingInlineStart="base"
+          >
             <s-button
-              accessibilityLabel="Export CSV"
-              variant="auto"
+              accessibilityLabel="Exportar como CSV"
+              variant="secondary"
               onClick={() => handleExport("csv")}
             >
-              Exportar CSV
+              CSV
             </s-button>
             <s-button
-              accessibilityLabel="Export XLSX"
-              variant="auto"
+              accessibilityLabel="Exportar como XLSX"
+              variant="secondary"
               onClick={() => handleExport("xlsx")}
             >
-              Exportar XLSX
+              XLSX
             </s-button>
             <s-button
-              accessibilityLabel="Export PDF"
-              variant="auto"
+              accessibilityLabel="Exportar como PDF"
+              variant="secondary"
               onClick={() => handleExport("pdf")}
             >
-              Exportar PDF
+              PDF
             </s-button>
           </s-stack>
-        </s-stack>
+        </s-grid>
 
         <s-table
           paginate
