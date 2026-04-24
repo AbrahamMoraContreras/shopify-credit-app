@@ -270,7 +270,7 @@ export default function CreditHistorial() {
             justifyContent="space-between"
           >
             <s-stack direction="inline" gap="small">
-              <s-search-field
+              <s-date-field
                 label="Cliente"
                 placeholder="Buscar por cliente..."
                 value={filterState.customer_name}
@@ -282,7 +282,7 @@ export default function CreditHistorial() {
                 }
               />
 
-              <s-text-field
+              <s-date-field
                 label="ID crédito"
                 value={filterState.credit_id}
                 onInput={(e) =>
@@ -315,6 +315,15 @@ export default function CreditHistorial() {
                 }
               />
             </s-stack>
+          </s-stack>
+
+          <s-stack direction="inline" gap="small-200">
+            <s-button variant="primary" onClick={handleSearch}>
+              Buscar
+            </s-button>
+            <s-button variant="tertiary" tone="neutral" onClick={clearSearch}>
+              Limpiar
+            </s-button>
 
             <s-button
               variant="secondary"
@@ -350,15 +359,6 @@ export default function CreditHistorial() {
                 </s-button>
               </s-stack>
             </s-popover>
-          </s-stack>
-
-          <s-stack direction="inline" gap="small-200">
-            <s-button variant="primary" onClick={handleSearch}>
-              Buscar
-            </s-button>
-            <s-button variant="tertiary" tone="neutral" onClick={clearSearch}>
-              Limpiar
-            </s-button>
           </s-stack>
         </s-stack>
 
