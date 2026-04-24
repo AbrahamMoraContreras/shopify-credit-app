@@ -522,52 +522,82 @@ export default function PaymentHistorial() {
       <s-section padding="base">
         <s-heading>Lista de Pagos</s-heading>
 
-        <s-grid
-          gridTemplateColumns="@container (inline-size <= 960px) 1fr, 3fr auto"
-          gap="base"
-          alignItems="center"
-        >
-          {" "}
-          <s-stack direction="inline" gap="base">
-            <s-box inlineSize="220px">
-              <s-search-field
-                placeholder="Buscar por cliente..."
-                value={filterState.customer_name}
-                onInput={(e: any) =>
-                  setFilterState({
-                    ...filterState,
-                    customer_name: e.target.value,
-                  })
-                }
-              />
-            </s-box>
+        <s-stack direction="block" gap="small" paddingBlockEnd="base">
+          <s-stack
+            direction="inline"
+            gap="small"
+            alignItems="end"
+            justifyContent="space-between"
+          >
+            <s-stack direction="inline" gap="small">
+              <s-box inlineSize="220px">
+                <s-search-field
+                  placeholder="Buscar por cliente..."
+                  value={filterState.customer_name}
+                  onInput={(e) =>
+                    setFilterState({
+                      ...filterState,
+                      customer_name: e.currentTarget.value,
+                    })
+                  }
+                />
+              </s-box>
 
-            <s-box inlineSize="220px">
-              <s-search-field
-                label="ID Pago"
-                value={filterState.credit_id}
-                onInput={(e: any) =>
-                  setFilterState({
-                    ...filterState,
-                    credit_id: e.target.value,
-                  })
-                }
-              />
-            </s-box>
+              <s-box inlineSize="220px">
+                <s-search-field
+                  label="Documento (V, J, E)"
+                  placeholder="Ej: V-12345678"
+                  value={filterState.document_id}
+                  onInput={(e) =>
+                    setFilterState({
+                      ...filterState,
+                      document_id: e.currentTarget.value,
+                    })
+                  }
+                />
+              </s-box>
 
-            <s-box inlineSize="220px">
-              <s-date-field
-                label="Fecha de Pago"
-                value={filterState.created_at_date}
-                onInput={(e: any) =>
-                  setFilterState({
-                    ...filterState,
-                    created_at_date: e.target.value,
-                  })
-                }
-              />
-            </s-box>
+              <s-box inlineSize="220px">
+                <s-search-field
+                  placeholder="Buscar por ID pago..."
+                  value={filterState.credit_id}
+                  onInput={(e) =>
+                    setFilterState({
+                      ...filterState,
+                      credit_id: e.currentTarget.value,
+                    })
+                  }
+                />
+              </s-box>
+
+              <s-box inlineSize="220px">
+                <s-search-field
+                  placeholder="Buscar por referencia..."
+                  value={filterState.reference}
+                  onInput={(e) =>
+                    setFilterState({
+                      ...filterState,
+                      reference: e.currentTarget.value,
+                    })
+                  }
+                />
+              </s-box>
+
+              <s-box inlineSize="220px">
+                <s-date-field
+                  label="Fecha de pago"
+                  value={filterState.created_at_date}
+                  onInput={(e) =>
+                    setFilterState({
+                      ...filterState,
+                      created_at_date: e.currentTarget.value,
+                    })
+                  }
+                />
+              </s-box>
+            </s-stack>
           </s-stack>
+
           <s-stack direction="inline" gap="small-200">
             <s-button variant="primary" onClick={handleSearch}>
               Buscar
@@ -611,7 +641,7 @@ export default function PaymentHistorial() {
               </s-stack>
             </s-popover>
           </s-stack>
-        </s-grid>
+        </s-stack>
 
         <s-table
           paginate

@@ -293,7 +293,7 @@ export default function CreditHistorial() {
               </s-box>
 
               <s-box inlineSize="220px">
-                <s-text-field
+                <s-search-field
                   label="Documento (V, J, E)"
                   placeholder="Ej: V-12345678"
                   value={filterState.document_id}
