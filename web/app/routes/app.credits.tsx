@@ -259,7 +259,7 @@ export default function CreditHistorial() {
         Registrar Crédito
       </s-button>
 
-      <s-section>
+      <s-section padding="base">
         <s-heading>Lista de Créditos Emitidos</s-heading>
 
         <s-stack direction="block" gap="small" paddingBlockEnd="base">
@@ -269,60 +269,59 @@ export default function CreditHistorial() {
             alignItems="end"
             justifyContent="space-between"
           >
-            <s-stack direction="inline" gap="small">
-              <s-search-field
-                placeholder="Buscar por cliente..."
-                value={filterState.customer_name}
-                onInput={(e) =>
-                  setFilterState({
-                    ...filterState,
-                    customer_name: e.currentTarget.value,
-                  })
-                }
-              />
+            <s-search-field
+              placeholder="Buscar por cliente..."
+              value={filterState.customer_name}
+              onInput={(e) =>
+                setFilterState({
+                  ...filterState,
+                  customer_name: e.currentTarget.value,
+                })
+              }
+            />
 
-              <s-text-field
-                label="ID crédito"
-                value={filterState.credit_id}
-                onInput={(e) =>
-                  setFilterState({
-                    ...filterState,
-                    credit_id: e.currentTarget.value,
-                  })
-                }
-              />
+            <s-text-field
+              label="ID crédito"
+              value={filterState.credit_id}
+              onInput={(e) =>
+                setFilterState({
+                  ...filterState,
+                  credit_id: e.currentTarget.value,
+                })
+              }
+            />
 
-              <s-date-field
-                label="Fecha de emisión"
-                value={filterState.created_at_date}
-                onInput={(e) =>
-                  setFilterState({
-                    ...filterState,
-                    created_at_date: e.currentTarget.value,
-                  })
-                }
-              />
+            <s-date-field
+              label="Fecha de emisión"
+              value={filterState.created_at_date}
+              onInput={(e) =>
+                setFilterState({
+                  ...filterState,
+                  created_at_date: e.currentTarget.value,
+                })
+              }
+            />
 
-              <s-date-field
-                label="Vencimiento cuota"
-                value={filterState.due_date}
-                onInput={(e) =>
-                  setFilterState({
-                    ...filterState,
-                    due_date: e.currentTarget.value,
-                  })
-                }
-              />
-            </s-stack>
+            <s-date-field
+              label="Vencimiento cuota"
+              value={filterState.due_date}
+              onInput={(e) =>
+                setFilterState({
+                  ...filterState,
+                  due_date: e.currentTarget.value,
+                })
+              }
+            />
 
-            <s-popover>
-              <s-button
-                slot="trigger"
-                variant="secondary"
-                accessibilityLabel="Opciones de exportación"
-              >
-                Exportar
-              </s-button>
+            <s-button
+              slot="trigger"
+              variant="secondary"
+              accessibilityLabel="Opciones de exportación"
+              commandFor="export-popover"
+            >
+              Exportar
+            </s-button>
+            <s-popover id="export-popover">
               <s-stack direction="block" gap="small" padding="base">
                 <s-button
                   accessibilityLabel="Exportar como CSV"
