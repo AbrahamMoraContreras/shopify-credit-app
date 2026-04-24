@@ -528,68 +528,88 @@ export default function PaymentHistorial() {
           alignItems="center"
         >
           {" "}
-          {/* IZQUIERDA: búsqueda + menú */}
           <s-stack direction="inline" gap="base">
-            <s-search-field
-              placeholder="Buscar por cliente..."
-              value={filterState.customer_name}
-              onInput={(e: any) =>
-                setFilterState({
-                  ...filterState,
-                  customer_name: e.target.value,
-                })
-              }
-            />
+            <s-box inlineSize="220px">
+              <s-search-field
+                placeholder="Buscar por cliente..."
+                value={filterState.customer_name}
+                onInput={(e: any) =>
+                  setFilterState({
+                    ...filterState,
+                    customer_name: e.target.value,
+                  })
+                }
+              />
+            </s-box>
 
-            <s-search-field
-              label="ID Pago"
-              value={filterState.credit_id}
-              onInput={(e: any) =>
-                setFilterState({
-                  ...filterState,
-                  credit_id: e.target.value,
-                })
-              }
-            />
-            <s-date-field
-              label="Fecha de Pago"
-              value={filterState.created_at_date}
-              onInput={(e: any) =>
-                setFilterState({
-                  ...filterState,
-                  created_at_date: e.target.value,
-                })
-              }
-            />
+            <s-box inlineSize="220px">
+              <s-search-field
+                label="ID Pago"
+                value={filterState.credit_id}
+                onInput={(e: any) =>
+                  setFilterState({
+                    ...filterState,
+                    credit_id: e.target.value,
+                  })
+                }
+              />
+            </s-box>
 
-            <s-button onClick={handleSearch} variant="primary">
+            <s-box inlineSize="220px">
+              <s-date-field
+                label="Fecha de Pago"
+                value={filterState.created_at_date}
+                onInput={(e: any) =>
+                  setFilterState({
+                    ...filterState,
+                    created_at_date: e.target.value,
+                  })
+                }
+              />
+            </s-box>
+          </s-stack>
+          <s-stack direction="inline" gap="small-200">
+            <s-button variant="primary" onClick={handleSearch}>
               Buscar
             </s-button>
-            <s-button onClick={clearSearch}>Limpiar</s-button>
-          </s-stack>
-          {/* DERECHA: acciones */}
-          <s-stack direction="inline" gap="base">
-            <s-button
-              accessibilityLabel="Export CSV"
-              variant="auto"
-              onClick={() => handleExport("csv")}
-            >
-              Exportar CSV
+            <s-button variant="tertiary" tone="neutral" onClick={clearSearch}>
+              Limpiar
             </s-button>
+
             <s-button
-              accessibilityLabel="Export XLSX"
-              variant="auto"
-              onClick={() => handleExport("xlsx")}
+              variant="secondary"
+              accessibilityLabel="Opciones de exportación"
+              commandFor="export-popover"
+              command="--toggle"
             >
-              Exportar XLSX
+              Exportar
             </s-button>
-            <s-button
-              accessibilityLabel="Export PDF"
-              variant="auto"
-              onClick={() => handleExport("pdf")}
-            >
-              Exportar PDF
-            </s-button>
+
+            <s-popover id="export-popover">
+              <s-stack direction="block" gap="small" padding="base">
+                <s-button
+                  accessibilityLabel="Exportar como CSV"
+                  variant="tertiary"
+                  onClick={() => handleExport("csv")}
+                >
+                  Exportar a CSV
+                </s-button>
+                <s-button
+                  accessibilityLabel="Exportar como XLSX"
+                  variant="tertiary"
+                  onClick={() => handleExport("xlsx")}
+                >
+                  Exportar a XLSX
+                </s-button>
+                <s-button
+                  accessibilityLabel="Exportar como PDF"
+                  variant="tertiary"
+                  onClick={() => handleExport("pdf")}
+                >
+                  Exportar a PDF
+                </s-button>
+              </s-stack>
+            </s-popover>
           </s-stack>
         </s-grid>
 
