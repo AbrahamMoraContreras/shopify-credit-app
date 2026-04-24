@@ -29,7 +29,9 @@ def create_customer(db: Session, payload: CustomerCreate) -> CustomerModel:
         merchant_id=payload.merchant_id,
         full_name=payload.full_name,
         email=payload.email,
-        phone=payload.phone,
+        document_type=payload.document_type,
+        document_number=payload.document_number,
+        phone=getattr(payload, "phone", None),
         shopify_customer_id=payload.shopify_customer_id
     )
 

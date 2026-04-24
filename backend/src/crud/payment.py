@@ -1,5 +1,5 @@
 # app/crud/payment.py
-from sqlalchemy import func
+from sqlalchemy import func, cast, Date
 from sqlalchemy.orm import Session, joinedload
 from uuid import UUID
 from datetime import datetime
@@ -467,6 +467,8 @@ def list_payments(
     payment_id: int | None = None,
     credit_id: int | None = None,
     customer_name: str | None = None,
+    document_type: str | None = None,
+    document_number: str | None = None,
     payment_date: date | None = None,
 ):
     products_cte = credit_items_agg_cte(db)
@@ -503,10 +505,15 @@ def list_payments(
         q = q.filter(Payment.id == payment_id)
     if credit_id is not None:
         q = q.filter(Payment.credit_id == credit_id)
-    if customer_name:
-        q = q.filter(Customer.full_name.ilike(f"%{customer_name}%"))
+    if customer_name or document_type or document_number:
+        if customer_name:
+            q = q.filter(Customer.full_name.ilike(f"%{customer_name}%"))
+        if document_type:
+            q = q.filter(Customer.document_type == document_type)
+        if document_number:
+            q = q.filter(Customer.document_number == document_number)
     if payment_date:
-        q = q.filter(func.date(Payment.payment_date) == payment_date)
+        q = q.filter(cast(Payment.payment_date, Date) == payment_date)
         
     q = q.order_by(Payment.payment_date.desc()).limit(limit).offset(offset)
 

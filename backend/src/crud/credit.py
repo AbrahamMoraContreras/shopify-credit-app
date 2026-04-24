@@ -1,4 +1,4 @@
-from sqlalchemy import func
+from sqlalchemy import func, cast, Date
 from sqlalchemy.orm import Session, joinedload, selectinload
 from typing import Optional, List, Tuple, Union
 from datetime import date, timedelta, datetime
@@ -169,6 +169,8 @@ def list_credits(
     credit_id: Optional[int] = None,
     created_at_date: Optional[date] = None,
     customer_name: Optional[str] = None,
+    document_type: Optional[str] = None,
+    document_number: Optional[str] = None,
     due_date: Optional[date] = None
 ) -> Tuple[List[Credit], int]:
     query = db.query(Credit).options(joinedload(Credit.customer)).filter(Credit.merchant_id == merchant_id)
@@ -178,7 +180,7 @@ def list_credits(
         else:
             query = query.filter(Credit.status == status)
     
-    if customer_id or customer_name:
+    if customer_id or customer_name or document_type or document_number:
         query = query.join(Credit.customer)
         if customer_id:
             query = query.filter(
@@ -186,11 +188,15 @@ def list_credits(
             )
         if customer_name:
             query = query.filter(Customer.full_name.ilike(f"%{customer_name}%"))
+        if document_type:
+            query = query.filter(Customer.document_type == document_type)
+        if document_number:
+            query = query.filter(Customer.document_number == document_number)
 
     if credit_id:
         query = query.filter(Credit.id == credit_id)
     if created_at_date:
-        query = query.filter(func.date(Credit.created_at) == created_at_date)
+        query = query.filter(cast(Credit.created_at, Date) == created_at_date)
     if due_date:
         query = query.join(Credit.installments).filter(CreditInstallment.due_date == due_date)
         

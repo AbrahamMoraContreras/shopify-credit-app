@@ -17,6 +17,8 @@ interface ShopifyCustomer {
   displayName: string;
   email: string | null;
   phone: string | null;
+  metafield_doc_type?: { value: string } | null;
+  metafield_doc_num?: { value: string } | null;
 }
 
 interface ShopifyProduct {
@@ -166,6 +168,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           displayName
           email
           phone
+          metafield_doc_type: metafield(namespace: "$app:app", key: "document_type") {
+            value
+          }
+          metafield_doc_num: metafield(namespace: "$app:app", key: "document_number") {
+            value
+          }
         }
       }
       products(first: 50) {
@@ -388,6 +396,8 @@ export default function RegistreCredit() {
     );
     const customerName = selected?.displayName;
     const customerEmail = selected?.email;
+    const documentType = selected?.metafield_doc_type?.value || null;
+    const documentNumber = selected?.metafield_doc_num?.value || null;
 
     console.log("[registre_credit] Registering credit for:", {
       gid: form.customer,
@@ -400,6 +410,8 @@ export default function RegistreCredit() {
       customer_id: numericCustomerId,
       customer_name: customerName,
       customer_email: customerEmail,
+      document_type: documentType,
+      document_number: documentNumber,
       concept: concept,
       total_amount: totalProductsAmount,
       installments_count:

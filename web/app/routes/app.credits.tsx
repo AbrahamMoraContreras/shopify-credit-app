@@ -50,14 +50,16 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
   const credit_id = url.searchParams.get("credit_id") || "";
   const customer_name = url.searchParams.get("customer_name") || "";
-  const document_id = url.searchParams.get("document_id") || "";
+  const document_type = url.searchParams.get("document_type") || "";
+  const document_number = url.searchParams.get("document_number") || "";
   const created_at_date = url.searchParams.get("created_at_date") || "";
   const due_date = url.searchParams.get("due_date") || "";
 
   const params = new URLSearchParams();
   if (credit_id) params.append("credit_id", credit_id);
   if (customer_name) params.append("customer_name", customer_name);
-  if (document_id) params.append("document_id", document_id);
+  if (document_type) params.append("document_type", document_type);
+  if (document_number) params.append("document_number", document_number);
   if (created_at_date) params.append("created_at_date", created_at_date);
   if (due_date) params.append("due_date", due_date);
 
@@ -79,7 +81,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     filters: {
       credit_id,
       customer_name,
-      document_id,
+      document_type,
+      document_number,
       created_at_date,
       due_date,
     },
@@ -148,7 +151,8 @@ export default function CreditHistorial() {
     setFilterState({
       credit_id: "",
       customer_name: "",
-      document_id: "",
+      document_type: "",
+      document_number: "",
       created_at_date: "",
       due_date: "",
     });
@@ -294,19 +298,31 @@ export default function CreditHistorial() {
 
               <s-box inlineSize="220px">
                 <s-search-field
-                  label="Documento (V, J, E)"
-                  placeholder="Ej: V-12345678"
-                  value={filterState.document_id}
+                  placeholder="Tipo de documento"
+                  value={filterState.document_type}
                   onInput={(e) =>
                     setFilterState({
                       ...filterState,
-                      document_id: e.currentTarget.value,
+                      document_type: e.currentTarget.value,
                     })
                   }
                 />
               </s-box>
 
               <s-box inlineSize="220px">
+                <s-search-field
+                  placeholder="N°"
+                  value={filterState.document_number}
+                  onInput={(e) =>
+                    setFilterState({
+                      ...filterState,
+                      document_number: e.currentTarget.value,
+                    })
+                  }
+                />
+              </s-box>
+
+              <s-box inlineSize="110px">
                 <s-search-field
                   label="ID crédito"
                   value={filterState.credit_id}

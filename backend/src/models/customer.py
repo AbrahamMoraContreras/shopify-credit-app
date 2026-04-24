@@ -19,6 +19,9 @@ class Customer(Base):
     full_name = Column(String, nullable=False)
     email = Column(String, nullable=True)
 
+    document_type = Column(String, nullable=True)
+    document_number = Column(String, nullable=True)
+
     # Shopify integration
     shopify_customer_id = Column(BigInteger, nullable=True, index=True)
     favorable_balance = Column(Numeric(12, 2), nullable=False, default=0.00)
