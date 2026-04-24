@@ -262,86 +262,91 @@ export default function CreditHistorial() {
       <s-section>
         <s-heading>Lista de Créditos Emitidos</s-heading>
 
-        <s-grid
-          gridTemplateColumns="1fr 1fr 1fr"
-          gap="small"
-          alignItems="center"
-        >
-          {/* IZQUIERDA: filtros */}
-          <s-stack direction="inline" gap="small-200">
-            <s-search-field
-              placeholder="Buscar por cliente..."
-              value={filterState.customer_name}
-              onInput={(e) =>
-                setFilterState({
-                  ...filterState,
-                  customer_name: e.currentTarget.value,
-                })
-              }
-            />
-
-            <s-text-field
-              label="ID crédito"
-              value={filterState.credit_id}
-              onInput={(e) =>
-                setFilterState({
-                  ...filterState,
-                  credit_id: e.currentTarget.value,
-                })
-              }
-            />
-
-            <s-date-field
-              label="Fecha de emisión"
-              value={filterState.created_at_date}
-              onInput={(e) =>
-                setFilterState({
-                  ...filterState,
-                  created_at_date: e.currentTarget.value,
-                })
-              }
-            />
-
-            <s-date-field
-              label="Vencimiento cuota"
-              value={filterState.due_date}
-              onInput={(e) =>
-                setFilterState({
-                  ...filterState,
-                  due_date: e.currentTarget.value,
-                })
-              }
-            />
-          </s-stack>
-
-          {/* DERECHA: acciones de export */}
+        <s-stack direction="block" gap="small" paddingBlockEnd="base">
           <s-stack
             direction="inline"
-            gap="small-200"
-            justifyContent="end"
-            paddingInlineStart="base"
+            gap="small"
+            alignItems="end"
+            justifyContent="space-between"
           >
-            <s-button
-              accessibilityLabel="Exportar como CSV"
-              variant="secondary"
-              onClick={() => handleExport("csv")}
-            >
-              CSV
-            </s-button>
-            <s-button
-              accessibilityLabel="Exportar como XLSX"
-              variant="secondary"
-              onClick={() => handleExport("xlsx")}
-            >
-              XLSX
-            </s-button>
-            <s-button
-              accessibilityLabel="Exportar como PDF"
-              variant="secondary"
-              onClick={() => handleExport("pdf")}
-            >
-              PDF
-            </s-button>
+            <s-stack direction="inline" gap="small">
+              <s-search-field
+                placeholder="Buscar por cliente..."
+                value={filterState.customer_name}
+                onInput={(e) =>
+                  setFilterState({
+                    ...filterState,
+                    customer_name: e.currentTarget.value,
+                  })
+                }
+              />
+
+              <s-text-field
+                label="ID crédito"
+                value={filterState.credit_id}
+                onInput={(e) =>
+                  setFilterState({
+                    ...filterState,
+                    credit_id: e.currentTarget.value,
+                  })
+                }
+              />
+
+              <s-date-field
+                label="Fecha de emisión"
+                value={filterState.created_at_date}
+                onInput={(e) =>
+                  setFilterState({
+                    ...filterState,
+                    created_at_date: e.currentTarget.value,
+                  })
+                }
+              />
+
+              <s-date-field
+                label="Vencimiento cuota"
+                value={filterState.due_date}
+                onInput={(e) =>
+                  setFilterState({
+                    ...filterState,
+                    due_date: e.currentTarget.value,
+                  })
+                }
+              />
+            </s-stack>
+
+            <s-popover>
+              <s-button
+                slot="trigger"
+                variant="secondary"
+                accessibilityLabel="Opciones de exportación"
+              >
+                Exportar
+              </s-button>
+              <s-stack direction="block" gap="small" padding="base">
+                <s-button
+                  accessibilityLabel="Exportar como CSV"
+                  variant="tertiary"
+                  onClick={() => handleExport("csv")}
+                >
+                  Exportar a CSV
+                </s-button>
+                <s-button
+                  accessibilityLabel="Exportar como XLSX"
+                  variant="tertiary"
+                  onClick={() => handleExport("xlsx")}
+                >
+                  Exportar a XLSX
+                </s-button>
+                <s-button
+                  accessibilityLabel="Exportar como PDF"
+                  variant="tertiary"
+                  onClick={() => handleExport("pdf")}
+                >
+                  Exportar a PDF
+                </s-button>
+              </s-stack>
+            </s-popover>
           </s-stack>
 
           <s-stack direction="inline" gap="small-200">
@@ -352,7 +357,7 @@ export default function CreditHistorial() {
               Limpiar
             </s-button>
           </s-stack>
-        </s-grid>
+        </s-stack>
 
         <s-table
           paginate
