@@ -50,6 +50,11 @@ config.set_main_option("sqlalchemy.url", DATABASE_URL)
 # Metadata for autogenerate support
 target_metadata = Base.metadata
 
+def include_object(object, name, type_, reflected, compare_to):
+    if type_ == "table" and name in ["Session", "_prisma_migrations"]:
+        return False
+    return True
+
 
 def run_migrations_offline():
     """Run migrations without a live DB connection."""
@@ -59,6 +64,7 @@ def run_migrations_offline():
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        include_object=include_object,
     )
 
     with context.begin_transaction():
@@ -77,6 +83,7 @@ def run_migrations_online():
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
+            include_object=include_object,
         )
 
         with context.begin_transaction():
