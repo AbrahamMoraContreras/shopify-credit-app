@@ -12,5 +12,9 @@ class Merchant(Base):
     access_token = Column(String, nullable=True)
     pago_movil_settings = Column(JSONB, nullable=True)
     transferencia_settings = Column(JSONB, nullable=True)
+    binance_settings = Column(JSONB, nullable=True)
+    zelle_settings = Column(JSONB, nullable=True)
+    zinli_settings = Column(JSONB, nullable=True)
+    debito_settings = Column(JSONB, nullable=True)
 
     customers = relationship("Customer", backref="merchant")

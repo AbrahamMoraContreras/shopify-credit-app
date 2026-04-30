@@ -76,6 +76,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   const pagoMovil = JSON.parse(formData.get("pagoMovil") as string);
   const transferencia = JSON.parse(formData.get("transferencia") as string);
+  const binance = formData.get("binance") ? JSON.parse(formData.get("binance") as string) : null;
+  const zelle = formData.get("zelle") ? JSON.parse(formData.get("zelle") as string) : null;
+  const zinli = formData.get("zinli") ? JSON.parse(formData.get("zinli") as string) : null;
+  const debito = formData.get("debito") ? JSON.parse(formData.get("debito") as string) : null;
 
   const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
   const res = await fetch(`${BACKEND_URL}/api/merchants/settings`, {
@@ -84,7 +88,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       "Content-Type": "application/json",
       Authorization: `Bearer ${accessToken}`,
     },
-    body: JSON.stringify({ pago_movil: pagoMovil, transferencia }),
+    body: JSON.stringify({ pago_movil: pagoMovil, transferencia, binance, zelle, zinli, debito }),
   });
 
   if (!res.ok) return { success: false };
@@ -111,6 +115,18 @@ export default function Settings() {
       ? { ...DEFAULT_TRANSFERENCIA, ...settings.transferencia }
       : DEFAULT_TRANSFERENCIA,
   );
+  const [binance, setBinance] = useState(
+    settings?.binance ? { enabled: false, details: "", ...settings.binance } : { enabled: false, details: "" }
+  );
+  const [zelle, setZelle] = useState(
+    settings?.zelle ? { enabled: false, details: "", ...settings.zelle } : { enabled: false, details: "" }
+  );
+  const [zinli, setZinli] = useState(
+    settings?.zinli ? { enabled: false, details: "", ...settings.zinli } : { enabled: false, details: "" }
+  );
+  const [debito, setDebito] = useState(
+    settings?.debito ? { enabled: false, details: "", ...settings.debito } : { enabled: false, details: "" }
+  );
   const [paypal, setPaypal] = useState({ email: "", titular: "" });
   const [saveStatus, setSaveStatus] = useState<
     "idle" | "saving" | "saved" | "error"
@@ -131,6 +147,10 @@ export default function Settings() {
       {
         pagoMovil: JSON.stringify(pagoMovil),
         transferencia: JSON.stringify(transferencia),
+        binance: JSON.stringify(binance),
+        zelle: JSON.stringify(zelle),
+        zinli: JSON.stringify(zinli),
+        debito: JSON.stringify(debito),
       },
       { method: "post" },
     );
@@ -251,6 +271,96 @@ export default function Settings() {
                     }
                   />
                 </s-grid>
+              </s-stack>
+            </s-box>
+          </s-grid-item>
+        </s-grid>
+
+        <s-grid gridTemplateColumns="repeat(2, 1fr)" gap="base" padding="base">
+          {/* Binance */}
+          <s-grid-item>
+            <s-box border="base" borderRadius="base" padding="base">
+              <s-stack gap="base">
+                <s-heading>Binance</s-heading>
+                <s-divider />
+                <s-checkbox
+                  label="Habilitar Binance"
+                  checked={binance.enabled}
+                  onChange={(e: any) => setBinance({ ...binance, enabled: e.target.checked })}
+                />
+                {binance.enabled && (
+                  <s-text-field
+                    label="Email o Pay ID"
+                    value={binance.details}
+                    onChange={(e: any) => setBinance({ ...binance, details: e.target.value })}
+                  />
+                )}
+              </s-stack>
+            </s-box>
+          </s-grid-item>
+
+          {/* Zelle */}
+          <s-grid-item>
+            <s-box border="base" borderRadius="base" padding="base">
+              <s-stack gap="base">
+                <s-heading>Zelle</s-heading>
+                <s-divider />
+                <s-checkbox
+                  label="Habilitar Zelle"
+                  checked={zelle.enabled}
+                  onChange={(e: any) => setZelle({ ...zelle, enabled: e.target.checked })}
+                />
+                {zelle.enabled && (
+                  <s-text-field
+                    label="Email o Teléfono"
+                    value={zelle.details}
+                    onChange={(e: any) => setZelle({ ...zelle, details: e.target.value })}
+                  />
+                )}
+              </s-stack>
+            </s-box>
+          </s-grid-item>
+
+          {/* Zinli */}
+          <s-grid-item>
+            <s-box border="base" borderRadius="base" padding="base">
+              <s-stack gap="base">
+                <s-heading>Zinli</s-heading>
+                <s-divider />
+                <s-checkbox
+                  label="Habilitar Zinli"
+                  checked={zinli.enabled}
+                  onChange={(e: any) => setZinli({ ...zinli, enabled: e.target.checked })}
+                />
+                {zinli.enabled && (
+                  <s-text-field
+                    label="Email"
+                    value={zinli.details}
+                    onChange={(e: any) => setZinli({ ...zinli, details: e.target.value })}
+                  />
+                )}
+              </s-stack>
+            </s-box>
+          </s-grid-item>
+
+          {/* Débito */}
+          <s-grid-item>
+            <s-box border="base" borderRadius="base" padding="base">
+              <s-stack gap="base">
+                <s-heading>Débito (POS)</s-heading>
+                <s-divider />
+                <s-checkbox
+                  label="Habilitar Punto de Venta"
+                  checked={debito.enabled}
+                  onChange={(e: any) => setDebito({ ...debito, enabled: e.target.checked })}
+                />
+                {debito.enabled && (
+                  <s-text-field
+                    label="Información Adicional (Opcional)"
+                    value={debito.details}
+                    onChange={(e: any) => setDebito({ ...debito, details: e.target.value })}
+                  />
+                )}
               </s-stack>
             </s-box>
           </s-grid-item>

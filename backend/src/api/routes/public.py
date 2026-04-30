@@ -45,6 +45,10 @@ class PaymentInfoResponse(BaseModel):
     estado: str
     metodosAceptados: List[str]
     cuentaDestino: DestinoInfo
+    binanceDestino: Optional[dict] = None
+    zelleDestino: Optional[dict] = None
+    zinliDestino: Optional[dict] = None
+    debitoDestino: Optional[dict] = None
     customer_name: str
     customer_email: str
 
@@ -54,8 +58,8 @@ class ProofSubmission(BaseModel):
     reference_number: str
     bank_name: str
     amount: Decimal
-    document_type: str
-    document_number: str
+    document_type: Optional[str] = None
+    document_number: Optional[str] = None
     phone_number: Optional[str] = None
     account_number: Optional[str] = None
     notes: Optional[str] = None
@@ -121,10 +125,18 @@ def get_payment_info(token: str, db: Session = Depends(get_db)):
     
     pm_settings = getattr(merchant, "pago_movil_settings", {}) or {}
     tr_settings = getattr(merchant, "transferencia_settings", {}) or {}
+    binance_settings = getattr(merchant, "binance_settings", {}) or {}
+    zelle_settings = getattr(merchant, "zelle_settings", {}) or {}
+    zinli_settings = getattr(merchant, "zinli_settings", {}) or {}
+    debito_settings = getattr(merchant, "debito_settings", {}) or {}
     
     metodos = []
     if pm_settings: metodos.append("Pago Móvil")
     if tr_settings: metodos.append("Transferencia Bancaria")
+    if binance_settings and binance_settings.get("enabled"): metodos.append("Binance")
+    if zelle_settings and zelle_settings.get("enabled"): metodos.append("Zelle")
+    if zinli_settings and zinli_settings.get("enabled"): metodos.append("Zinli")
+    if debito_settings and debito_settings.get("enabled"): metodos.append("Débito")
 
     destino = DestinoInfo()
     if pm_settings:
@@ -153,6 +165,10 @@ def get_payment_info(token: str, db: Session = Depends(get_db)):
         estado="Pendiente de Pago",
         metodosAceptados=metodos,
         cuentaDestino=destino,
+        binanceDestino=binance_settings if binance_settings else None,
+        zelleDestino=zelle_settings if zelle_settings else None,
+        zinliDestino=zinli_settings if zinli_settings else None,
+        debitoDestino=debito_settings if debito_settings else None,
         customer_name=credit.customer.full_name if credit and credit.customer else "Cliente",
         customer_email=pt.customer_email or "N/A"
     )
@@ -171,7 +187,9 @@ def submit_payment_proof(payload: ProofSubmission, db: Session = Depends(get_db)
     from models.enums import PaymentStatus
     payment = db.query(Payment).filter(Payment.id == pt.payment_id).first()
 
-    notes_parts = [f"Doc: {payload.document_type}-{payload.document_number}"]
+    notes_parts = []
+    if payload.document_type and payload.document_number:
+        notes_parts.append(f"Doc: {payload.document_type}-{payload.document_number}")
     if payload.phone_number:
         notes_parts.append(f"Teléf: {payload.phone_number}")
     if payload.account_number:

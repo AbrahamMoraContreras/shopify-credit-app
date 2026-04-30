@@ -115,11 +115,19 @@ class PaymentMethodSettings(BaseModel):
 class MerchantSettingsPayload(BaseModel):
     pago_movil: Optional[PaymentMethodSettings] = None
     transferencia: Optional[PaymentMethodSettings] = None
+    binance: Optional[dict] = None
+    zelle: Optional[dict] = None
+    zinli: Optional[dict] = None
+    debito: Optional[dict] = None
 
 
 class MerchantSettingsResponse(BaseModel):
     pago_movil: Optional[Any] = None
     transferencia: Optional[Any] = None
+    binance: Optional[Any] = None
+    zelle: Optional[Any] = None
+    zinli: Optional[Any] = None
+    debito: Optional[Any] = None
 
 
 @router.get("/settings", response_model=MerchantSettingsResponse)
@@ -133,6 +141,10 @@ def get_merchant_settings(
     return MerchantSettingsResponse(
         pago_movil=merchant.pago_movil_settings,
         transferencia=merchant.transferencia_settings,
+        binance=merchant.binance_settings,
+        zelle=merchant.zelle_settings,
+        zinli=merchant.zinli_settings,
+        debito=merchant.debito_settings,
     )
 
 
@@ -149,9 +161,21 @@ def update_merchant_settings(
         merchant.pago_movil_settings = payload.pago_movil.model_dump()
     if payload.transferencia is not None:
         merchant.transferencia_settings = payload.transferencia.model_dump()
+    if payload.binance is not None:
+        merchant.binance_settings = payload.binance
+    if payload.zelle is not None:
+        merchant.zelle_settings = payload.zelle
+    if payload.zinli is not None:
+        merchant.zinli_settings = payload.zinli
+    if payload.debito is not None:
+        merchant.debito_settings = payload.debito
     db.commit()
     db.refresh(merchant)
     return MerchantSettingsResponse(
         pago_movil=merchant.pago_movil_settings,
         transferencia=merchant.transferencia_settings,
+        binance=merchant.binance_settings,
+        zelle=merchant.zelle_settings,
+        zinli=merchant.zinli_settings,
+        debito=merchant.debito_settings,
     )

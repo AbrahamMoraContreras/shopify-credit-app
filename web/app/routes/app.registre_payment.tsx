@@ -115,6 +115,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     "Bolivares en efectivo": "EFECTIVO",
     "Pago movil": "PAGO_MOVIL",
     Transferencia: "BANK",
+    Binance: "BINANCE",
+    Zelle: "ZELLE",
+    Zinli: "ZINLI",
+    Debito: "DEBITO",
   };
 
   const accessToken = await getAccessTokenForShop(session.shop);
@@ -367,11 +371,24 @@ export default function RegistrePayment() {
       paymentForm.method === "Dolares en efectivo" ||
       paymentForm.method === "Bolivares en efectivo";
 
-    if (!isCashMethod && paymentForm.reference.length !== 13) {
-      alert(
-        "El número de referencia debe tener exactamente 13 dígitos numéricos.",
-      );
-      return;
+    const isDigitalMethod =
+      paymentForm.method === "Binance" ||
+      paymentForm.method === "Zelle" ||
+      paymentForm.method === "Zinli" ||
+      paymentForm.method === "Debito";
+
+    if (!isCashMethod) {
+      if (paymentForm.method === "Pago movil" || paymentForm.method === "Transferencia") {
+        if (paymentForm.reference.length !== 13) {
+          alert("El número de referencia debe tener exactamente 13 dígitos numéricos.");
+          return;
+        }
+      } else if (isDigitalMethod) {
+        if (!paymentForm.reference.trim()) {
+          alert("Debe ingresar un número de referencia para este método de pago.");
+          return;
+        }
+      }
     }
 
     let finalNotes = paymentForm.notes || "";
@@ -503,6 +520,10 @@ export default function RegistrePayment() {
                     </s-option>
                     <s-option value="Pago movil">Pago móvil</s-option>
                     <s-option value="Transferencia">Transferencia</s-option>
+                    <s-option value="Binance">Binance</s-option>
+                    <s-option value="Zelle">Zelle</s-option>
+                    <s-option value="Zinli">Zinli</s-option>
+                    <s-option value="Debito">Débito</s-option>
                   </s-select>
 
                   <s-number-field
@@ -526,13 +547,15 @@ export default function RegistrePayment() {
                         value={paymentForm.reference}
                         onChange={(e: any) => {
                           const val = e.target?.value || "";
-                          const numericVal = val
-                            .replace(/\D/g, "")
-                            .slice(0, 13);
-                          setPaymentForm((p) => ({
-                            ...p,
-                            reference: numericVal,
-                          }));
+                          if (
+                            paymentForm.method === "Pago movil" ||
+                            paymentForm.method === "Transferencia"
+                          ) {
+                            const numericVal = val.replace(/\D/g, "").slice(0, 13);
+                            setPaymentForm((p) => ({ ...p, reference: numericVal }));
+                          } else {
+                            setPaymentForm((p) => ({ ...p, reference: val }));
+                          }
                         }}
                       />
                     )}
