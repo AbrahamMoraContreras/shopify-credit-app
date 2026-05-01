@@ -79,11 +79,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           customers(first: 250) {
             nodes {
               id
-              metafield_doc_type: metafield(namespace: "$app:app", key: "document_type") {
-                value
-              }
-              metafield_doc_num: metafield(namespace: "$app:app", key: "document_number") {
-                value
+              metafields(first: 20) {
+                nodes {
+                  key
+                  value
+                }
               }
             }
           }
@@ -93,12 +93,26 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       const shopifyCustomers = data?.customers?.nodes ?? [];
       let matchId = "-1";
       for (const c of shopifyCustomers) {
-        const cType = c.metafield_doc_type?.value || "";
-        const cNum = c.metafield_doc_num?.value || "";
-        let typeMatch = true;
-        let numMatch = true;
-        if (document_type) typeMatch = (cType === document_type);
-        if (document_id) numMatch = cNum.includes(document_id);
+        const mfs = c.metafields?.nodes || [];
+        let typeMatch = !document_type;
+        let numMatch = !document_id;
+        
+        for (const mf of mfs) {
+           const val = mf.value || "";
+           const key = mf.key.toLowerCase();
+           
+           if (document_type && !typeMatch) {
+              if ((key.includes("tipo") || key.includes("doc")) && val.includes(document_type)) {
+                 typeMatch = true;
+              }
+           }
+           if (document_id && !numMatch) {
+              if ((key === "n" || key.includes("num") || key.includes("n_") || key.includes("doc")) && val.includes(document_id)) {
+                 numMatch = true;
+              }
+           }
+        }
+        
         if (typeMatch && numMatch) {
           matchId = c.id.split("/").pop() || "-1";
           break;

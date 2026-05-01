@@ -39,11 +39,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           phone
           numberOfOrders
           createdAt
-          metafield_doc_type: metafield(namespace: "$app:app", key: "document_type") {
-            value
-          }
-          metafield_doc_num: metafield(namespace: "$app:app", key: "document_number") {
-            value
+          metafields(first: 20) {
+            nodes {
+              key
+              value
+            }
           }
         }
       }
@@ -51,7 +51,39 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   `);
 
   const { data } = await response.json();
-  const customers: ShopifyCustomer[] = data?.customers?.nodes ?? [];
+  const rawCustomers: any[] = data?.customers?.nodes ?? [];
+
+  const customers: ShopifyCustomer[] = rawCustomers.map((c) => {
+    const mfs = c.metafields?.nodes || [];
+    let docTypeVal = "";
+    let docNumVal = "";
+
+    for (const mf of mfs) {
+      const val = mf.value || "";
+      const key = mf.key.toLowerCase();
+
+      if (!docTypeVal && (key.includes("tipo") || key.includes("doc"))) {
+        // Para tipos de documento, extraer la "V" si viene como ["V"]
+        try {
+          const parsed = JSON.parse(val);
+          if (Array.isArray(parsed) && parsed.length > 0) docTypeVal = parsed[0];
+          else docTypeVal = val;
+        } catch {
+          docTypeVal = val;
+        }
+      }
+
+      if (!docNumVal && (key === "n" || key.includes("num") || key.includes("n_") || key.includes("doc") && !key.includes("tipo"))) {
+        docNumVal = val;
+      }
+    }
+
+    return {
+      ...c,
+      metafield_doc_type: { value: docTypeVal },
+      metafield_doc_num: { value: docNumVal },
+    };
+  });
 
   // Hacer Fetch backend customers para obtener balances favorables
   let favorableBalanceMap: Record<number, number> = {};
