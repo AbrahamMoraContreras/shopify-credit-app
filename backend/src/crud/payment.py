@@ -466,6 +466,7 @@ def list_payments(
     offset: int = 0,
     payment_id: int | None = None,
     credit_id: int | None = None,
+    customer_id: int | None = None,
     customer_name: str | None = None,
     payment_date: date | None = None,
 ):
@@ -503,6 +504,10 @@ def list_payments(
         q = q.filter(Payment.id == payment_id)
     if credit_id is not None:
         q = q.filter(Payment.credit_id == credit_id)
+    if customer_id is not None:
+        q = q.filter(
+            (Customer.id == customer_id) | (Customer.shopify_customer_id == str(customer_id))
+        )
     if customer_name:
         q = q.filter(Customer.full_name.ilike(f"%{customer_name}%"))
     if payment_date:

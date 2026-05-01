@@ -20,9 +20,10 @@ function isDocumentRequest(request: Request) {
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   let session;
+  let admin: any;
 
   try {
-    ({ session } = await authenticate.admin(request));
+    ({ session, admin } = await authenticate.admin(request));
   } catch (error: any) {
     // Si authenticate.admin lanza un Response (por ejemplo 401 inválido)
     if (
@@ -50,6 +51,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
   const credit_id = url.searchParams.get("credit_id") || "";
   const customer_name = url.searchParams.get("customer_name") || "";
+  const document_type = url.searchParams.get("document_type") || "";
   const document_id = url.searchParams.get("document_id") || "";
   const created_at_date = url.searchParams.get("created_at_date") || "";
   const due_date = url.searchParams.get("due_date") || "";
@@ -57,9 +59,47 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const params = new URLSearchParams();
   if (credit_id) params.append("credit_id", credit_id);
   if (customer_name) params.append("customer_name", customer_name);
-  if (document_id) params.append("document_id", document_id);
   if (created_at_date) params.append("created_at_date", created_at_date);
   if (due_date) params.append("due_date", due_date);
+
+  if (document_type || document_id) {
+    try {
+      const gqlRes = await admin.graphql(`
+        {
+          customers(first: 250) {
+            nodes {
+              id
+              metafield_doc_type: metafield(namespace: "$app:app", key: "document_type") {
+                value
+              }
+              metafield_doc_num: metafield(namespace: "$app:app", key: "document_number") {
+                value
+              }
+            }
+          }
+        }
+      `);
+      const { data } = await gqlRes.json();
+      const shopifyCustomers = data?.customers?.nodes ?? [];
+      let matchId = "-1";
+      for (const c of shopifyCustomers) {
+        const cType = c.metafield_doc_type?.value || "";
+        const cNum = c.metafield_doc_num?.value || "";
+        let typeMatch = true;
+        let numMatch = true;
+        if (document_type) typeMatch = (cType === document_type);
+        if (document_id) numMatch = cNum.includes(document_id);
+        if (typeMatch && numMatch) {
+          matchId = c.id.split("/").pop() || "-1";
+          break;
+        }
+      }
+      params.append("customer_id", matchId);
+    } catch (e) {
+      console.error("Error fetching customers for document filter", e);
+      params.append("customer_id", "-1");
+    }
+  }
 
   const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
   const response = await fetch(
@@ -79,6 +119,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     filters: {
       credit_id,
       customer_name,
+      document_type,
       document_id,
       created_at_date,
       due_date,
@@ -148,6 +189,7 @@ export default function CreditHistorial() {
     setFilterState({
       credit_id: "",
       customer_name: "",
+      document_type: "",
       document_id: "",
       created_at_date: "",
       due_date: "",
@@ -292,17 +334,22 @@ export default function CreditHistorial() {
                 />
               </s-box>
 
-              <s-box inlineSize="220px">
-                <s-search-field
-                  placeholder="Tipo de documento"
-                  value={filterState.document_id}
-                  onInput={(e) =>
+              <s-box inlineSize="120px">
+                <s-select
+                  label="Tipo Doc."
+                  value={filterState.document_type}
+                  onChange={(e: any) =>
                     setFilterState({
                       ...filterState,
-                      document_id: e.currentTarget.value,
+                      document_type: e.target?.value || "",
                     })
                   }
-                />
+                >
+                  <s-option value="">Todos</s-option>
+                  <s-option value="V">V</s-option>
+                  <s-option value="J">J</s-option>
+                  <s-option value="E">E</s-option>
+                </s-select>
               </s-box>
 
               <s-box inlineSize="160px">

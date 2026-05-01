@@ -41,7 +41,13 @@ interface PaymentProof {
 }
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  let session;
+  let admin: any;
+  try {
+    ({ session, admin } = await authenticate.admin(request));
+  } catch (error) {
+    throw error;
+  }
   const accessToken = await getAccessTokenForShop(session.shop);
   if (!accessToken) throw new Error("Token no disponible");
 
@@ -53,6 +59,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const payment_id = url.searchParams.get("payment_id") || "";
   const credit_id = url.searchParams.get("credit_id") || "";
   const customer_name = url.searchParams.get("customer_name") || "";
+  const document_type = url.searchParams.get("document_type") || "";
+  const document_id = url.searchParams.get("document_id") || "";
   const payment_date = url.searchParams.get("payment_date") || "";
 
   const params = new URLSearchParams({
@@ -63,6 +71,45 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   if (credit_id) params.append("credit_id", credit_id);
   if (customer_name) params.append("customer_name", customer_name);
   if (payment_date) params.append("payment_date", payment_date);
+
+  if (document_type || document_id) {
+    try {
+      const gqlRes = await admin.graphql(`
+        {
+          customers(first: 250) {
+            nodes {
+              id
+              metafield_doc_type: metafield(namespace: "$app:app", key: "document_type") {
+                value
+              }
+              metafield_doc_num: metafield(namespace: "$app:app", key: "document_number") {
+                value
+              }
+            }
+          }
+        }
+      `);
+      const { data } = await gqlRes.json();
+      const shopifyCustomers = data?.customers?.nodes ?? [];
+      let matchId = "-1";
+      for (const c of shopifyCustomers) {
+        const cType = c.metafield_doc_type?.value || "";
+        const cNum = c.metafield_doc_num?.value || "";
+        let typeMatch = true;
+        let numMatch = true;
+        if (document_type) typeMatch = (cType === document_type);
+        if (document_id) numMatch = cNum.includes(document_id);
+        if (typeMatch && numMatch) {
+          matchId = c.id.split("/").pop() || "-1";
+          break;
+        }
+      }
+      params.append("customer_id", matchId);
+    } catch (e) {
+      console.error("Error fetching customers for payment filter", e);
+      params.append("customer_id", "-1");
+    }
+  }
 
   const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
   const [paymentsRes, proofsRes] = await Promise.all([
@@ -83,7 +130,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       ? proofs.filter((p: any) => p.status === "PENDIENTE")
       : [],
     page: Number(page),
-    filters: { payment_id, credit_id, customer_name, payment_date },
+    filters: { payment_id, credit_id, customer_name, document_type, document_id, payment_date },
   };
 };
 
@@ -222,6 +269,8 @@ export default function PaymentHistorial() {
       payment_id: "",
       credit_id: "",
       customer_name: "",
+      document_type: "",
+      document_id: "",
       payment_date: "",
     });
     submit({ page: "1" }, { method: "get" });
@@ -543,17 +592,22 @@ export default function PaymentHistorial() {
                 />
               </s-box>
 
-              <s-box inlineSize="220px">
-                <s-search-field
-                  placeholder="Tipo de documento"
-                  value={filterState.document_id}
-                  onInput={(e) =>
+              <s-box inlineSize="120px">
+                <s-select
+                  label="Tipo Doc."
+                  value={filterState.document_type}
+                  onChange={(e: any) =>
                     setFilterState({
                       ...filterState,
-                      document_id: e.currentTarget.value,
+                      document_type: e.target?.value || "",
                     })
                   }
-                />
+                >
+                  <s-option value="">Todos</s-option>
+                  <s-option value="V">V</s-option>
+                  <s-option value="J">J</s-option>
+                  <s-option value="E">E</s-option>
+                </s-select>
               </s-box>
 
               <s-box inlineSize="160px">

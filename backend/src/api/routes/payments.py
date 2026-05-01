@@ -52,6 +52,7 @@ def create_payment_endpoint(
 def get_payments(
     payment_id: int | None = None,
     credit_id: int | None = None,
+    customer_id: int | None = None,
     customer_name: str | None = None,
     payment_date: date | None = None,
     limit: int = 20,
@@ -66,6 +67,7 @@ def get_payments(
         offset=offset,
         payment_id=payment_id,
         credit_id=credit_id,
+        customer_id=customer_id,
         customer_name=customer_name,
         payment_date=payment_date
     )
