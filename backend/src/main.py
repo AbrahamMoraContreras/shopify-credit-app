@@ -31,6 +31,7 @@ app.add_middleware(
         "http://127.0.0.1:5173",
         "http://127.0.0.1:3000",
         settings.FRONTEND_URL,
+        "https://registre-payment-shopify-form.onrender.com",
     ],
     allow_origin_regex=r"^https://.*\.(trycloudflare\.com|loca\.lt|ngrok\.io|ngrok-free\.app|myshopify\.com)$",
     allow_credentials=True,
