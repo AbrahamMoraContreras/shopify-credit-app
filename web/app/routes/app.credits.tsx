@@ -305,27 +305,35 @@ export default function CreditHistorial() {
                 />
               </s-box>
 
-              <s-box inlineSize="220px">
-                <s-search-field
-                  placeholder="N°"
+              <s-box inlineSize="160px">
+                <s-number-field
+                  label="N° Documento"
+                  name="document_id"
+                  min={0}
+                  step={1}
+                  inputMode="numeric"
                   value={filterState.document_id}
-                  onInput={(e) =>
+                  onChange={(e: any) =>
                     setFilterState({
                       ...filterState,
-                      document_id: e.currentTarget.value,
+                      document_id: e.target?.value || "",
                     })
                   }
                 />
               </s-box>
 
-              <s-box inlineSize="110px">
-                <s-search-field
-                  label="ID crédito"
+              <s-box inlineSize="130px">
+                <s-number-field
+                  label="ID Crédito"
+                  name="credit_id"
+                  min={0}
+                  step={1}
+                  inputMode="numeric"
                   value={filterState.credit_id}
-                  onInput={(e) =>
+                  onChange={(e: any) =>
                     setFilterState({
                       ...filterState,
-                      credit_id: e.currentTarget.value,
+                      credit_id: e.target?.value || "",
                     })
                   }
                 />
