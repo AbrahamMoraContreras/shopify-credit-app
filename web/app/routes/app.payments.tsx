@@ -569,9 +569,22 @@ export default function PaymentHistorial() {
                 />
               </s-box>
 
-              <s-box inlineSize="110px">
+              <s-box inlineSize="130px">
                 <s-search-field
-                  placeholder="Buscar por ID pago..."
+                  placeholder="ID Pago"
+                  value={filterState.payment_id}
+                  onInput={(e) =>
+                    setFilterState({
+                      ...filterState,
+                      payment_id: e.currentTarget.value,
+                    })
+                  }
+                />
+              </s-box>
+
+              <s-box inlineSize="130px">
+                <s-search-field
+                  placeholder="ID Crédito"
                   value={filterState.credit_id}
                   onInput={(e) =>
                     setFilterState({
