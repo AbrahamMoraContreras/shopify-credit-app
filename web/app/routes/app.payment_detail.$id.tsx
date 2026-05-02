@@ -238,9 +238,27 @@ export default function PaymentDetail() {
         alignItems="center"
         slot="primary-action"
       >
-        <s-button onClick={() => handleExport("csv")}>CSV</s-button>
-        <s-button onClick={() => handleExport("xlsx")}>XLSX</s-button>
-        <s-button onClick={() => handleExport("pdf")}>PDF</s-button>
+        <s-button
+          variant="secondary"
+          accessibilityLabel="Opciones de exportación"
+          commandFor="export-popover"
+          command="--toggle"
+        >
+          Exportar
+        </s-button>
+        <s-popover id="export-popover">
+          <s-stack direction="block" gap="small" padding="base">
+            <s-button fullWidth variant="tertiary" onClick={() => handleExport("csv")}>
+              Exportar CSV
+            </s-button>
+            <s-button fullWidth variant="tertiary" onClick={() => handleExport("xlsx")}>
+              Exportar XLSX
+            </s-button>
+            <s-button fullWidth variant="tertiary" onClick={() => handleExport("pdf")}>
+              Exportar PDF
+            </s-button>
+          </s-stack>
+        </s-popover>
       </s-stack>
       <s-stack gap="base">
         <s-grid gridTemplateColumns="1fr 1fr" gap="base">
