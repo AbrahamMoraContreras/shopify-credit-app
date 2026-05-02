@@ -404,10 +404,10 @@ export default function CreditHistorial() {
                 <s-date-field
                   label="Fecha de emisión"
                   value={filterState.created_at_date}
-                  onInput={(e) =>
+                  onChange={(e: any) =>
                     setFilterState({
                       ...filterState,
-                      created_at_date: e.currentTarget.value,
+                      created_at_date: e.target?.value || "",
                     })
                   }
                 />
@@ -417,10 +417,10 @@ export default function CreditHistorial() {
                 <s-date-field
                   label="Vencimiento cuota"
                   value={filterState.due_date}
-                  onInput={(e) =>
+                  onChange={(e: any) =>
                     setFilterState({
                       ...filterState,
-                      due_date: e.currentTarget.value,
+                      due_date: e.target?.value || "",
                     })
                   }
                 />

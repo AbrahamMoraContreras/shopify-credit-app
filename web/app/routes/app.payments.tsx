@@ -696,10 +696,10 @@ export default function PaymentHistorial() {
                 <s-date-field
                   label="Fecha de pago"
                   value={filterState.payment_date}
-                  onInput={(e) =>
+                  onChange={(e: any) =>
                     setFilterState({
                       ...filterState,
-                      payment_date: e.currentTarget.value,
+                      payment_date: e.target?.value || "",
                     })
                   }
                 />
