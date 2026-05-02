@@ -597,20 +597,23 @@ export default function CreditHistorial() {
                   </s-stack>
                 </s-table-cell>
 
-                <s-table-cell>
+                <s-table-cell alignment="center">
                   <s-stack direction="block" alignItems="center" gap="none">
                     {credit.last_payment_date && (
-                      <s-text color="subdued">
+                      <s-text color="subdued" alignment="center">
                         {formatDate(credit.last_payment_date)}
                       </s-text>
                     )}
                     {credit.last_payment_reference && (
-                      <s-text color="subdued" fontVariantNumeric="tabular-nums">
-                        Ref: {credit.last_payment_reference}
+                      <s-text color="subdued" fontVariantNumeric="tabular-nums" alignment="center">
+                        Ref:{" "}
+                        {credit.last_payment_reference?.startsWith("INTENT-")
+                          ? `RECORDATORIO-${credit.last_payment_reference.split("-")[1]}-ENVIADO`
+                          : credit.last_payment_reference}
                       </s-text>
                     )}
                     {credit.last_payment_method && (
-                      <s-text color="subdued">
+                      <s-text color="subdued" alignment="center">
                         {credit.last_payment_method === "BANK"
                           ? "Transf. Bancaria"
                           : credit.last_payment_method === "PAGO_MOVIL"
@@ -626,7 +629,7 @@ export default function CreditHistorial() {
                     )}
                     {!credit.last_payment_date &&
                       !credit.last_payment_method && (
-                        <s-text color="subdued">—</s-text>
+                        <s-text color="subdued" alignment="center">—</s-text>
                       )}
                   </s-stack>
                 </s-table-cell>

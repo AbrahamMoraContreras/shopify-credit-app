@@ -50,6 +50,69 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       };
     }
 
+    // Si se solicitó crear un cliente nuevo, hacerlo en Shopify primero
+    if (payload.isNewCustomer && payload.newCustomerData) {
+      const data = payload.newCustomerData;
+      const mutation = `
+        mutation customerCreate($input: CustomerInput!) {
+          customerCreate(input: $input) {
+            customer {
+              id
+            }
+            userErrors {
+              field
+              message
+            }
+          }
+        }
+      `;
+      const variables = {
+        input: {
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email,
+          phone: data.phone || null,
+          metafields: [
+            {
+              namespace: "custom",
+              key: "tipo_de_documento",
+              type: "list.single_line_text_field",
+              value: JSON.stringify([data.docType])
+            },
+            {
+              namespace: "custom",
+              key: "numero_documento",
+              type: "number_integer",
+              value: String(data.docNum)
+            }
+          ]
+        }
+      };
+
+      try {
+        const customerRes = await admin.graphql(mutation, { variables });
+        const customerJson = await customerRes.json();
+        
+        const userErrors = customerJson.data?.customerCreate?.userErrors;
+        if (userErrors && userErrors.length > 0) {
+          return { error: `Error creando cliente en Shopify: ${userErrors.map((e: any) => e.message).join(", ")}` };
+        }
+
+        const gid = customerJson.data?.customerCreate?.customer?.id;
+        if (!gid) {
+          return { error: "No se pudo obtener el ID del cliente creado en Shopify." };
+        }
+
+        const shopifyIdMatch = gid.match(/\/(\d+)$/);
+        payload.customer_id = shopifyIdMatch ? parseInt(shopifyIdMatch[1], 10) : 0;
+        payload.customer_name = `${data.firstName} ${data.lastName}`.trim();
+        payload.customer_email = data.email;
+      } catch (err) {
+        console.error("[registre_credit] Error creating Shopify customer:", err);
+        return { error: "Error de red al intentar crear el cliente en Shopify." };
+      }
+    }
+
     const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
     const response = await fetch(`${BACKEND_URL}/api/credits`, {
       method: "POST",
@@ -239,6 +302,16 @@ export default function RegistreCredit() {
     installment_amount: "",
   };
 
+  const [isNewCustomer, setIsNewCustomer] = useState(false);
+  const [newCustomerForm, setNewCustomerForm] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    docType: "V",
+    docNum: "",
+  });
+
   const [form, setForm] = useState(initialForm);
 
   useEffect(() => {
@@ -348,9 +421,16 @@ export default function RegistreCredit() {
   const handleRegisterCredit = (isDraft: boolean = false) => {
     setClientError(null);
 
-    if (!form.customer) {
-      setClientError("Por favor, seleccione un cliente.");
-      return;
+    if (isNewCustomer) {
+      if (!newCustomerForm.firstName || !newCustomerForm.lastName || !newCustomerForm.email || !newCustomerForm.docNum) {
+        setClientError("Por favor, complete todos los campos requeridos del nuevo cliente.");
+        return;
+      }
+    } else {
+      if (!form.customer) {
+        setClientError("Por favor, seleccione un cliente.");
+        return;
+      }
     }
 
     const selectedList = products.filter(
@@ -363,11 +443,26 @@ export default function RegistreCredit() {
       return;
     }
 
-    // Extracción del Shopify ID de cada clientes
-    const shopifyIdMatch = form.customer.match(/\/(\d+)$/);
-    const numericCustomerId = shopifyIdMatch
-      ? parseInt(shopifyIdMatch[1], 10)
-      : 0;
+    let numericCustomerId = 0;
+    let customerName = "";
+    let customerEmail = "";
+
+    if (!isNewCustomer) {
+      // Extracción del Shopify ID de cada clientes
+      const shopifyIdMatch = form.customer.match(/\/(\d+)$/);
+      numericCustomerId = shopifyIdMatch
+        ? parseInt(shopifyIdMatch[1], 10)
+        : 0;
+
+      // Encontrar el objeto del cliente para obtener su displayName
+      const selected = customers.find(
+        (c) =>
+          String(c.id) === String(form.customer) ||
+          c.id.endsWith(numericCustomerId.toString()),
+      );
+      customerName = selected?.displayName || "";
+      customerEmail = selected?.email || "";
+    }
 
     const concept = selectedList
       .map((p) => `${p.title} (x${quantities[p.id]})`)
@@ -380,16 +475,8 @@ export default function RegistreCredit() {
       }))
       .filter((adj) => !!adj.inventoryItemId);
 
-    // Encontrar el objeto del cliente para obtener su displayName
-    const selected = customers.find(
-      (c) =>
-        String(c.id) === String(form.customer) ||
-        c.id.endsWith(numericCustomerId.toString()),
-    );
-    const customerName = selected?.displayName;
-    const customerEmail = selected?.email;
-
     console.log("[registre_credit] Registering credit for:", {
+      isNewCustomer,
       gid: form.customer,
       numericId: numericCustomerId,
       foundName: customerName,
@@ -397,6 +484,8 @@ export default function RegistreCredit() {
     });
 
     const payload = {
+      isNewCustomer,
+      newCustomerData: isNewCustomer ? newCustomerForm : undefined,
       customer_id: numericCustomerId,
       customer_name: customerName,
       customer_email: customerEmail,
@@ -467,34 +556,99 @@ export default function RegistreCredit() {
               alignContent="space-between"
             >
               <s-grid-item gridColumn="span 1">
-                {customers.length === 0 ? (
-                  <s-text color="subdued">
-                    No hay clientes registrados en esta tienda.
-                  </s-text>
-                ) : (
-                  <s-select
-                    label="Cliente"
-                    details="Seleccione nombre del cliente"
-                    value={form.customer}
-                    onChange={(event: any) => {
-                      const raw = (event.currentTarget as any).value as
-                        | string
-                        | undefined;
-                      setForm((prev) => ({
-                        ...prev,
-                        customer: raw ?? "",
-                        customer_id: raw ?? "",
-                      }));
-                    }}
-                  >
-                    <s-option value="">Seleccione un cliente</s-option>
-                    {customers.map((customer) => (
-                      <s-option key={customer.id} value={customer.id}>
-                        {customer.displayName}
-                      </s-option>
-                    ))}
-                  </s-select>
-                )}
+                <s-stack direction="block" gap="base">
+                  <s-stack direction="inline" alignItems="center" gap="small">
+                    <input
+                      type="checkbox"
+                      id="isNewCustomerToggle"
+                      checked={isNewCustomer}
+                      onChange={(e) => setIsNewCustomer(e.target.checked)}
+                      style={{ cursor: "pointer" }}
+                    />
+                    <label htmlFor="isNewCustomerToggle" style={{ cursor: "pointer", fontWeight: "bold" }}>
+                      Crear Nuevo Cliente
+                    </label>
+                  </s-stack>
+
+                  {!isNewCustomer ? (
+                    customers.length === 0 ? (
+                      <s-text color="subdued">
+                        No hay clientes registrados en esta tienda.
+                      </s-text>
+                    ) : (
+                      <s-select
+                        label="Cliente"
+                        details="Seleccione nombre del cliente"
+                        value={form.customer}
+                        onChange={(event: any) => {
+                          const raw = (event.currentTarget as any).value as
+                            | string
+                            | undefined;
+                          setForm((prev) => ({
+                            ...prev,
+                            customer: raw ?? "",
+                            customer_id: raw ?? "",
+                          }));
+                        }}
+                      >
+                        <s-option value="">Seleccione un cliente</s-option>
+                        {customers.map((customer) => (
+                          <s-option key={customer.id} value={customer.id}>
+                            {customer.displayName}
+                          </s-option>
+                        ))}
+                      </s-select>
+                    )
+                  ) : (
+                    <s-stack direction="block" gap="small">
+                      <s-text-field
+                        label="Nombre"
+                        value={newCustomerForm.firstName}
+                        onInput={(e: any) => setNewCustomerForm(prev => ({ ...prev, firstName: e.currentTarget.value }))}
+                        required
+                      />
+                      <s-text-field
+                        label="Apellido"
+                        value={newCustomerForm.lastName}
+                        onInput={(e: any) => setNewCustomerForm(prev => ({ ...prev, lastName: e.currentTarget.value }))}
+                        required
+                      />
+                      <s-text-field
+                        label="Email"
+                        value={newCustomerForm.email}
+                        onInput={(e: any) => setNewCustomerForm(prev => ({ ...prev, email: e.currentTarget.value }))}
+                        required
+                      />
+                      <s-text-field
+                        label="Teléfono"
+                        value={newCustomerForm.phone}
+                        onInput={(e: any) => setNewCustomerForm(prev => ({ ...prev, phone: e.currentTarget.value }))}
+                      />
+                      <s-stack direction="inline" gap="small">
+                        <s-box inlineSize="100px">
+                          <s-select
+                            label="Tipo Doc."
+                            value={newCustomerForm.docType}
+                            onChange={(e: any) => setNewCustomerForm(prev => ({ ...prev, docType: e.target?.value || "V" }))}
+                          >
+                            <s-option value="V">V</s-option>
+                            <s-option value="J">J</s-option>
+                            <s-option value="E">E</s-option>
+                          </s-select>
+                        </s-box>
+                        <s-box inlineSize="auto">
+                          <s-number-field
+                            label="N° Documento"
+                            inputMode="numeric"
+                            value={newCustomerForm.docNum}
+                            onChange={(e: any) => setNewCustomerForm(prev => ({ ...prev, docNum: e.target?.value || "" }))}
+                            required
+                          />
+                        </s-box>
+                      </s-stack>
+                    </s-stack>
+                  )}
+                </s-stack>
               </s-grid-item>
 
               <s-grid-item gridColumn="auto">
@@ -505,15 +659,24 @@ export default function RegistreCredit() {
                     padding="base"
                   >
                     <s-box>
-                      <s-text tone="info">
-                        {descriptionLines.map((line, index) => (
-                          <span key={index}>
-                            {line}
-                            {index < descriptionLines.length - 1 && <br />}
-                          </span>
-                        ))}
-                      </s-text>
-                      {customerReputation &&
+                      {isNewCustomer ? (
+                        <s-text tone="info">
+                          Creando nuevo cliente: <br/>
+                          {newCustomerForm.firstName} {newCustomerForm.lastName} <br/>
+                          Email: {newCustomerForm.email} <br/>
+                          Documento: {newCustomerForm.docType}-{newCustomerForm.docNum}
+                        </s-text>
+                      ) : (
+                        <s-text tone="info">
+                          {descriptionLines.map((line, index) => (
+                            <span key={index}>
+                              {line}
+                              {index < descriptionLines.length - 1 && <br />}
+                            </span>
+                          ))}
+                        </s-text>
+                      )}
+                      {!isNewCustomer && customerReputation &&
                         (() => {
                           const repConfig: Record<
                             string,

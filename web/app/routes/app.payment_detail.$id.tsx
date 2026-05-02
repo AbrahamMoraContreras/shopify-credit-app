@@ -292,7 +292,10 @@ export default function PaymentDetail() {
                         : payment.payment_method}
               </s-text>
               <s-text>
-                <strong>Referencia:</strong> {payment.reference_number}
+                <strong>Referencia:</strong>{" "}
+                {payment.reference_number?.startsWith("INTENT-")
+                  ? `RECORDATORIO-${payment.reference_number.split("-")[1]}-ENVIADO`
+                  : payment.reference_number}
               </s-text>
               <s-stack direction="inline" gap="small" alignItems="center">
                 <s-text>

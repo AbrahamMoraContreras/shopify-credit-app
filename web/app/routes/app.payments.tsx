@@ -836,7 +836,11 @@ export default function PaymentHistorial() {
                   <s-table-cell>${abono.toFixed(2)}</s-table-cell>
                   <s-table-cell>${saldoAFavor.toFixed(2)}</s-table-cell>
                   <s-table-cell>${saldoRestante.toFixed(2)}</s-table-cell>
-                  <s-table-cell>{payment.reference_number}</s-table-cell>
+                  <s-table-cell>
+                    {payment.reference_number?.startsWith("INTENT-")
+                      ? `RECORDATORIO-${payment.reference_number.split("-")[1]}-ENVIADO`
+                      : payment.reference_number}
+                  </s-table-cell>
                   <s-table-cell>
                     <s-badge tone={getStatusTone(payment.status)}>
                       {payment.status}
