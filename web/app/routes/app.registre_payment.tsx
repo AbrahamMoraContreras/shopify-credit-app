@@ -179,7 +179,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return { error: "Error de conexión al procesar el pago." };
   }
 
-  return redirect("/app/credits");
+  return redirect("/app/payments");
 };
 
 export const headers = () => ({
@@ -191,7 +191,7 @@ export default function RegistrePayment() {
   const actionData = useActionData<{ error?: string }>();
   const submit = useSubmit();
   const navigation = useNavigation();
-  const isSubmitting = navigation.state === "submitting";
+  const isSubmitting = navigation.state !== "idle";
 
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -243,10 +243,11 @@ export default function RegistrePayment() {
   >("EN_REVISION");
 
   useEffect(() => {
-    // Solo buscamos si hay al menos un criterio de búsqueda
+    // Limpiamos la selección cada vez que cambian los criterios de búsqueda para evitar IDs huérfanos
+    setSelectedInstallments({});
+
     if (!selectedCustomerId && !searchCreditId && !searchDate) {
       setCredits([]);
-      setSelectedInstallments({});
       return;
     }
 
@@ -258,7 +259,7 @@ export default function RegistrePayment() {
       if (searchDate) params.append("created_at_date", searchDate);
 
       creditsFetcher.load(`/app/registre_payment?${params.toString()}`);
-    }, 300); // Debounce para campos de búsqueda
+    }, 300);
 
     return () => clearTimeout(timer);
   }, [selectedCustomerId, searchCreditId, searchDate]);
@@ -373,6 +374,8 @@ export default function RegistrePayment() {
   const remainingDebt = Math.max(0, selectedTotalDebt - paymentAmount);
 
   const handleConfirmPayment = () => {
+    if (isSubmitting) return;
+
     const selectedList = activeInstallments.filter(
       (inst) => selectedInstallments[inst.id],
     );
