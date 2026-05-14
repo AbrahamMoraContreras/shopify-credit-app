@@ -30,6 +30,7 @@ class Payment(Base):
 
     reference_number = Column(String, nullable=False)
     payment_method = Column(String, nullable=True)
+    bank_name = Column(String, nullable=True)
 
     status = Column(
         Enum(PaymentStatus, name="paymentstatus", native_enum=True, validate_strings=True),

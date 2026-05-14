@@ -526,16 +526,34 @@ export default function RegistrePayment() {
                     <s-option value="Debito">Débito</s-option>
                   </s-select>
 
-                  <s-number-field
-                    label="Monto Pagado (USD)"
-                    value={paymentForm.amount}
-                    onChange={(e: any) =>
-                      setPaymentForm((p) => ({
-                        ...p,
-                        amount: e.target?.value || "",
-                      }))
-                    }
-                  />
+                  <s-stack direction="block" gap="none">
+                    <s-number-field
+                      label="Monto Pagado (USD)"
+                      value={paymentForm.amount}
+                      onChange={(e: any) =>
+                        setPaymentForm((p) => ({
+                          ...p,
+                          amount: e.target?.value || "",
+                        }))
+                      }
+                    />
+                    {selectedTotalDebt > 0 && (
+                      <div style={{ marginTop: "4px" }}>
+                        <s-button
+                          variant="tertiary"
+                          accessibilityLabel="Completar deuda"
+                          onClick={() => {
+                            setPaymentForm((p: any) => ({
+                              ...p,
+                              amount: String(selectedTotalDebt),
+                            }));
+                          }}
+                        >
+                          LLenar Deuda Exacta (${selectedTotalDebt.toFixed(2)})
+                        </s-button>
+                      </div>
+                    )}
+                  </s-stack>
                 </s-grid>
 
                 <s-grid gridTemplateColumns="1.5fr 1fr" gap="small">

@@ -42,7 +42,6 @@ class PaymentInfoResponse(BaseModel):
     iva: Decimal
     total: Decimal
     cuotas: Optional[QuotaInfo] = None
-    estado: str
     metodosAceptados: List[str]
     cuentaDestino: DestinoInfo
     binanceDestino: Optional[dict] = None
@@ -51,6 +50,7 @@ class PaymentInfoResponse(BaseModel):
     debitoDestino: Optional[dict] = None
     customer_name: str
     customer_email: str
+    saldo_a_favor: Decimal = Decimal("0.00")
 
 
 class ProofSubmission(BaseModel):
@@ -112,6 +112,11 @@ def get_payment_info(token: str, db: Session = Depends(get_db)):
 
     total = credit.total_amount if credit else payment.amount
     
+    saldo_a_favor = Decimal("0.00")
+    if credit and credit.customer and credit.customer.favorable_balance:
+        # Extraemos el saldo a favor actual
+        saldo_a_favor = Decimal(str(credit.customer.favorable_balance))
+    
     cuotas = None
     if credit and getattr(credit, "installments", None):
         cuotas_activas = [i for i in credit.installments if not i.paid]
@@ -170,7 +175,8 @@ def get_payment_info(token: str, db: Session = Depends(get_db)):
         zinliDestino=zinli_settings if zinli_settings else None,
         debitoDestino=debito_settings if debito_settings else None,
         customer_name=credit.customer.full_name if credit and credit.customer else "Cliente",
-        customer_email=pt.customer_email or "N/A"
+        customer_email=pt.customer_email or "N/A",
+        saldo_a_favor=saldo_a_favor
     )
 
 
@@ -210,7 +216,11 @@ def submit_payment_proof(payload: ProofSubmission, db: Session = Depends(get_db)
         payment.status = PaymentStatus.EN_REVISION
         payment.amount = declared_amount
         payment.reference_number = payload.reference_number
-        payment.payment_method = payload.bank_name
+        
+        # Mapear el tipo de método dinamicamente (Pago móvil o Transf.)
+        payment.payment_method = "PAGO_MOVIL" if payload.phone_number else "BANK"
+        payment.bank_name = payload.bank_name
+        
         payment.notes = " | ".join(notes_parts)
         payment.updated_at = datetime.utcnow()
         db.add(payment)

@@ -10,6 +10,8 @@ class PaymentMethod(str, Enum):
     BANK = "BANK"
     PAYPAL = "PAYPAL"
     PAGO_MOVIL = "PAGO_MOVIL"
+    CASH = "CASH"
+    EFECTIVO = "EFECTIVO"
 
 class PaymentCreditItem(BaseModel):
     product_id: Optional[str] = None
@@ -49,6 +51,7 @@ class PaymentCreditSummary(BaseModel):
 class PaymentBase(BaseModel):
     credit_id: int
     amount: Decimal
+    bank_name: Optional[str] = None
     bank_sender: Optional[str] = None
     document_id_sender: Optional[str] = None
     installment_id: Optional[int] = None
@@ -100,6 +103,7 @@ class PaymentResponse(BaseModel):
     installment_id: Optional[int]
     amount: Decimal
     payment_method: str
+    bank_name: Optional[str] = None
     reference_number: str
     status: PaymentStatus
 

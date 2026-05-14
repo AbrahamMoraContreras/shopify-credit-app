@@ -19,6 +19,7 @@ interface PaymentDetailData {
   id: number;
   amount: number;
   payment_method: string;
+  bank_name?: string;
   reference_number: string;
   status: string;
   payment_date: string;
@@ -124,6 +125,7 @@ export default function PaymentDetail() {
       ["Monto Abonado", `$${Number(payment.amount).toFixed(2)}`],
       ["Fecha", new Date(payment.payment_date).toLocaleDateString()],
       ["Método", payment.payment_method],
+      ["Banco", payment.bank_name || "N/A"],
       ["Referencia", payment.reference_number || "N/A"],
       ["Estado", payment.status || ""],
     ];
@@ -248,13 +250,25 @@ export default function PaymentDetail() {
         </s-button>
         <s-popover id="export-popover">
           <s-stack direction="block" gap="small" padding="base">
-            <s-button fullWidth variant="tertiary" onClick={() => handleExport("csv")}>
+            <s-button
+              fullWidth
+              variant="tertiary"
+              onClick={() => handleExport("csv")}
+            >
               Exportar CSV
             </s-button>
-            <s-button fullWidth variant="tertiary" onClick={() => handleExport("xlsx")}>
+            <s-button
+              fullWidth
+              variant="tertiary"
+              onClick={() => handleExport("xlsx")}
+            >
               Exportar XLSX
             </s-button>
-            <s-button fullWidth variant="tertiary" onClick={() => handleExport("pdf")}>
+            <s-button
+              fullWidth
+              variant="tertiary"
+              onClick={() => handleExport("pdf")}
+            >
               Exportar PDF
             </s-button>
           </s-stack>
@@ -279,18 +293,25 @@ export default function PaymentDetail() {
                   format="datetime"
                 />
               </s-text>
-              <s-text>
-                <strong>Método:</strong>{" "}
-                {payment.payment_method === "CASH"
-                  ? "Efectivo USD"
-                  : payment.payment_method === "EFECTIVO"
-                    ? "Efectivo VEF"
-                    : payment.payment_method === "BANK"
-                      ? "Transferencia Bancaria"
-                      : payment.payment_method === "PAGO_MOVIL"
-                        ? "Pago Móvil"
-                        : payment.payment_method}
-              </s-text>
+              <s-stack direction="inline" gap="extra-tight" alignItems="end">
+                <s-text>
+                  <strong>Método de Pago:</strong>
+                </s-text>
+                <s-badge tone="info">
+                  {payment.payment_method === "CASH"
+                    ? "Efectivo USD"
+                    : payment.payment_method === "EFECTIVO"
+                      ? "Efectivo VEF"
+                      : payment.payment_method === "BANK"
+                        ? "Transferencia Bancaria"
+                        : payment.payment_method === "PAGO_MOVIL"
+                          ? "Pago Móvil"
+                          : payment.payment_method}
+                </s-badge>
+                {payment.bank_name && (
+                  <s-badge tone="neutral">{payment.bank_name}</s-badge>
+                )}
+              </s-stack>
               <s-text>
                 <strong>Referencia:</strong>{" "}
                 {payment.reference_number?.startsWith("INTENT-")

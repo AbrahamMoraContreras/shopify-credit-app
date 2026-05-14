@@ -784,6 +784,7 @@ export default function PaymentHistorial() {
             <s-table-header>Cliente</s-table-header>
             <s-table-header format="numeric">Total Crédito</s-table-header>
             <s-table-header format="numeric">Cuotas Pagadas</s-table-header>
+            <s-table-header>Método / Banco</s-table-header>
             <s-table-header format="numeric">Abono</s-table-header>
             <s-table-header format="numeric">Balance Cliente</s-table-header>
             <s-table-header format="numeric">
@@ -833,6 +834,14 @@ export default function PaymentHistorial() {
                   <s-table-cell>{payment.customer_name}</s-table-cell>
                   <s-table-cell>${creditTotal.toFixed(2)}</s-table-cell>
                   <s-table-cell>{cuotasCubiertas}</s-table-cell>
+                  <s-table-cell>
+                    <s-stack direction="block" gap="0">
+                      <s-text type="strong">{payment.payment_method}</s-text>
+                      {payment.bank_name ? (
+                        <s-text color="subdued">{payment.bank_name}</s-text>
+                      ) : null}
+                    </s-stack>
+                  </s-table-cell>
                   <s-table-cell>${abono.toFixed(2)}</s-table-cell>
                   <s-table-cell>${saldoAFavor.toFixed(2)}</s-table-cell>
                   <s-table-cell>${saldoRestante.toFixed(2)}</s-table-cell>

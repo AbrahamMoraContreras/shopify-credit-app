@@ -362,13 +362,25 @@ export default function CreditDetail() {
         </s-button>
         <s-popover id="export-popover">
           <s-stack direction="block" gap="small" padding="base">
-            <s-button fullWidth variant="tertiary" onClick={() => handleExport("csv")}>
+            <s-button
+              fullWidth
+              variant="tertiary"
+              onClick={() => handleExport("csv")}
+            >
               Exportar CSV
             </s-button>
-            <s-button fullWidth variant="tertiary" onClick={() => handleExport("xlsx")}>
+            <s-button
+              fullWidth
+              variant="tertiary"
+              onClick={() => handleExport("xlsx")}
+            >
               Exportar XLSX
             </s-button>
-            <s-button fullWidth variant="tertiary" onClick={() => handleExport("pdf")}>
+            <s-button
+              fullWidth
+              variant="tertiary"
+              onClick={() => handleExport("pdf")}
+            >
               Exportar PDF
             </s-button>
           </s-stack>

@@ -288,15 +288,15 @@ def _apply_payment_distribution(db: Session, payment: Payment, credit: Credit, t
             remaining_to_distribute = Decimal("0.00")
 
     # Calcular la puntualidad para créditos basados en cuotas (mensuales/quincenales).
-    # Solo se ejecuta cuando: al menos una cuota fue pagada por completo, el crédito tiene cuotas,
-    # y punctuality_value no se estableció manualmente (por ejemplo, retroalimentación de Fiado).
-    if fully_paid_installments and credit.installments_count > 0 and payment.punctuality_value is None:
+    # Solo se ejecuta cuando el crédito tiene cuotas y punctuality_value no se estableció manualmente (ej: feedback de Fiado).
+    if credit.installments_count > 0 and payment.punctuality_value is None:
         payment_date_only = payment.payment_date.date() if payment.payment_date else datetime.utcnow().date()
-        # Usar la fecha de vencimiento más temprana entre las cuotas pagadas como referencia
-        covered_due_dates = [
-            inst.due_date
-            for inst in fully_paid_installments
-        ]
+        # Obtenemos las cuotas a las que apuntaba el pago originalmente y aquellas pagadas en su totalidad
+        covered_due_dates = []
+        for inst in distribution_queue:
+            if inst.id in target_installment_ids or inst in fully_paid_installments:
+                covered_due_dates.append(inst.due_date)
+                
         valid_due_dates = [d for d in covered_due_dates if d is not None]
         if valid_due_dates:
             earliest_due = min(valid_due_dates)
