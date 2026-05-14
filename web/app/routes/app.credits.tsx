@@ -337,6 +337,7 @@ export default function CreditHistorial() {
             <s-stack direction="inline" gap="small">
               <s-box inlineSize="220px">
                 <s-search-field
+                  label="Cliente"
                   placeholder="Buscar por cliente..."
                   value={filterState.customer_name}
                   onInput={(e) =>

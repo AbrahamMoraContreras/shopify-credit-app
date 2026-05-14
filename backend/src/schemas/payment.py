@@ -112,6 +112,7 @@ class PaymentResponse(BaseModel):
     reviewed_by: Optional[UUID]
     notes: Optional[str]
     installments_covered: Optional[str] = None
+    punctuality_value: Optional[Decimal] = None
 
     created_at: datetime
     updated_at: datetime

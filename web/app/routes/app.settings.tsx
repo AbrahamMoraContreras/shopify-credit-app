@@ -416,30 +416,6 @@ export default function Settings() {
         <s-box border="base" borderRadius="base">
           <s-clickable
             padding="small-100"
-            href="/app/settings/shipping"
-            accessibilityLabel="Configure shipping methods, rates, and fulfillment options"
-          >
-            <s-grid
-              gridTemplateColumns="1fr auto"
-              alignItems="center"
-              gap="base"
-            >
-              <s-box>
-                <s-heading>Límite crediticio para clientes</s-heading>
-                <s-paragraph color="subdued">
-                  Establece el límite máximo o mínimo permitido para las
-                  operaciones con clientes.
-                </s-paragraph>
-              </s-box>
-              <s-icon type="chevron-right" />
-            </s-grid>
-          </s-clickable>
-          <s-box paddingInline="small-100">
-            <s-divider />
-          </s-box>
-
-          <s-clickable
-            padding="small-100"
             href="/app/settings/products_catalog"
             accessibilityLabel="Configure product defaults, customer experience, and catalog settings"
           >

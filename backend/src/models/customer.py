@@ -42,3 +42,46 @@ class Customer(Base):
             return "regular"
         else:
             return "mala"
+
+    @property
+    def credits_completed(self) -> int:
+        """Créditos con status PAGADO."""
+        return sum(
+            1 for c in self.credits
+            if getattr(c.status, "value", c.status) == "PAGADO"
+        )
+
+    @property
+    def credits_incomplete(self) -> int:
+        """Créditos activos (no PAGADO ni CANCELADO)."""
+        active_statuses = {"PENDIENTE_ACTIVACION", "EMITIDO", "EN_PROGRESO", "MOROSO"}
+        return sum(
+            1 for c in self.credits
+            if getattr(c.status, "value", c.status) in active_statuses
+        )
+
+    @property
+    def payments_on_time(self) -> int:
+        """Pagos APROBADO con punctuality_value == 100 (a tiempo)."""
+        from decimal import Decimal
+        count = 0
+        for c in self.credits:
+            for p in c.payments:
+                if (getattr(p.status, "value", p.status) == "APROBADO"
+                        and p.punctuality_value is not None
+                        and Decimal(str(p.punctuality_value)) == Decimal("100")):
+                    count += 1
+        return count
+
+    @property
+    def payments_late(self) -> int:
+        """Pagos APROBADO con punctuality_value == 0 (tardíos)."""
+        from decimal import Decimal
+        count = 0
+        for c in self.credits:
+            for p in c.payments:
+                if (getattr(p.status, "value", p.status) == "APROBADO"
+                        and p.punctuality_value is not None
+                        and Decimal(str(p.punctuality_value)) == Decimal("0")):
+                    count += 1
+        return count

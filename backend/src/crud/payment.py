@@ -490,6 +490,7 @@ def list_payments(
             func.coalesce(products_cte.c.items_count, 0).label("products_items"),
             func.coalesce(products_cte.c.total_quantity, 0).label("products_quantity"),
             func.coalesce(products_cte.c.products_total, Decimal("0.00")).label("products_total"),
+            Payment.punctuality_value,
         )
         .join(Credit, Credit.id == Payment.credit_id)
         .join(Customer, Customer.id == Credit.customer_id)

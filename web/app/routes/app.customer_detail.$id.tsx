@@ -78,6 +78,7 @@ export default function CustomerDetail() {
       reference: `Pago-Credito #${p.credit_id}: ${p.reference_number || "S/N"}`,
       label: "Abono Registrado",
       link: `/app/payment_detail/${p.id}`,
+      punctuality_value: p.punctuality_value,
     });
   });
 
@@ -88,6 +89,28 @@ export default function CustomerDetail() {
   const totalDebt = credits
     .filter((c: any) => c.status !== "CANCELADO" && c.status !== "RECHAZADO")
     .reduce((sum: number, c: any) => sum + Number(c.balance || 0), 0);
+
+  // Estadísticas de créditos y pagos
+  const creditsCompleted = credits.filter(
+    (c: any) => c.status === "PAGADO",
+  ).length;
+  const creditsIncomplete = credits.filter((c: any) =>
+    ["PENDIENTE_ACTIVACION", "EMITIDO", "EN_PROGRESO", "MOROSO"].includes(
+      c.status,
+    ),
+  ).length;
+  const paymentsOnTime = allPayments.filter(
+    (p: any) =>
+      p.status === "APROBADO" &&
+      p.punctuality_value != null &&
+      Number(p.punctuality_value) === 100,
+  ).length;
+  const paymentsLate = allPayments.filter(
+    (p: any) =>
+      p.status === "APROBADO" &&
+      p.punctuality_value != null &&
+      Number(p.punctuality_value) === 0,
+  ).length;
 
   const reputationBadge = (label: string | null) => {
     const config: Record<
@@ -121,12 +144,6 @@ export default function CustomerDetail() {
       [
         "Saldo a Favor",
         `$${Number(customer.favorable_balance || 0).toFixed(2)}`,
-      ],
-      [
-        "Límite de Crédito",
-        customer.credit_limit
-          ? `$${Number(customer.credit_limit).toFixed(2)}`
-          : "Ilimitado",
       ],
       ["Reputación", customer.reputation || "sin_historial"],
     ];
@@ -250,18 +267,51 @@ export default function CustomerDetail() {
             </s-box>
           </s-section>
           <s-section padding="base">
-            <s-heading>Límite de Crédito</s-heading>
+            <s-heading>Reputación Crediticia</s-heading>
+            <s-box>{reputationBadge(customer.reputation)}</s-box>
+          </s-section>
+        </s-grid>
+
+        <s-grid gridTemplateColumns="repeat(4, 1fr)" gap="base">
+          <s-section padding="base">
+            <s-heading>Créditos Completados</s-heading>
             <s-box>
-              <s-text type="strong">
-                {customer.credit_limit
-                  ? `$${Number(customer.credit_limit).toFixed(2)}`
-                  : "Ilimitado"}
-              </s-text>
+              {creditsCompleted > 0 ? (
+                <s-badge tone="success">{creditsCompleted}</s-badge>
+              ) : (
+                <s-text type="strong" color="subdued">0</s-text>
+              )}
             </s-box>
           </s-section>
           <s-section padding="base">
-            <s-heading>Reputación Crediticia</s-heading>
-            <s-box>{reputationBadge(customer.reputation)}</s-box>
+            <s-heading>Créditos Pendientes</s-heading>
+            <s-box>
+              {creditsIncomplete > 0 ? (
+                <s-badge tone="warning">{creditsIncomplete}</s-badge>
+              ) : (
+                <s-text type="strong" color="subdued">0</s-text>
+              )}
+            </s-box>
+          </s-section>
+          <s-section padding="base">
+            <s-heading>Pagos a Tiempo</s-heading>
+            <s-box>
+              {paymentsOnTime > 0 ? (
+                <s-badge tone="success">{paymentsOnTime}</s-badge>
+              ) : (
+                <s-text type="strong" color="subdued">0</s-text>
+              )}
+            </s-box>
+          </s-section>
+          <s-section padding="base">
+            <s-heading>Pagos Tardíos</s-heading>
+            <s-box>
+              {paymentsLate > 0 ? (
+                <s-badge tone="critical">{paymentsLate}</s-badge>
+              ) : (
+                <s-text type="strong" color="subdued">0</s-text>
+              )}
+            </s-box>
           </s-section>
         </s-grid>
 
@@ -275,6 +325,7 @@ export default function CustomerDetail() {
               </s-table-header>
               <s-table-header>Referencia</s-table-header>
               <s-table-header format="numeric">Monto</s-table-header>
+              <s-table-header>Puntualidad</s-table-header>
               <s-table-header listSlot="secondary">Estatus</s-table-header>
               <s-table-header listSlot="primary">Acciones</s-table-header>
             </s-table-header-row>
@@ -303,6 +354,21 @@ export default function CustomerDetail() {
                     </s-table-cell>
                     <s-table-cell>{op.reference}</s-table-cell>
                     <s-table-cell>${Number(op.amount).toFixed(2)}</s-table-cell>
+                    <s-table-cell>
+                      {op.type === "payment" ? (
+                        op.punctuality_value !== null && op.punctuality_value !== undefined ? (
+                          Number(op.punctuality_value) === 100 ? (
+                            <s-badge tone="success">A Tiempo</s-badge>
+                          ) : (
+                            <s-badge tone="critical">Tarde</s-badge>
+                          )
+                        ) : (
+                          <s-text color="subdued">—</s-text>
+                        )
+                      ) : (
+                        <s-text color="subdued">N/A</s-text>
+                      )}
+                    </s-table-cell>
                     <s-table-cell>
                       <s-badge
                         tone={

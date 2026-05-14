@@ -23,6 +23,10 @@ interface BackendCustomer {
   favorable_balance: number;
   punctuality_score: number | null;
   reputation: string | null;
+  credits_completed: number;
+  credits_incomplete: number;
+  payments_on_time: number;
+  payments_late: number;
 }
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -91,6 +95,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     number,
     { score: number | null; label: string | null }
   > = {};
+  let statsMap: Record<
+    number,
+    { credits_completed: number; credits_incomplete: number; payments_on_time: number; payments_late: number }
+  > = {};
   const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
 
   try {
@@ -111,6 +119,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
               score: bc.punctuality_score,
               label: bc.reputation,
             };
+            statsMap[bc.shopify_customer_id] = {
+              credits_completed: bc.credits_completed ?? 0,
+              credits_incomplete: bc.credits_incomplete ?? 0,
+              payments_on_time: bc.payments_on_time ?? 0,
+              payments_late: bc.payments_late ?? 0,
+            };
           }
         }
       }
@@ -119,7 +133,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     console.error("[shopify_customers] Failed to fetch backend customers:", e);
   }
 
-  return { customers, favorableBalanceMap, reputationMap };
+  return { customers, favorableBalanceMap, reputationMap, statsMap };
 };
 
 export const action = async ({ request }: LoaderFunctionArgs) => {
@@ -153,7 +167,7 @@ export const headers = () => ({
 });
 
 export default function ShopifyCustomers() {
-  const { customers, favorableBalanceMap, reputationMap } =
+  const { customers, favorableBalanceMap, reputationMap, statsMap } =
     useLoaderData<typeof loader>();
   const submit = useSubmit();
   const navigation = useNavigation();
@@ -235,6 +249,10 @@ export default function ShopifyCustomers() {
                   Saldo a Favor
                 </s-table-header>
                 <s-table-header>Reputación Crediticia</s-table-header>
+                <s-table-header format="numeric">Créd. Completados</s-table-header>
+                <s-table-header format="numeric">Créd. Pendientes</s-table-header>
+                <s-table-header format="numeric">Pagos a Tiempo</s-table-header>
+                <s-table-header format="numeric">Pagos Tardíos</s-table-header>
                 <s-table-header>Acciones</s-table-header>
               </s-table-header-row>
 
@@ -243,6 +261,7 @@ export default function ShopifyCustomers() {
                   const numericId = getShopifyNumericId(customer.id);
                   const saldo = favorableBalanceMap[numericId];
                   const hasSaldo = saldo != null && saldo > 0;
+                  const stats = statsMap[numericId];
 
                   const docType = customer.metafield_doc_type?.value || "";
                   const docNum = customer.metafield_doc_num?.value || "";
@@ -274,6 +293,50 @@ export default function ShopifyCustomers() {
                       <s-table-cell>
                         {reputationBadge(
                           reputationMap[numericId]?.label ?? null,
+                        )}
+                      </s-table-cell>
+                      <s-table-cell>
+                        {stats ? (
+                          stats.credits_completed > 0 ? (
+                            <s-badge tone="success">{stats.credits_completed}</s-badge>
+                          ) : (
+                            <s-text color="subdued">0</s-text>
+                          )
+                        ) : (
+                          <s-text color="subdued">—</s-text>
+                        )}
+                      </s-table-cell>
+                      <s-table-cell>
+                        {stats ? (
+                          stats.credits_incomplete > 0 ? (
+                            <s-badge tone="warning">{stats.credits_incomplete}</s-badge>
+                          ) : (
+                            <s-text color="subdued">0</s-text>
+                          )
+                        ) : (
+                          <s-text color="subdued">—</s-text>
+                        )}
+                      </s-table-cell>
+                      <s-table-cell>
+                        {stats ? (
+                          stats.payments_on_time > 0 ? (
+                            <s-badge tone="success">{stats.payments_on_time}</s-badge>
+                          ) : (
+                            <s-text color="subdued">0</s-text>
+                          )
+                        ) : (
+                          <s-text color="subdued">—</s-text>
+                        )}
+                      </s-table-cell>
+                      <s-table-cell>
+                        {stats ? (
+                          stats.payments_late > 0 ? (
+                            <s-badge tone="critical">{stats.payments_late}</s-badge>
+                          ) : (
+                            <s-text color="subdued">0</s-text>
+                          )
+                        ) : (
+                          <s-text color="subdued">—</s-text>
                         )}
                       </s-table-cell>
                       <s-table-cell>

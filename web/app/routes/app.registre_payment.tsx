@@ -354,6 +354,20 @@ export default function RegistrePayment() {
     }, 0);
   }, [activeInstallments, selectedInstallments]);
 
+  const overdueInstallments = useMemo(() => {
+    if (!paymentForm.date) return [];
+    const pDate = new Date(paymentForm.date);
+    // Establecer la hora a las 00:00:00 para comparar solo fechas
+    pDate.setHours(0, 0, 0, 0);
+
+    return activeInstallments.filter((inst) => {
+      if (!selectedInstallments[inst.id] || !inst.due_date || inst.due_date === "Flexible") return false;
+      const dDate = new Date(inst.due_date);
+      dDate.setHours(0, 0, 0, 0);
+      return pDate > dDate;
+    });
+  }, [paymentForm.date, selectedInstallments, activeInstallments]);
+
   const paymentAmount = Number(paymentForm.amount) || 0;
   const surplusAmount = Math.max(0, paymentAmount - selectedTotalDebt);
   const remainingDebt = Math.max(0, selectedTotalDebt - paymentAmount);
@@ -451,6 +465,14 @@ export default function RegistrePayment() {
         {actionError && (
           <s-banner tone="critical" onDismiss={() => setActionError(null)}>
             {actionError}
+          </s-banner>
+        )}
+        {overdueInstallments.length > 0 && (
+          <s-banner tone="warning" heading="Pago fuera de fecha límite">
+            <s-text>
+              Está registrando un pago para {overdueInstallments.length} cuota(s) después de su fecha de vencimiento. 
+              Esto marcará estas cuotas como "PAGADA ATRASADA" y afectará la reputación del cliente.
+            </s-text>
           </s-banner>
         )}
         <s-grid gridTemplateColumns="2.5fr 1fr" gap="base">
@@ -834,7 +856,22 @@ export default function RegistrePayment() {
           ) : (
             <s-table variant="auto">
               <s-table-header-row>
-                <s-table-header></s-table-header>
+                <s-table-header listSlot="primary">
+                  <s-checkbox
+                    checked={
+                      activeInstallments.length > 0 &&
+                      activeInstallments.every((i) => selectedInstallments[i.id])
+                    }
+                    onChange={(e: any) => {
+                      const checked = e.target.checked ?? e.currentTarget.checked;
+                      const newSelected = { ...selectedInstallments };
+                      activeInstallments.forEach((i) => {
+                        newSelected[i.id] = checked;
+                      });
+                      setSelectedInstallments(newSelected);
+                    }}
+                  />
+                </s-table-header>
                 <s-table-header>ID Deuda</s-table-header>
                 <s-table-header>Vencimiento</s-table-header>
                 <s-table-header>Concepto</s-table-header>
@@ -845,14 +882,17 @@ export default function RegistrePayment() {
               </s-table-header-row>
               <s-table-body>
                 {activeInstallments.map((inst) => (
-                  <s-table-row key={inst.id}>
+                  <s-table-row 
+                    key={inst.id} 
+                    style={selectedInstallments[inst.id] ? { backgroundColor: "var(--p-color-bg-surface-selected)" } : {}}
+                  >
                     <s-table-cell>
                       <s-checkbox
-                        checked={selectedInstallments[inst.id] || undefined}
+                        checked={!!selectedInstallments[inst.id] || undefined}
                         onChange={(e: any) =>
                           handleToggleInstallment(
                             inst.id,
-                            e.currentTarget.checked,
+                            e.target.checked ?? e.currentTarget.checked,
                           )
                         }
                       />

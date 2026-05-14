@@ -21,5 +21,6 @@ class PaymentListItem(BaseModel):
     products_items: int
     products_quantity: int
     products_total: Decimal
+    punctuality_value: Optional[Decimal] = None
 
     model_config = {"from_attributes": True}

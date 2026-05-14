@@ -204,6 +204,19 @@ def submit_payment_proof(payload: ProofSubmission, db: Session = Depends(get_db)
         notes_parts.append(f"Extra: {payload.notes}")
 
     if payment:
+        # Verificar si la referencia ya existe para este merchant (en OTRO pago)
+        existing_payment = db.query(Payment).filter(
+            Payment.merchant_id == pt.merchant_id,
+            Payment.reference_number == payload.reference_number,
+            Payment.id != pt.payment_id
+        ).first()
+        
+        if existing_payment:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"La referencia {payload.reference_number} ya ha sido registrada anteriormente. Por favor verifique el número."
+            )
+
         expected_amount = Decimal(str(payment.amount))
         declared_amount = Decimal(str(payload.amount))
 

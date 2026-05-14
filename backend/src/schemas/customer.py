@@ -35,6 +35,10 @@ class CustomerResponse(CustomerBase):
     favorable_balance: Decimal
     punctuality_score: Optional[Decimal] = None
     reputation: Optional[str] = None
+    credits_completed: int = 0
+    credits_incomplete: int = 0
+    payments_on_time: int = 0
+    payments_late: int = 0
 
     model_config = {
         "from_attributes": True
