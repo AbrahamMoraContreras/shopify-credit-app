@@ -12,6 +12,8 @@ interface PaymentListItem {
   id: number;
   credit_id: number;
   amount: number; // Último Abono
+  payment_method: string;
+  bank_name?: string;
   status: string;
   reference_number: string;
   installments_covered?: string;
@@ -96,23 +98,32 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         const mfs = c.metafields?.nodes || [];
         let typeMatch = !document_type;
         let numMatch = !document_id;
-        
+
         for (const mf of mfs) {
-           const val = mf.value || "";
-           const key = mf.key.toLowerCase();
-           
-           if (document_type && !typeMatch) {
-              if ((key.includes("tipo") || key.includes("doc")) && val.includes(document_type)) {
-                 typeMatch = true;
-              }
-           }
-           if (document_id && !numMatch) {
-              if ((key === "n" || key.includes("num") || key.includes("n_") || key.includes("doc")) && val.includes(document_id)) {
-                 numMatch = true;
-              }
-           }
+          const val = mf.value || "";
+          const key = mf.key.toLowerCase();
+
+          if (document_type && !typeMatch) {
+            if (
+              (key.includes("tipo") || key.includes("doc")) &&
+              val.includes(document_type)
+            ) {
+              typeMatch = true;
+            }
+          }
+          if (document_id && !numMatch) {
+            if (
+              (key === "n" ||
+                key.includes("num") ||
+                key.includes("n_") ||
+                key.includes("doc")) &&
+              val.includes(document_id)
+            ) {
+              numMatch = true;
+            }
+          }
         }
-        
+
         if (typeMatch && numMatch) {
           matchId = c.id.split("/").pop() || "-1";
           break;
@@ -144,7 +155,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       ? proofs.filter((p: any) => p.status === "PENDIENTE")
       : [],
     page: Number(page),
-    filters: { payment_id, credit_id, customer_name, document_type, document_id, payment_date },
+    filters: {
+      payment_id,
+      credit_id,
+      customer_name,
+      document_type,
+      document_id,
+      payment_date,
+    },
   };
 };
 
