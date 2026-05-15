@@ -33,7 +33,6 @@ def create_customer(db: Session, payload: CustomerCreate) -> CustomerModel:
         merchant_id=payload.merchant_id,
         full_name=payload.full_name,
         email=payload.email,
-        phone=payload.phone,
         shopify_customer_id=payload.shopify_customer_id
     )
 

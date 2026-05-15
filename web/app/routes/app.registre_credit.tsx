@@ -9,8 +9,7 @@ import {
 } from "react-router";
 import { authenticate } from "../shopify.server";
 import { getAccessTokenForShop } from "../lib/auth.server";
-import { generateInstallmentSchedule } from "./components/utils/date";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 
 interface ShopifyCustomer {
   id: string;
@@ -291,6 +290,7 @@ export default function RegistreCredit() {
   const actionData = useActionData<{ error?: string }>();
   const submit = useSubmit();
   const navigation = useNavigation();
+  const errorBannerRef = useRef<HTMLDivElement>(null);
   const isSubmitting =
     navigation.state === "submitting" || navigation.state === "loading";
 
@@ -402,6 +402,19 @@ export default function RegistreCredit() {
       installmentNumber,
     );
   }, [form.first_payment_date, form.frequency, installmentNumber]);
+
+  useEffect(() => {
+    if (clientError || actionData?.error) {
+      setTimeout(() => {
+        if (errorBannerRef.current) {
+          errorBannerRef.current.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        }
+      }, 100);
+    }
+  }, [clientError, actionData?.error]);
 
   // Clear errors when form changes
   useEffect(() => {
@@ -563,9 +576,11 @@ export default function RegistreCredit() {
     <s-page heading="Registrar Crédito">
       <s-stack gap="base">
         {(actionData?.error || clientError) && (
-          <s-banner tone="critical">
-            <s-text>{clientError || actionData?.error}</s-text>
-          </s-banner>
+          <div ref={errorBannerRef}>
+            <s-banner tone="critical">
+              <s-text>{clientError || actionData?.error}</s-text>
+            </s-banner>
+          </div>
         )}
         <s-grid
           gridTemplateColumns="repeat(2, 2fr, 1fr)"
