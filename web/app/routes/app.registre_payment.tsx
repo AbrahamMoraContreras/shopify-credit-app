@@ -591,26 +591,14 @@ export default function RegistrePayment() {
                 <s-grid gridTemplateColumns="1.5fr 1fr" gap="small">
                   {paymentForm.method !== "Dolares en efectivo" &&
                     paymentForm.method !== "Bolivares en efectivo" && (
-                      <s-text-field
+                      <s-number-field
                         label="Referencia"
                         placeholder="Ej: 123456"
                         value={paymentForm.reference}
                         onChange={(e: any) => {
                           const val = e.target?.value || "";
-                          if (
-                            paymentForm.method === "Pago movil" ||
-                            paymentForm.method === "Transferencia"
-                          ) {
-                            const numericVal = val
-                              .replace(/\D/g, "")
-                              .slice(0, 13);
-                            setPaymentForm((p) => ({
-                              ...p,
-                              reference: numericVal,
-                            }));
-                          } else {
-                            setPaymentForm((p) => ({ ...p, reference: val }));
-                          }
+                          const numericVal = val.replace(/\D/g, "");
+                          setPaymentForm((p) => ({ ...p, reference: numericVal }));
                         }}
                       />
                     )}
