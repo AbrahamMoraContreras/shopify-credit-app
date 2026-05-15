@@ -94,16 +94,27 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         const customerJson = await customerRes.json();
 
         const userErrors = customerJson.data?.customerCreate?.userErrors;
+        const graphqlErrors = customerJson.errors;
+
+        if (graphqlErrors && graphqlErrors.length > 0) {
+          console.error("[registre_credit] GraphQL errors:", graphqlErrors);
+          return {
+            error: `Error de GraphQL en Shopify: ${graphqlErrors.map((e: any) => e.message).join(", ")}`,
+          };
+        }
+
         if (userErrors && userErrors.length > 0) {
           return {
-            error: `Error creando cliente en Shopify: ${userErrors.map((e: any) => e.message).join(", ")}`,
+            error: `Error de Shopify: ${userErrors.map((e: any) => e.message).join(", ")}`,
           };
         }
 
         const gid = customerJson.data?.customerCreate?.customer?.id;
         if (!gid) {
+          console.error("[registre_credit] No GID in response:", customerJson);
           return {
-            error: "No se pudo obtener el ID del cliente creado en Shopify.",
+            error:
+              "Shopify no devolvió un ID para el nuevo cliente. Verifique los datos.",
           };
         }
 
@@ -287,6 +298,11 @@ export default function RegistreCredit() {
   const [customerReputation, setCustomerReputation] = useState<string | null>(
     null,
   );
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (navigation.state === "submitting") {
@@ -487,10 +503,11 @@ export default function RegistreCredit() {
 
     console.log("[registre_credit] Registering credit for:", {
       isNewCustomer,
-      gid: form.customer,
+      gid: !isNewCustomer ? form.customer : "NEW_CUSTOMER",
       numericId: numericCustomerId,
       foundName: customerName,
       foundEmail: customerEmail,
+      newCustomerData: isNewCustomer ? newCustomerForm : null,
     });
 
     const payload = {
@@ -719,12 +736,7 @@ export default function RegistreCredit() {
                         </s-text>
                       ) : (
                         <s-text tone="info">
-                          {descriptionLines.map((line, index) => (
-                            <span key={index}>
-                              {line}
-                              {index < descriptionLines.length - 1 && <br />}
-                            </span>
-                          ))}
+                          {descriptionLines.join(" | ")}
                         </s-text>
                       )}
                       {!isNewCustomer &&
@@ -1116,7 +1128,7 @@ export default function RegistreCredit() {
                             </s-table-cell>
 
                             <s-table-cell>
-                              {new Date().toLocaleDateString()}
+                              {mounted ? new Date().toLocaleDateString() : "—"}
                             </s-table-cell>
 
                             <s-table-cell>
