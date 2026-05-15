@@ -234,22 +234,48 @@ export default function PaymentDetail() {
 
   return (
     <s-page heading={`Detalles de Pago #${payment.id}`}>
-      <s-stack
-        direction="inline"
-        gap="small"
-        alignItems="center"
-        slot="primary-action"
+      <s-box
+        paddingBlockEnd="base"
+        paddingInlineStart="base"
+        paddingInlineEnd="base"
       >
-        <s-button variant="secondary" onClick={() => handleExport("csv")}>
-          Exportar CSV
-        </s-button>
-        <s-button variant="secondary" onClick={() => handleExport("xlsx")}>
-          Exportar XLSX
-        </s-button>
-        <s-button variant="secondary" onClick={() => handleExport("pdf")}>
-          Exportar PDF
-        </s-button>
-      </s-stack>
+        <s-stack direction="inline" justifyContent="end" gap="small-200">
+          <s-button
+            variant="secondary"
+            accessibilityLabel="Opciones de exportación"
+            commandFor="export-popover"
+            command="--toggle"
+          >
+            Exportar
+          </s-button>
+
+          <s-popover id="export-popover">
+            <s-stack direction="block" gap="small" padding="base">
+              <s-button
+                accessibilityLabel="Exportar como CSV"
+                variant="tertiary"
+                onClick={() => handleExport("csv")}
+              >
+                Exportar a CSV
+              </s-button>
+              <s-button
+                accessibilityLabel="Exportar como XLSX"
+                variant="tertiary"
+                onClick={() => handleExport("xlsx")}
+              >
+                Exportar a XLSX
+              </s-button>
+              <s-button
+                accessibilityLabel="Exportar como PDF"
+                variant="tertiary"
+                onClick={() => handleExport("pdf")}
+              >
+                Exportar a PDF
+              </s-button>
+            </s-stack>
+          </s-popover>
+        </s-stack>
+      </s-box>
       <s-stack gap="base">
         <s-grid gridTemplateColumns="1fr 1fr" gap="base">
           <s-section padding="base">

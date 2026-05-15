@@ -284,18 +284,12 @@ export default function RegistreCredit() {
     navigation.state === "submitting" || navigation.state === "loading";
 
   const [clientError, setClientError] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
   const [customerReputation, setCustomerReputation] = useState<string | null>(
     null,
   );
 
   useEffect(() => {
-    if (actionData?.error) setActionError(actionData.error);
-  }, [actionData]);
-
-  useEffect(() => {
-    if (navigation.state === "loading") {
-      setActionError(null);
+    if (navigation.state === "submitting") {
       setClientError(null);
     }
   }, [navigation.state]);
@@ -551,9 +545,9 @@ export default function RegistreCredit() {
   return (
     <s-page heading="Registrar Crédito">
       <s-stack gap="base">
-        {(actionError || clientError) && (
+        {(actionData?.error || clientError) && (
           <s-banner tone="critical">
-            <s-text>{clientError || actionError}</s-text>
+            <s-text>{clientError || actionData?.error}</s-text>
           </s-banner>
         )}
         <s-grid
