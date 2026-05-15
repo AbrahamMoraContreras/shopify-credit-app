@@ -55,6 +55,7 @@ def get_payments(
     customer_id: int | None = None,
     customer_name: str | None = None,
     payment_date: date | None = None,
+    status: PaymentStatus | None = None,
     limit: int = 20,
     offset: int = 0,
     db: Session = Depends(get_db),
@@ -69,7 +70,8 @@ def get_payments(
         credit_id=credit_id,
         customer_id=customer_id,
         customer_name=customer_name,
-        payment_date=payment_date
+        payment_date=payment_date,
+        status=status
     )
 
 

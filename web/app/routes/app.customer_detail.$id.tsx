@@ -208,7 +208,7 @@ export default function CustomerDetail() {
   };
 
   return (
-    <s-page heading="Detalles del Cliente">
+    <s-page heading="Detalles del Cliente" inlineSize="large">
       <s-stack
         direction="inline"
         gap="small"

@@ -24,7 +24,7 @@ def _merchant_short_hash(merchant_id: str, length: int = 6) -> str:
 def _log_history(db: Session, credit_id: int, event: str, description: str = ""):
     h = CreditHistory(credit_id=credit_id, event=event, description=description)
     db.add(h)
-    db.commit()
+    db.flush()
 
 def _generate_installments(total_amount, installments_count, first_due_date, frequency="mensual"):
     total = Decimal(str(total_amount))
@@ -90,7 +90,7 @@ def create_credit(db: Session, merchant_id: str, payload: CreditCreate):
             updated = True
         
         if updated:
-            db.commit()
+            db.flush()
             db.refresh(customer)
 
     credit = Credit(
@@ -103,21 +103,23 @@ def create_credit(db: Session, merchant_id: str, payload: CreditCreate):
         status=payload.status or CreditStatus.EMITIDO
     )
     db.add(credit)
-    db.commit()
+    db.flush()
     db.refresh(credit)
 
     # Items del crédito
     if payload.items:
-        for item_data in payload.items:
-            db.add(CreditItem(
+        items_to_add = [
+            CreditItem(
                 credit_id=credit.id,
                 product_id=item_data.product_id,
                 product_code=item_data.product_code,
                 product_name=item_data.product_name,
                 quantity=item_data.quantity,
                 unit_price=item_data.unit_price,
-            ))
-        db.commit()
+            ) for item_data in payload.items
+        ]
+        db.add_all(items_to_add)
+        db.flush()
 
     _log_history(db, credit.id, "CREDITO_CREADO", f"Total {credit.total_amount} con {len(payload.items)} productos")
 
@@ -130,15 +132,17 @@ def create_credit(db: Session, merchant_id: str, payload: CreditCreate):
             first_due_date=payload.first_due_date,
             frequency=payload.frequency or "mensual"
         )
-        for inst in installments_data:
-            db.add(CreditInstallment(
+        installments_to_add = [
+            CreditInstallment(
                 credit_id=credit.id,
                 number=inst["number"],
                 amount=inst["amount"],
                 due_date=inst["due_date"],
                 status=inst["status"]
-            ))
-        db.commit()
+            ) for inst in installments_data
+        ]
+        db.add_all(installments_to_add)
+        db.flush()
         _log_history(db, credit.id, "CUOTAS_GENERADAS", f"{credit.installments_count} cuotas generadas automáticamente")
         
     log_audit_action(
@@ -149,6 +153,7 @@ def create_credit(db: Session, merchant_id: str, payload: CreditCreate):
         entity_id=str(credit.id),
         changes={"total_amount": float(credit.total_amount), "customer": customer.full_name}
     )
+    db.commit()
     return credit
 
 def get_credit(db: Session, credit_id: int) -> Optional[Credit]:
@@ -202,9 +207,9 @@ def update_credit(db: Session, credit: Credit, payload: CreditUpdate):
     data = payload.model_dump(exclude_unset=True)
     for k,v in data.items():
         setattr(credit, k, v)
+    _log_history(db, credit.id, "CREDITO_ACTUALIZADO", str(data))
     db.commit()
     db.refresh(credit)
-    _log_history(db, credit.id, "CREDITO_ACTUALIZADO", str(data))
     return credit
 
 def delete_credit(db: Session, credit: Credit):

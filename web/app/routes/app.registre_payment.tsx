@@ -240,7 +240,7 @@ export default function RegistrePayment() {
   const [distributeExcess, setDistributeExcess] = useState(true);
   const [approvalStatus, setApprovalStatus] = useState<
     "EN_REVISION" | "APROBADO"
-  >("EN_REVISION");
+  >("APROBADO");
 
   useEffect(() => {
     // Limpiamos la selección cada vez que cambian los criterios de búsqueda para evitar IDs huérfanos
@@ -395,14 +395,21 @@ export default function RegistrePayment() {
       paymentForm.method === "Debito";
 
     if (!isCashMethod) {
-      if (paymentForm.method === "Pago movil" || paymentForm.method === "Transferencia") {
+      if (
+        paymentForm.method === "Pago movil" ||
+        paymentForm.method === "Transferencia"
+      ) {
         if (paymentForm.reference.length !== 13) {
-          alert("El número de referencia debe tener exactamente 13 dígitos numéricos.");
+          alert(
+            "El número de referencia debe tener exactamente 13 dígitos numéricos.",
+          );
           return;
         }
       } else if (isDigitalMethod) {
         if (!paymentForm.reference.trim()) {
-          alert("Debe ingresar un número de referencia para este método de pago.");
+          alert(
+            "Debe ingresar un número de referencia para este método de pago.",
+          );
           return;
         }
       }
@@ -459,7 +466,7 @@ export default function RegistrePayment() {
     setSelectedInstallments({});
     setUseFavorableBalance(false);
     setDistributeExcess(true);
-    setApprovalStatus("EN_REVISION");
+    setApprovalStatus("APROBADO");
   };
 
   return (
@@ -594,8 +601,13 @@ export default function RegistrePayment() {
                             paymentForm.method === "Pago movil" ||
                             paymentForm.method === "Transferencia"
                           ) {
-                            const numericVal = val.replace(/\D/g, "").slice(0, 13);
-                            setPaymentForm((p) => ({ ...p, reference: numericVal }));
+                            const numericVal = val
+                              .replace(/\D/g, "")
+                              .slice(0, 13);
+                            setPaymentForm((p) => ({
+                              ...p,
+                              reference: numericVal,
+                            }));
                           } else {
                             setPaymentForm((p) => ({ ...p, reference: val }));
                           }
@@ -614,17 +626,6 @@ export default function RegistrePayment() {
                     }))
                   }
                   rows={3}
-                />
-
-                <s-checkbox
-                  label="Auto-seleccionar deudas más antiguas"
-                  checked={paymentForm.autoSelect || undefined}
-                  onChange={(e: any) =>
-                    setPaymentForm((p) => ({
-                      ...p,
-                      autoSelect: !!e.target?.checked,
-                    }))
-                  }
                 />
 
                 {activeInstallments.some(

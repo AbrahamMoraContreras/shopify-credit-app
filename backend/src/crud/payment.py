@@ -269,15 +269,23 @@ def _apply_payment_distribution(db: Session, payment: Payment, credit: Credit, t
 
     # Distribuir el resto de los fondos en las cuotas si existen
     fully_paid_installments: list[CreditInstallment] = []
+    
+    epsilon = Decimal("0.01")  # Tolerancia para problemas de precisión decimal
+
     for inst in distribution_queue:
         if remaining_to_distribute <= Decimal("0.00"):
             break
             
         inst_debt = Decimal(str(inst.amount)) - Decimal(str(inst.paid_amount))
         
-        if inst_debt <= remaining_to_distribute:
+        # Consideramos la cuota como totalmente pagada si la diferencia es virtualmente nula
+        if inst_debt <= remaining_to_distribute + epsilon:
             # Cuota pagada por completo
-            remaining_to_distribute -= inst_debt
+            if inst_debt <= remaining_to_distribute:
+                remaining_to_distribute -= inst_debt
+            else:
+                remaining_to_distribute = Decimal("0.00")
+            
             inst.paid_amount = inst.amount
             inst.status = InstallmentStatus.PAGADA
             inst.paid_at = datetime.utcnow()
@@ -469,6 +477,7 @@ def list_payments(
     customer_id: int | None = None,
     customer_name: str | None = None,
     payment_date: date | None = None,
+    status: PaymentStatus | None = None,
 ):
     products_cte = credit_items_agg_cte(db)
 
@@ -481,6 +490,8 @@ def list_payments(
             Payment.reference_number,
             Payment.installments_covered,
             Payment.payment_date,
+            Payment.payment_method,
+            Payment.bank_name,
             Customer.full_name.label("customer_name"),
             Customer.email.label("customer_email"),
             Credit.total_amount.label("credit_total_amount"),
@@ -513,6 +524,8 @@ def list_payments(
         q = q.filter(Customer.full_name.ilike(f"%{customer_name}%"))
     if payment_date:
         q = q.filter(cast(Payment.payment_date, Date) == payment_date)
+    if status is not None:
+        q = q.filter(Payment.status == status)
         
     q = q.order_by(Payment.payment_date.desc()).limit(limit).offset(offset)
 

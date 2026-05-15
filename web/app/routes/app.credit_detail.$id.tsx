@@ -4,6 +4,7 @@ import {
   useNavigation,
   useActionData,
   useLoaderData,
+  redirect,
 } from "react-router";
 import { useEffect, useState } from "react";
 import * as XLSX from "xlsx";
@@ -87,7 +88,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
         const error = await response.json();
         return { error: error.detail || "Error al cancelar el crédito" };
       }
-      return { success: true };
+      return redirect(`/app/credit_detail/${id}`);
     } catch {
       return { error: "Error de conexión" };
     }
@@ -352,39 +353,15 @@ export default function CreditDetail() {
         alignItems="center"
         slot="primary-action"
       >
-        <s-button
-          variant="secondary"
-          accessibilityLabel="Opciones de exportación"
-          commandFor="export-popover"
-          command="--toggle"
-        >
-          Exportar
+        <s-button variant="secondary" onClick={() => handleExport("csv")}>
+          Exportar CSV
         </s-button>
-        <s-popover id="export-popover">
-          <s-stack direction="block" gap="small" padding="base">
-            <s-button
-              fullWidth
-              variant="tertiary"
-              onClick={() => handleExport("csv")}
-            >
-              Exportar CSV
-            </s-button>
-            <s-button
-              fullWidth
-              variant="tertiary"
-              onClick={() => handleExport("xlsx")}
-            >
-              Exportar XLSX
-            </s-button>
-            <s-button
-              fullWidth
-              variant="tertiary"
-              onClick={() => handleExport("pdf")}
-            >
-              Exportar PDF
-            </s-button>
-          </s-stack>
-        </s-popover>
+        <s-button variant="secondary" onClick={() => handleExport("xlsx")}>
+          Exportar XLSX
+        </s-button>
+        <s-button variant="secondary" onClick={() => handleExport("pdf")}>
+          Exportar PDF
+        </s-button>
         <s-button
           variant="primary"
           href="/app/registre_payment"
@@ -789,23 +766,6 @@ export default function CreditDetail() {
               </s-table-body>
             </s-table>
           </s-section>
-
-          <s-divider />
-
-          <s-stack
-            direction="inline"
-            padding="base"
-            justifyContent="end"
-            gap="small"
-          >
-            <s-button
-              variant="primary"
-              icon="export"
-              accessibilityLabel="Enviar detalles por WhatsApp"
-            >
-              Enviar por WhatsApp
-            </s-button>
-          </s-stack>
         </s-stack>
       )}
 

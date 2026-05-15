@@ -55,12 +55,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const document_id = url.searchParams.get("document_id") || "";
   const created_at_date = url.searchParams.get("created_at_date") || "";
   const due_date = url.searchParams.get("due_date") || "";
+  const status = url.searchParams.get("status") || "";
 
   const params = new URLSearchParams();
   if (credit_id) params.append("credit_id", credit_id);
   if (customer_name) params.append("customer_name", customer_name);
   if (created_at_date) params.append("created_at_date", created_at_date);
   if (due_date) params.append("due_date", due_date);
+  if (status) params.append("status", status);
 
   if (document_type || document_id) {
     try {
@@ -86,23 +88,32 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         const mfs = c.metafields?.nodes || [];
         let typeMatch = !document_type;
         let numMatch = !document_id;
-        
+
         for (const mf of mfs) {
-           const val = mf.value || "";
-           const key = mf.key.toLowerCase();
-           
-           if (document_type && !typeMatch) {
-              if ((key.includes("tipo") || key.includes("doc")) && val.includes(document_type)) {
-                 typeMatch = true;
-              }
-           }
-           if (document_id && !numMatch) {
-              if ((key === "n" || key.includes("num") || key.includes("n_") || key.includes("doc")) && val.includes(document_id)) {
-                 numMatch = true;
-              }
-           }
+          const val = mf.value || "";
+          const key = mf.key.toLowerCase();
+
+          if (document_type && !typeMatch) {
+            if (
+              (key.includes("tipo") || key.includes("doc")) &&
+              val.includes(document_type)
+            ) {
+              typeMatch = true;
+            }
+          }
+          if (document_id && !numMatch) {
+            if (
+              (key === "n" ||
+                key.includes("num") ||
+                key.includes("n_") ||
+                key.includes("doc")) &&
+              val.includes(document_id)
+            ) {
+              numMatch = true;
+            }
+          }
         }
-        
+
         if (typeMatch && numMatch) {
           matchId = c.id.split("/").pop() || "-1";
           break;
@@ -137,6 +148,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       document_id,
       created_at_date,
       due_date,
+      status,
     },
   };
 };
@@ -207,6 +219,7 @@ export default function CreditHistorial() {
       document_id: "",
       created_at_date: "",
       due_date: "",
+      status: "",
     });
     submit({}, { method: "get" });
   };
@@ -426,6 +439,27 @@ export default function CreditHistorial() {
                   }
                 />
               </s-box>
+
+              <s-box inlineSize="140px">
+                <s-select
+                  label="Estatus"
+                  value={filterState.status || ""}
+                  onChange={(e: any) =>
+                    setFilterState({
+                      ...filterState,
+                      status: e.target?.value || "",
+                    })
+                  }
+                >
+                  <s-option value="">Todos</s-option>
+                  <s-option value="PENDIENTE_ACTIVACION">Pendiente</s-option>
+                  <s-option value="EMITIDO">Emitido</s-option>
+                  <s-option value="EN_PROGRESO">En Progresso</s-option>
+                  <s-option value="MOROSO">Moroso</s-option>
+                  <s-option value="PAGADO">Pagado</s-option>
+                  <s-option value="CANCELADO">Cancelado</s-option>
+                </s-select>
+              </s-box>
             </s-stack>
           </s-stack>
 
@@ -606,7 +640,11 @@ export default function CreditHistorial() {
                       </s-text>
                     )}
                     {credit.last_payment_reference && (
-                      <s-text color="subdued" fontVariantNumeric="tabular-nums" alignment="center">
+                      <s-text
+                        color="subdued"
+                        fontVariantNumeric="tabular-nums"
+                        alignment="center"
+                      >
                         Ref:{" "}
                         {credit.last_payment_reference?.startsWith("INTENT-")
                           ? `RECORDATORIO-${credit.last_payment_reference.split("-")[1]}-ENVIADO`
@@ -630,7 +668,9 @@ export default function CreditHistorial() {
                     )}
                     {!credit.last_payment_date &&
                       !credit.last_payment_method && (
-                        <s-text color="subdued" alignment="center">—</s-text>
+                        <s-text color="subdued" alignment="center">
+                          —
+                        </s-text>
                       )}
                   </s-stack>
                 </s-table-cell>

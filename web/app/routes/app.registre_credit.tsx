@@ -77,39 +77,50 @@ export const action = async ({ request }: ActionFunctionArgs) => {
               namespace: "custom",
               key: "tipo_de_documento",
               type: "list.single_line_text_field",
-              value: JSON.stringify([data.docType])
+              value: JSON.stringify([data.docType]),
             },
             {
               namespace: "custom",
               key: "numero_documento",
               type: "number_integer",
-              value: String(data.docNum)
-            }
-          ]
-        }
+              value: String(data.docNum),
+            },
+          ],
+        },
       };
 
       try {
         const customerRes = await admin.graphql(mutation, { variables });
         const customerJson = await customerRes.json();
-        
+
         const userErrors = customerJson.data?.customerCreate?.userErrors;
         if (userErrors && userErrors.length > 0) {
-          return { error: `Error creando cliente en Shopify: ${userErrors.map((e: any) => e.message).join(", ")}` };
+          return {
+            error: `Error creando cliente en Shopify: ${userErrors.map((e: any) => e.message).join(", ")}`,
+          };
         }
 
         const gid = customerJson.data?.customerCreate?.customer?.id;
         if (!gid) {
-          return { error: "No se pudo obtener el ID del cliente creado en Shopify." };
+          return {
+            error: "No se pudo obtener el ID del cliente creado en Shopify.",
+          };
         }
 
         const shopifyIdMatch = gid.match(/\/(\d+)$/);
-        payload.customer_id = shopifyIdMatch ? parseInt(shopifyIdMatch[1], 10) : 0;
+        payload.customer_id = shopifyIdMatch
+          ? parseInt(shopifyIdMatch[1], 10)
+          : 0;
         payload.customer_name = `${data.firstName} ${data.lastName}`.trim();
         payload.customer_email = data.email;
       } catch (err) {
-        console.error("[registre_credit] Error creating Shopify customer:", err);
-        return { error: "Error de red al intentar crear el cliente en Shopify." };
+        console.error(
+          "[registre_credit] Error creating Shopify customer:",
+          err,
+        );
+        return {
+          error: "Error de red al intentar crear el cliente en Shopify.",
+        };
       }
     }
 
@@ -422,8 +433,15 @@ export default function RegistreCredit() {
     setClientError(null);
 
     if (isNewCustomer) {
-      if (!newCustomerForm.firstName || !newCustomerForm.lastName || !newCustomerForm.email || !newCustomerForm.docNum) {
-        setClientError("Por favor, complete todos los campos requeridos del nuevo cliente.");
+      if (
+        !newCustomerForm.firstName ||
+        !newCustomerForm.lastName ||
+        !newCustomerForm.email ||
+        !newCustomerForm.docNum
+      ) {
+        setClientError(
+          "Por favor, complete todos los campos requeridos del nuevo cliente.",
+        );
         return;
       }
     } else {
@@ -450,9 +468,7 @@ export default function RegistreCredit() {
     if (!isNewCustomer) {
       // Extracción del Shopify ID de cada clientes
       const shopifyIdMatch = form.customer.match(/\/(\d+)$/);
-      numericCustomerId = shopifyIdMatch
-        ? parseInt(shopifyIdMatch[1], 10)
-        : 0;
+      numericCustomerId = shopifyIdMatch ? parseInt(shopifyIdMatch[1], 10) : 0;
 
       // Encontrar el objeto del cliente para obtener su displayName
       const selected = customers.find(
@@ -565,7 +581,10 @@ export default function RegistreCredit() {
                       onChange={(e) => setIsNewCustomer(e.target.checked)}
                       style={{ cursor: "pointer" }}
                     />
-                    <label htmlFor="isNewCustomerToggle" style={{ cursor: "pointer", fontWeight: "bold" }}>
+                    <label
+                      htmlFor="isNewCustomerToggle"
+                      style={{ cursor: "pointer", fontWeight: "bold" }}
+                    >
                       Crear Nuevo Cliente
                     </label>
                   </s-stack>
@@ -604,32 +623,62 @@ export default function RegistreCredit() {
                       <s-text-field
                         label="Nombre"
                         value={newCustomerForm.firstName}
-                        onInput={(e: any) => setNewCustomerForm(prev => ({ ...prev, firstName: e.currentTarget.value }))}
+                        onInput={(e: any) => {
+                          const val = e.target?.value || "";
+                          setNewCustomerForm((prev) => ({
+                            ...prev,
+                            firstName: val,
+                          }));
+                        }}
                         required
                       />
                       <s-text-field
                         label="Apellido"
                         value={newCustomerForm.lastName}
-                        onInput={(e: any) => setNewCustomerForm(prev => ({ ...prev, lastName: e.currentTarget.value }))}
+                        onInput={(e: any) => {
+                          const val = e.target?.value || "";
+                          setNewCustomerForm((prev) => ({
+                            ...prev,
+                            lastName: val,
+                          }));
+                        }}
                         required
                       />
                       <s-text-field
                         label="Email"
                         value={newCustomerForm.email}
-                        onInput={(e: any) => setNewCustomerForm(prev => ({ ...prev, email: e.currentTarget.value }))}
+                        onInput={(e: any) => {
+                          const val = e.target?.value || "";
+                          setNewCustomerForm((prev) => ({
+                            ...prev,
+                            email: val,
+                          }));
+                        }}
                         required
                       />
                       <s-text-field
                         label="Teléfono"
                         value={newCustomerForm.phone}
-                        onInput={(e: any) => setNewCustomerForm(prev => ({ ...prev, phone: e.currentTarget.value }))}
+                        onInput={(e: any) => {
+                          const val = e.target?.value || "";
+                          setNewCustomerForm((prev) => ({
+                            ...prev,
+                            phone: val,
+                          }));
+                        }}
                       />
                       <s-stack direction="inline" gap="small">
                         <s-box inlineSize="100px">
                           <s-select
                             label="Tipo Doc."
                             value={newCustomerForm.docType}
-                            onChange={(e: any) => setNewCustomerForm(prev => ({ ...prev, docType: e.target?.value || "V" }))}
+                            onChange={(e: any) => {
+                              const val = e.target?.value || "V";
+                              setNewCustomerForm((prev) => ({
+                                ...prev,
+                                docType: val,
+                              }));
+                            }}
                           >
                             <s-option value="V">V</s-option>
                             <s-option value="J">J</s-option>
@@ -641,7 +690,13 @@ export default function RegistreCredit() {
                             label="N° Documento"
                             inputMode="numeric"
                             value={newCustomerForm.docNum}
-                            onChange={(e: any) => setNewCustomerForm(prev => ({ ...prev, docNum: e.target?.value || "" }))}
+                            onChange={(e: any) => {
+                              const val = e.target?.value || "";
+                              setNewCustomerForm((prev) => ({
+                                ...prev,
+                                docNum: val,
+                              }));
+                            }}
                             required
                           />
                         </s-box>
@@ -661,10 +716,12 @@ export default function RegistreCredit() {
                     <s-box>
                       {isNewCustomer ? (
                         <s-text tone="info">
-                          Creando nuevo cliente: <br/>
-                          {newCustomerForm.firstName} {newCustomerForm.lastName} <br/>
-                          Email: {newCustomerForm.email} <br/>
-                          Documento: {newCustomerForm.docType}-{newCustomerForm.docNum}
+                          Creando nuevo cliente: <br />
+                          {newCustomerForm.firstName} {newCustomerForm.lastName}{" "}
+                          <br />
+                          Email: {newCustomerForm.email} <br />
+                          Documento: {newCustomerForm.docType}-
+                          {newCustomerForm.docNum}
                         </s-text>
                       ) : (
                         <s-text tone="info">
@@ -676,7 +733,8 @@ export default function RegistreCredit() {
                           ))}
                         </s-text>
                       )}
-                      {!isNewCustomer && customerReputation &&
+                      {!isNewCustomer &&
+                        customerReputation &&
                         (() => {
                           const repConfig: Record<
                             string,

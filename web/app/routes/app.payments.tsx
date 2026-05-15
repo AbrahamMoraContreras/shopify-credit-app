@@ -64,6 +64,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const document_type = url.searchParams.get("document_type") || "";
   const document_id = url.searchParams.get("document_id") || "";
   const payment_date = url.searchParams.get("payment_date") || "";
+  const status = url.searchParams.get("status") || "";
 
   const params = new URLSearchParams({
     limit: pageSize.toString(),
@@ -73,6 +74,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   if (credit_id) params.append("credit_id", credit_id);
   if (customer_name) params.append("customer_name", customer_name);
   if (payment_date) params.append("payment_date", payment_date);
+  if (status) params.append("status", status);
 
   if (document_type || document_id) {
     try {
@@ -162,6 +164,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       document_type,
       document_id,
       payment_date,
+      status,
     },
   };
 };
@@ -304,6 +307,7 @@ export default function PaymentHistorial() {
       document_type: "",
       document_id: "",
       payment_date: "",
+      status: "",
     });
     submit({ page: "1" }, { method: "get" });
   };
@@ -723,6 +727,26 @@ export default function PaymentHistorial() {
                   }
                 />
               </s-box>
+
+              <s-box inlineSize="140px">
+                <s-select
+                  label="Estatus"
+                  value={filterState.status || ""}
+                  onChange={(e: any) =>
+                    setFilterState({
+                      ...filterState,
+                      status: e.target?.value || "",
+                    })
+                  }
+                >
+                  <s-option value="">Todos</s-option>
+                  <s-option value="REGISTRADO">Registrado</s-option>
+                  <s-option value="APROBADO">Aprobado</s-option>
+                  <s-option value="EN_REVISION">En Revisión</s-option>
+                  <s-option value="RECHAZADO">Rechazado</s-option>
+                  <s-option value="CANCELADO">Cancelado</s-option>
+                </s-select>
+              </s-box>
             </s-stack>
           </s-stack>
 
@@ -854,8 +878,10 @@ export default function PaymentHistorial() {
                   <s-table-cell>${creditTotal.toFixed(2)}</s-table-cell>
                   <s-table-cell>{cuotasCubiertas}</s-table-cell>
                   <s-table-cell>
-                    <s-stack direction="block" gap="0">
-                      <s-text type="strong">{payment.payment_method}</s-text>
+                    <s-stack direction="block" gap="none">
+                      <s-text type="strong">
+                        {payment.payment_method || "N/A"}
+                      </s-text>
                       {payment.bank_name ? (
                         <s-text color="subdued">{payment.bank_name}</s-text>
                       ) : null}
