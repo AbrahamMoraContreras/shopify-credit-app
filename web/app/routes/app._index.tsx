@@ -88,15 +88,7 @@ export default function Home() {
   };
 
   return (
-    <s-page heading="Gestión de cobro y crédito">
-      <s-button
-        variant="primary"
-        slot="primary-action"
-        accessibilityLabel="Establecer tasa de cambio"
-      >
-        Seleccionar tasa de cambio
-      </s-button>
-
+    <s-page heading="FÍAME - App">
       <s-stack gap="base">
         {/* User Manual Toggle */}
         <s-box paddingBlockEnd="none">

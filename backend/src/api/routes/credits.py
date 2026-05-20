@@ -33,12 +33,17 @@ def create_credit_endpoint(
             payload=payload,
             merchant_id=merchant_id,
         )
-
-
-        return credit
+        # Fetch a fresh instance with all relationships loaded to avoid DetachedInstanceError
+        fresh_credit = get_credit(db, credit.id)
+        return fresh_credit
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        raise HTTPException(status_code=400, detail=error_details)
+
 
 
 

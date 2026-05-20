@@ -550,7 +550,6 @@ export default function RegistreCredit() {
           product_name: p.title,
           quantity: qty,
           unit_price: price,
-          total_price: price * qty,
         };
       }),
     };
