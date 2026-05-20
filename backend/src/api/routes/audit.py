@@ -19,4 +19,5 @@ def log_login(
         action="LOGIN",
         changes={"message": "El usuario ingresó a la app de Shopify."}
     )
+    db.commit()
     return {"ok": True}

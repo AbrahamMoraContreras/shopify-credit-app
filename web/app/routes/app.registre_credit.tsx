@@ -1217,16 +1217,6 @@ export default function RegistreCredit() {
               </s-button>
               <s-button
                 slot="secondary-actions"
-                tone="neutral"
-                onClick={() => handleRegisterCredit(true)}
-                loading={isSubmitting || undefined}
-                disabled={isSubmitting || undefined}
-                accessibilityLabel="Guardar crédito como borrador"
-              >
-                Guardar Borrador
-              </s-button>
-              <s-button
-                slot="tertiary-actions"
                 tone="critical"
                 onClick={handleClear}
                 disabled={isSubmitting || undefined}

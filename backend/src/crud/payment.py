@@ -187,9 +187,7 @@ def create_payment(
         )
         try:
             db.add(payment)
-            db.commit()
-            db.refresh(payment)
-            
+            db.flush()
             log_audit_action(
                 db=db,
                 merchant_id=merchant_id,
@@ -198,6 +196,8 @@ def create_payment(
                 entity_id=str(payment.id),
                 changes={"amount": float(payment.amount), "credit_id": credit.id, "status": payment.status}
             )
+            db.commit()
+            db.refresh(payment)
         except Exception as e:
             db.rollback()
             if "uq_payment_reference" in str(e) or "reference_number" in str(e).lower():
@@ -386,9 +386,6 @@ def review_payment(
             
         _apply_payment_distribution(db, payment, credit, target_ids, distribute_excess, credit.customer)
 
-    db.commit()
-    db.refresh(payment)
-    
     log_audit_action(
         db=db,
         merchant_id=payment.merchant_id,
@@ -397,6 +394,9 @@ def review_payment(
         entity_id=str(payment.id),
         changes={"status": status}
     )
+
+    db.commit()
+    db.refresh(payment)
     
     if credit.customer:
         update_customer_punctuality(db, credit.customer)

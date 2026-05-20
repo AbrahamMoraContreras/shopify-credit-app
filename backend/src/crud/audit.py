@@ -14,16 +14,16 @@ def log_audit_action(
     changes: dict = None
 ):
     try:
-        log = AuditLog(
-            merchant_id=merchant_id,
-            entity_name=entity_name,
-            entity_id=entity_id,
-            action=action,
-            timestamp=datetime.utcnow(),
-            changes=changes
-        )
-        db.add(log)
-        db.commit()
+        with db.begin_nested():
+            log = AuditLog(
+                merchant_id=merchant_id,
+                entity_name=entity_name,
+                entity_id=entity_id,
+                action=action,
+                timestamp=datetime.utcnow(),
+                changes=changes
+            )
+            db.add(log)
+        db.flush()
     except Exception as e:
-        db.rollback()
         print(f"Error saving audit log: {e}")
