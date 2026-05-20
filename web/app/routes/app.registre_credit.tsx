@@ -10,6 +10,7 @@ import {
 import { authenticate } from "../shopify.server";
 import { getAccessTokenForShop } from "../lib/auth.server";
 import { useMemo, useState, useEffect, useRef } from "react";
+import { generateInstallmentSchedule } from "./components/utils/date";
 
 interface ShopifyCustomer {
   id: string;

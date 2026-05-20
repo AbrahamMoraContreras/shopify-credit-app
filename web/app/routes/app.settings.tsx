@@ -412,32 +412,6 @@ export default function Settings() {
         </s-choice-list>
       </s-section>
 
-      <s-section heading="Preferencias">
-        <s-box border="base" borderRadius="base">
-          <s-clickable
-            padding="small-100"
-            href="/app/settings/products_catalog"
-            accessibilityLabel="Configure product defaults, customer experience, and catalog settings"
-          >
-            <s-grid
-              gridTemplateColumns="1fr auto"
-              alignItems="center"
-              gap="base"
-            >
-              <s-box>
-                <s-heading>Conectarse a WhatsApp</s-heading>
-                <s-paragraph color="subdued">
-                  Conectar la aplicación con WhatsApp.
-                </s-paragraph>
-              </s-box>
-              <s-icon type="chevron-right" />
-            </s-grid>
-          </s-clickable>
-          <s-box paddingInline="small-100">
-            <s-divider />
-          </s-box>
-        </s-box>
-      </s-section>
 
       {/* === */}
       {/* Tools */}
