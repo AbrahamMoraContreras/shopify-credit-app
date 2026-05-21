@@ -82,15 +82,22 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
     try {
       const response = await fetch(`${BACKEND_URL}/api/credits/${id}/cancel`, {
         method: "PUT",
-        headers: { Authorization: `Bearer ${accessToken}` },
+        headers: authHeaders, // USE authHeaders here instead of just Authorization
       });
       if (!response.ok) {
-        const error = await response.json();
-        return { error: error.detail || "Error al cancelar el crédito" };
+        const errorText = await response.text();
+        console.error("Backend error response on cancel:", errorText);
+        try {
+            const errorJson = JSON.parse(errorText);
+            return { error: errorJson.detail || "Error al cancelar el crédito" };
+        } catch(e) {
+            return { error: `Error interno del servidor: ${errorText.substring(0, 50)}...` };
+        }
       }
       return redirect(`/app/credit_detail/${id}`);
-    } catch {
-      return { error: "Error de conexión" };
+    } catch (e: any) {
+      console.error("Fetch exception on cancel:", e);
+      return { error: `Error de conexión: ${e.message}` };
     }
   }
 

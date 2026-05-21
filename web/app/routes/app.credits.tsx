@@ -172,12 +172,29 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   }
 
   if (intent === "cancel") {
-    const res = await fetch(`${BACKEND_URL}/api/credits/${id}/cancel`, {
-      method: "PUT",
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    if (!res.ok) return { error: "No se pudo cancelar el crédito" };
-    return { success: true };
+    try {
+        const res = await fetch(`${BACKEND_URL}/api/credits/${id}/cancel`, {
+        method: "PUT",
+        headers: { 
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}` 
+        },
+        });
+        if (!res.ok) {
+            const errText = await res.text();
+            console.error("Cancel credit error:", errText);
+            try {
+                const errJson = JSON.parse(errText);
+                return { error: errJson.detail || "No se pudo cancelar el crédito" };
+            } catch(e) {
+                return { error: `Error del servidor: ${errText.substring(0, 50)}...` };
+            }
+        }
+        return { success: true };
+    } catch (e: any) {
+        console.error("Fetch exception on cancel in app.credits:", e);
+        return { error: `Error de conexión: ${e.message}` };
+    }
   }
 
   return null;
