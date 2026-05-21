@@ -750,8 +750,13 @@ export default function PaymentHistorial() {
             </s-stack>
           </s-stack>
 
-          <s-stack direction="inline" gap="small-200" justifyContent="space-between" alignItems="center">
-            <s-stack direction="inline" gap="small-200">
+          <s-stack
+            direction="inline"
+            gap="small"
+            justifyContent="space-between"
+            alignItems="center"
+          >
+            <s-button-group>
               <s-button variant="primary" onClick={handleSearch}>
                 Buscar
               </s-button>
@@ -793,53 +798,59 @@ export default function PaymentHistorial() {
                   </s-button>
                 </s-stack>
               </s-popover>
-            </s-stack>
+            </s-button-group>
 
-            <s-stack direction="inline" gap="small-200" alignItems="center">
+            <s-stack
+              direction="inline"
+              gap="small"
+              alignItems="center"
+            >
               <s-text color="subdued">{selectedIds.size} seleccionados</s-text>
-              <s-button
-                tone="auto"
-                icon="check"
-                disabled={
-                  selectedIds.size === 0 ||
-                  hasApprovedSelected ||
-                  loading ||
-                  undefined
-                }
-                onClick={() => handleBatchReview("APROBADO")}
-                accessibilityLabel="Aprobar pagos seleccionados"
-              >
-                Aprobar Pago
-              </s-button>
-              <s-button
-                tone="critical"
-                icon="delete"
-                disabled={selectedIds.size === 0 || loading || undefined}
-                onClick={() => handleBatchReview("RECHAZADO")}
-                accessibilityLabel="Rechazar pagos seleccionados"
-              >
-                Rechazar Pago
-              </s-button>
-              <s-button
-                variant="secondary"
-                tone="critical"
-                icon="delete"
-                disabled={selectedIds.size === 0 || loading || undefined}
-                onClick={handleBatchCancel}
-                accessibilityLabel="Cancelar pagos seleccionados y revertir monto al crédito"
-              >
-                Cancelar Pago
-              </s-button>
-              <s-button
-                tone="critical"
-                variant="secondary"
-                icon="delete"
-                disabled={selectedIds.size === 0 || loading || undefined}
-                onClick={handleBatchDelete}
-                accessibilityLabel="Eliminar pagos seleccionados"
-              >
-                Eliminar Pago
-              </s-button>
+              <s-button-group>
+                <s-button
+                  tone="auto"
+                  icon="check"
+                  disabled={
+                    selectedIds.size === 0 ||
+                    hasApprovedSelected ||
+                    loading ||
+                    undefined
+                  }
+                  onClick={() => handleBatchReview("APROBADO")}
+                  accessibilityLabel="Aprobar pagos seleccionados"
+                >
+                  Aprobar Pago
+                </s-button>
+                <s-button
+                  tone="critical"
+                  icon="delete"
+                  disabled={selectedIds.size === 0 || loading || undefined}
+                  onClick={() => handleBatchReview("RECHAZADO")}
+                  accessibilityLabel="Rechazar pagos seleccionados"
+                >
+                  Rechazar Pago
+                </s-button>
+                <s-button
+                  variant="secondary"
+                  tone="critical"
+                  icon="delete"
+                  disabled={selectedIds.size === 0 || loading || undefined}
+                  onClick={handleBatchCancel}
+                  accessibilityLabel="Cancelar pagos seleccionados y revertir monto al crédito"
+                >
+                  Cancelar Pago
+                </s-button>
+                <s-button
+                  tone="critical"
+                  variant="secondary"
+                  icon="delete"
+                  disabled={selectedIds.size === 0 || loading || undefined}
+                  onClick={handleBatchDelete}
+                  accessibilityLabel="Eliminar pagos seleccionados"
+                >
+                  Eliminar Pago
+                </s-button>
+              </s-button-group>
             </s-stack>
           </s-stack>
         </s-stack>
