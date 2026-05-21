@@ -750,48 +750,97 @@ export default function PaymentHistorial() {
             </s-stack>
           </s-stack>
 
-          <s-stack direction="inline" gap="small-200">
-            <s-button variant="primary" onClick={handleSearch}>
-              Buscar
-            </s-button>
-            <s-button variant="tertiary" tone="neutral" onClick={clearSearch}>
-              Limpiar
-            </s-button>
+          <s-stack direction="inline" gap="small-200" justifyContent="space-between" alignItems="center">
+            <s-stack direction="inline" gap="small-200">
+              <s-button variant="primary" onClick={handleSearch}>
+                Buscar
+              </s-button>
+              <s-button variant="tertiary" tone="neutral" onClick={clearSearch}>
+                Limpiar
+              </s-button>
 
-            <s-button
-              variant="secondary"
-              accessibilityLabel="Opciones de exportación"
-              commandFor="export-popover"
-              command="--toggle"
-            >
-              Exportar
-            </s-button>
+              <s-button
+                variant="secondary"
+                accessibilityLabel="Opciones de exportación"
+                commandFor="export-popover"
+                command="--toggle"
+              >
+                Exportar
+              </s-button>
 
-            <s-popover id="export-popover">
-              <s-stack direction="block" gap="small" padding="base">
-                <s-button
-                  accessibilityLabel="Exportar como CSV"
-                  variant="tertiary"
-                  onClick={() => handleExport("csv")}
-                >
-                  Exportar a CSV
-                </s-button>
-                <s-button
-                  accessibilityLabel="Exportar como XLSX"
-                  variant="tertiary"
-                  onClick={() => handleExport("xlsx")}
-                >
-                  Exportar a XLSX
-                </s-button>
-                <s-button
-                  accessibilityLabel="Exportar como PDF"
-                  variant="tertiary"
-                  onClick={() => handleExport("pdf")}
-                >
-                  Exportar a PDF
-                </s-button>
-              </s-stack>
-            </s-popover>
+              <s-popover id="export-popover">
+                <s-stack direction="block" gap="small" padding="base">
+                  <s-button
+                    accessibilityLabel="Exportar como CSV"
+                    variant="tertiary"
+                    onClick={() => handleExport("csv")}
+                  >
+                    Exportar a CSV
+                  </s-button>
+                  <s-button
+                    accessibilityLabel="Exportar como XLSX"
+                    variant="tertiary"
+                    onClick={() => handleExport("xlsx")}
+                  >
+                    Exportar a XLSX
+                  </s-button>
+                  <s-button
+                    accessibilityLabel="Exportar como PDF"
+                    variant="tertiary"
+                    onClick={() => handleExport("pdf")}
+                  >
+                    Exportar a PDF
+                  </s-button>
+                </s-stack>
+              </s-popover>
+            </s-stack>
+
+            <s-stack direction="inline" gap="small-200" alignItems="center">
+              <s-text color="subdued">{selectedIds.size} seleccionados</s-text>
+              <s-button
+                tone="auto"
+                icon="check"
+                disabled={
+                  selectedIds.size === 0 ||
+                  hasApprovedSelected ||
+                  loading ||
+                  undefined
+                }
+                onClick={() => handleBatchReview("APROBADO")}
+                accessibilityLabel="Aprobar pagos seleccionados"
+              >
+                Aprobar Pago
+              </s-button>
+              <s-button
+                tone="critical"
+                icon="delete"
+                disabled={selectedIds.size === 0 || loading || undefined}
+                onClick={() => handleBatchReview("RECHAZADO")}
+                accessibilityLabel="Rechazar pagos seleccionados"
+              >
+                Rechazar Pago
+              </s-button>
+              <s-button
+                variant="secondary"
+                tone="critical"
+                icon="delete"
+                disabled={selectedIds.size === 0 || loading || undefined}
+                onClick={handleBatchCancel}
+                accessibilityLabel="Cancelar pagos seleccionados y revertir monto al crédito"
+              >
+                Cancelar Pago
+              </s-button>
+              <s-button
+                tone="critical"
+                variant="secondary"
+                icon="delete"
+                disabled={selectedIds.size === 0 || loading || undefined}
+                onClick={handleBatchDelete}
+                accessibilityLabel="Eliminar pagos seleccionados"
+              >
+                Eliminar Pago
+              </s-button>
+            </s-stack>
           </s-stack>
         </s-stack>
 
@@ -827,7 +876,7 @@ export default function PaymentHistorial() {
             <s-table-header>Cliente</s-table-header>
             <s-table-header format="numeric">Total Crédito</s-table-header>
             <s-table-header format="numeric">Cuotas Pagadas</s-table-header>
-            <s-table-header>Método / Banco</s-table-header>
+            <s-table-header>Método</s-table-header>
             <s-table-header format="numeric">Abono</s-table-header>
             <s-table-header format="numeric">Balance Cliente</s-table-header>
             <s-table-header format="numeric">
