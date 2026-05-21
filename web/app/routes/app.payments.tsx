@@ -55,7 +55,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   const url = new URL(request.url);
   const page = url.searchParams.get("page") || "1";
-  const pageSize = 20;
+  const limit = url.searchParams.get("limit") || "10";
+  const pageSize = parseInt(limit, 10) || 10;
   const offset = (Number(page) - 1) * pageSize;
 
   const payment_id = url.searchParams.get("payment_id") || "";
@@ -165,6 +166,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       document_id,
       payment_date,
       status,
+      limit,
     },
   };
 };
@@ -267,7 +269,7 @@ export default function PaymentHistorial() {
   const [page, setPage] = useState(loaderPage || 1);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [filterState, setFilterState] = useState(filters);
-  const pageSize = 20;
+  const pageSize = Number(filterState.limit || "10");
 
   useEffect(() => {
     setSelectedIds(new Set());
@@ -745,6 +747,24 @@ export default function PaymentHistorial() {
                   <s-option value="EN_REVISION">En Revisión</s-option>
                   <s-option value="RECHAZADO">Rechazado</s-option>
                   <s-option value="CANCELADO">Cancelado</s-option>
+                </s-select>
+              </s-box>
+
+              <s-box inlineSize="140px">
+                <s-select
+                  label="Mostrar"
+                  value={filterState.limit || "10"}
+                  onChange={(e: any) =>
+                    setFilterState({
+                      ...filterState,
+                      limit: e.target?.value || "10",
+                    })
+                  }
+                >
+                  <s-option value="10">10 resultados</s-option>
+                  <s-option value="20">20 resultados</s-option>
+                  <s-option value="50">50 resultados</s-option>
+                  <s-option value="100">100 resultados</s-option>
                 </s-select>
               </s-box>
             </s-stack>
