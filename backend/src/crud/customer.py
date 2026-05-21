@@ -4,16 +4,17 @@ from sqlalchemy import or_
 from typing import List, Optional, Tuple
 
 from models.customer import Customer as CustomerModel
+from models.credit import Credit as CreditModel
 from schemas.customer import CustomerCreate, CustomerUpdate
 
 def get_customer(db: Session, customer_id: int) -> Optional[CustomerModel]:
     return db.query(CustomerModel).options(
-        selectinload(CustomerModel.credits).selectinload("payments")
+        selectinload(CustomerModel.credits).selectinload(CreditModel.payments)
     ).filter(CustomerModel.id == customer_id).first()
 
 def get_customer_by_shopify_id(db: Session, shopify_customer_id: int, merchant_id: str) -> Optional[CustomerModel]:
     return db.query(CustomerModel).options(
-        selectinload(CustomerModel.credits).selectinload("payments")
+        selectinload(CustomerModel.credits).selectinload(CreditModel.payments)
     ).filter(
         CustomerModel.shopify_customer_id == shopify_customer_id,
         CustomerModel.merchant_id == merchant_id
@@ -60,7 +61,7 @@ def delete_customer(db: Session, db_obj: CustomerModel) -> None:
 
 def list_customers(db, merchant_id, skip=0, limit=50, search=None, shopify_customer_id=None):
     q = db.query(CustomerModel).options(
-        selectinload(CustomerModel.credits).selectinload("payments")
+        selectinload(CustomerModel.credits).selectinload(CreditModel.payments)
     ).filter(CustomerModel.merchant_id == merchant_id)
     if shopify_customer_id is not None:
         q = q.filter(CustomerModel.shopify_customer_id == shopify_customer_id)
