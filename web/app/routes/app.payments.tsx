@@ -880,7 +880,17 @@ export default function PaymentHistorial() {
                   <s-table-cell>
                     <s-stack direction="block" gap="none">
                       <s-text type="strong">
-                        {payment.payment_method || "N/A"}
+                        {payment.payment_method
+                          ? payment.payment_method === "CASH"
+                            ? "Efectivo USD"
+                            : payment.payment_method === "EFECTIVO"
+                              ? "Efectivo VEF"
+                              : payment.payment_method === "BANK"
+                                ? "Transferencia Bancaria"
+                                : payment.payment_method === "PAGO_MOVIL"
+                                  ? "Pago Móvil"
+                                  : payment.payment_method
+                          : "N/A"}
                       </s-text>
                       {payment.bank_name ? (
                         <s-text color="subdued">{payment.bank_name}</s-text>
