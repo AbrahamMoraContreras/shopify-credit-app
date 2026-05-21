@@ -776,49 +776,47 @@ export default function PaymentHistorial() {
             justifyContent="space-between"
             alignItems="center"
           >
-            <s-button-group>
-              <s-button variant="primary" onClick={handleSearch}>
-                Buscar
-              </s-button>
-              <s-button variant="tertiary" tone="neutral" onClick={clearSearch}>
-                Limpiar
-              </s-button>
+            <s-button variant="primary" onClick={handleSearch}>
+              Buscar
+            </s-button>
+            <s-button variant="tertiary" tone="neutral" onClick={clearSearch}>
+              Limpiar
+            </s-button>
 
-              <s-button
-                variant="secondary"
-                accessibilityLabel="Opciones de exportación"
-                commandFor="export-popover"
-                command="--toggle"
-              >
-                Exportar
-              </s-button>
+            <s-button
+              variant="secondary"
+              accessibilityLabel="Opciones de exportación"
+              commandFor="export-popover"
+              command="--toggle"
+            >
+              Exportar
+            </s-button>
 
-              <s-popover id="export-popover">
-                <s-stack direction="block" gap="small" padding="base">
-                  <s-button
-                    accessibilityLabel="Exportar como CSV"
-                    variant="tertiary"
-                    onClick={() => handleExport("csv")}
-                  >
-                    Exportar a CSV
-                  </s-button>
-                  <s-button
-                    accessibilityLabel="Exportar como XLSX"
-                    variant="tertiary"
-                    onClick={() => handleExport("xlsx")}
-                  >
-                    Exportar a XLSX
-                  </s-button>
-                  <s-button
-                    accessibilityLabel="Exportar como PDF"
-                    variant="tertiary"
-                    onClick={() => handleExport("pdf")}
-                  >
-                    Exportar a PDF
-                  </s-button>
-                </s-stack>
-              </s-popover>
-            </s-button-group>
+            <s-popover id="export-popover">
+              <s-stack direction="block" gap="small" padding="base">
+                <s-button
+                  accessibilityLabel="Exportar como CSV"
+                  variant="tertiary"
+                  onClick={() => handleExport("csv")}
+                >
+                  Exportar a CSV
+                </s-button>
+                <s-button
+                  accessibilityLabel="Exportar como XLSX"
+                  variant="tertiary"
+                  onClick={() => handleExport("xlsx")}
+                >
+                  Exportar a XLSX
+                </s-button>
+                <s-button
+                  accessibilityLabel="Exportar como PDF"
+                  variant="tertiary"
+                  onClick={() => handleExport("pdf")}
+                >
+                  Exportar a PDF
+                </s-button>
+              </s-stack>
+            </s-popover>
 
             <s-stack
               direction="inline"
