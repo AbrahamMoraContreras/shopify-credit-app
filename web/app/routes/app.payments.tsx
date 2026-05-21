@@ -824,7 +824,6 @@ export default function PaymentHistorial() {
               alignItems="center"
             >
               <s-text color="subdued">{selectedIds.size} seleccionados</s-text>
-              <s-button-group>
                 <s-button
                   tone="auto"
                   icon="check"
@@ -868,7 +867,6 @@ export default function PaymentHistorial() {
                 >
                   Eliminar Pago
                 </s-button>
-              </s-button-group>
             </s-stack>
           </s-stack>
         </s-stack>
