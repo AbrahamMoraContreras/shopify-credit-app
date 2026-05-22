@@ -45,9 +45,36 @@ interface Credit {
   };
 }
 
+const SPREADSHEET_CSV_URL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vQqrzXGB4grT2FhonRlj3jZVC3E9sSaZl9gkgd0nSrwtA55E_Fcy7Q3QDCO8lTMlDS_D21wgDGaXJ1x/pub?output=csv";
+
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
   const url = new URL(request.url);
+
+  let tasaBcv: number | null = null;
+  let tasaFecha: string | null = null;
+
+  if (!url.searchParams.has("searchCredits")) {
+    try {
+      const csvRes = await fetch(SPREADSHEET_CSV_URL);
+      if (csvRes.ok) {
+        const text = await csvRes.text();
+        const lines = text.trim().split("\n").filter((l) => l.trim());
+        const lastLine = lines[lines.length - 1];
+        const match = lastLine.match(/"([\d.,]+)\s*Bs\."/);
+        if (match) {
+          tasaBcv = parseFloat(match[1].replace(".", "").replace(",", "."));
+        }
+        const dateMatch = lastLine.match(/(\d{1,2}\/\d{2}\/\d{4})/);
+        if (dateMatch) {
+          tasaFecha = dateMatch[1];
+        }
+      }
+    } catch (e) {
+      console.error("[registre_payment] Failed to fetch BCV rate:", e);
+    }
+  }
 
   if (url.searchParams.has("searchCredits")) {
     const accessToken = await getAccessTokenForShop(session.shop);
@@ -91,7 +118,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { data } = await response.json();
   const customers: ShopifyCustomer[] = data?.customers?.nodes ?? [];
 
-  return { customers };
+  return { customers, tasaBcv, tasaFecha };
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -187,7 +214,7 @@ export const headers = () => ({
 });
 
 export default function RegistrePayment() {
-  const { customers = [] } = useLoaderData<typeof loader>();
+  const { customers = [], tasaBcv, tasaFecha } = useLoaderData<typeof loader>();
   const actionData = useActionData<{ error?: string }>();
   const submit = useSubmit();
   const navigation = useNavigation();
@@ -230,8 +257,22 @@ export default function RegistrePayment() {
     const y = now.getFullYear();
     const m = String(now.getMonth() + 1).padStart(2, "0");
     const d = String(now.getDate()).padStart(2, "0");
-    setPaymentForm((prev) => ({ ...prev, date: `${y}-${m}-${d}` }));
-  }, []);
+    setPaymentForm((prev) => ({
+      ...prev,
+      date: `${y}-${m}-${d}`,
+      exchangeRate: tasaBcv ? String(tasaBcv) : prev.exchangeRate,
+    }));
+  }, [tasaBcv]);
+
+  const isVesMethod =
+    paymentForm.method === "Pago movil" ||
+    paymentForm.method === "Transferencia" ||
+    paymentForm.method === "Bolivares en efectivo";
+
+  const effectiveTasa = Number(paymentForm.exchangeRate);
+  const isManualTasa = tasaBcv === null || effectiveTasa !== tasaBcv;
+  const montoUsd = Number(paymentForm.amount) || 0;
+  const montoVes = !isNaN(effectiveTasa) && montoUsd ? (montoUsd * effectiveTasa) : null;
 
   const [selectedInstallments, setSelectedInstallments] = useState<
     Record<number, boolean>
@@ -420,6 +461,12 @@ export default function RegistrePayment() {
       finalNotes = `[Auto-selección] ${finalNotes}`;
     }
 
+    if (isVesMethod && !isNaN(effectiveTasa) && montoVes) {
+      const sourceLabel = isManualTasa ? "ingresada manualmente" : `Fecha tasa: ${tasaFecha || "hoy"}`;
+      const conversionNote = `[Conversión BCV] Tasa: ${effectiveTasa.toFixed(2)} Bs/USD | Equivalente: Bs. ${montoVes.toFixed(2)} (${sourceLabel})`;
+      finalNotes = finalNotes ? `${finalNotes}\n${conversionNote}` : conversionNote;
+    }
+
     const hasFiado = selectedList.some((i) => i.installment_number === 0);
     const punctualityFeedback =
       hasFiado && paymentForm.fiadoFeedback !== ""
@@ -588,7 +635,37 @@ export default function RegistrePayment() {
                   </s-stack>
                 </s-grid>
 
-                <s-grid gridTemplateColumns="1.5fr 1fr" gap="small">
+                {isVesMethod && (
+                  <s-banner
+                    tone={isManualTasa ? "warning" : "info"}
+                    heading={isManualTasa ? "Tasa ingresada manualmente" : "Tasa BCV Oficial Obtenida"}
+                  >
+                    <s-text>
+                      {isManualTasa
+                        ? "No se pudo obtener la tasa oficial automáticamente. La tasa se ha dejado editable para que pueda ingresarla."
+                        : `La tasa BCV de hoy (${tasaFecha}) es de Bs. ${tasaBcv?.toFixed(2)}.`}
+                    </s-text>
+                    {montoVes !== null && montoVes > 0 && (
+                      <s-text>
+                        <strong>Equivalente en Bolívares: Bs. {montoVes.toFixed(2)}</strong>
+                      </s-text>
+                    )}
+                  </s-banner>
+                )}
+
+                <s-grid gridTemplateColumns="1fr 1.5fr" gap="small">
+                  {isVesMethod && (
+                    <s-number-field
+                      label={isManualTasa ? "Tasa BCV (Manual)" : "Tasa BCV (Oficial)"}
+                      value={paymentForm.exchangeRate}
+                      onChange={(e: any) =>
+                        setPaymentForm((p) => ({
+                          ...p,
+                          exchangeRate: e.target?.value || "",
+                        }))
+                      }
+                    />
+                  )}
                   {paymentForm.method !== "Dolares en efectivo" &&
                     paymentForm.method !== "Bolivares en efectivo" && (
                       <s-number-field
