@@ -279,6 +279,8 @@ export default function PaymentHistorial() {
     proofs,
     page: loaderPage,
     filters,
+    tasaBcv,
+    tasaFecha,
   } = useLoaderData<typeof loader>() as {
     payments: PaymentListItem[];
     proofs: PaymentProof[];

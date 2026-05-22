@@ -159,14 +159,6 @@ export default function CreditDetail() {
         ...prev,
         [actionData.key as string]: actionData.success ? "sent" : "error",
       }));
-      setTimeout(
-        () =>
-          setStatusMap((prev) => ({
-            ...prev,
-            [actionData.key as string]: "idle",
-          })),
-        4000,
-      );
     }
   }, [actionData, navigation.formData]);
 
@@ -586,34 +578,44 @@ export default function CreditDetail() {
                             </s-table-cell>
                             <s-table-cell>
                               {inst.status !== "PAGADA" ? (
-                                <s-button
-                                  variant="secondary"
-                                  onClick={() =>
-                                    handleSendReminder(
-                                      inst.id,
-                                      Number(inst.amount),
-                                    )
-                                  }
-                                  disabled={
-                                    submittingKey === keystr || undefined
-                                  }
-                                  tone={
-                                    statusMap[keystr] === "error"
-                                      ? "critical"
+                                <s-button-group>
+                                  <s-button
+                                    variant="secondary"
+                                    onClick={() =>
+                                      handleSendReminder(
+                                        inst.id,
+                                        Number(inst.amount),
+                                      )
+                                    }
+                                    disabled={
+                                      submittingKey === keystr || inst.status === "EN_REVISION" || statusMap[keystr] === "sent" || undefined
+                                    }
+                                    tone={
+                                      statusMap[keystr] === "error"
+                                        ? "critical"
+                                        : statusMap[keystr] === "sent"
+                                          ? "auto"
+                                          : undefined
+                                    }
+                                    accessibilityLabel="Enviar recordatorio de cuota"
+                                  >
+                                    {submittingKey === keystr
+                                      ? "Enviando..."
                                       : statusMap[keystr] === "sent"
-                                        ? "auto"
-                                        : undefined
-                                  }
-                                  accessibilityLabel="Enviar recordatorio de cuota"
-                                >
-                                  {submittingKey === keystr
-                                    ? "Enviando..."
-                                    : statusMap[keystr] === "sent"
-                                      ? "✓ Enviado"
-                                      : statusMap[keystr] === "error"
-                                        ? "✕ Error"
-                                        : "Enviar Recordatorio"}
-                                </s-button>
+                                        ? "✓ Enviado"
+                                        : statusMap[keystr] === "error"
+                                          ? "✕ Error"
+                                          : "Enviar Recordatorio"}
+                                  </s-button>
+                                  {statusMap[keystr] === "sent" && (
+                                    <s-button
+                                      variant="secondary"
+                                      icon="undo"
+                                      onClick={() => setStatusMap(prev => ({...prev, [keystr]: "idle"}))}
+                                      accessibilityLabel="Restablecer botón"
+                                    />
+                                  )}
+                                </s-button-group>
                               ) : (
                                 <s-text color="subdued">-</s-text>
                               )}
@@ -642,27 +644,37 @@ export default function CreditDetail() {
                       <s-badge tone="info">PENDIENTE</s-badge>
                     </s-table-cell>
                     <s-table-cell>
-                      <s-button
-                        variant="secondary"
-                        onClick={() => handleSendReminder(null, remainingDebt)}
-                        disabled={submittingKey === "fiado" || undefined}
-                        tone={
-                          statusMap["fiado"] === "error"
-                            ? "critical"
+                      <s-button-group>
+                        <s-button
+                          variant="secondary"
+                          onClick={() => handleSendReminder(null, remainingDebt)}
+                          disabled={submittingKey === "fiado" || payments.some((p: any) => p.status === "EN_REVISION") || statusMap["fiado"] === "sent" || undefined}
+                          tone={
+                            statusMap["fiado"] === "error"
+                              ? "critical"
+                              : statusMap["fiado"] === "sent"
+                                ? "auto"
+                                : undefined
+                          }
+                          accessibilityLabel="Enviar recordatorio de deuda"
+                        >
+                          {submittingKey === "fiado"
+                            ? "Enviando..."
                             : statusMap["fiado"] === "sent"
-                              ? "auto"
-                              : undefined
-                        }
-                        accessibilityLabel="Enviar recordatorio de deuda"
-                      >
-                        {submittingKey === "fiado"
-                          ? "Enviando..."
-                          : statusMap["fiado"] === "sent"
-                            ? "✓ Enviado"
-                            : statusMap["fiado"] === "error"
-                              ? "✕ Error"
-                              : "Enviar Recordatorio"}
-                      </s-button>
+                              ? "✓ Enviado"
+                              : statusMap["fiado"] === "error"
+                                ? "✕ Error"
+                                : "Enviar Recordatorio"}
+                        </s-button>
+                        {statusMap["fiado"] === "sent" && (
+                          <s-button
+                            variant="secondary"
+                            icon="undo"
+                            onClick={() => setStatusMap(prev => ({...prev, "fiado": "idle"}))}
+                            accessibilityLabel="Restablecer botón"
+                          />
+                        )}
+                      </s-button-group>
                     </s-table-cell>
                   </s-table-row>
                 ) : (

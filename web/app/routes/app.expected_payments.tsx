@@ -92,13 +92,6 @@ export default function ExpectedPayments() {
     if (actionData?.key) {
       const state = actionData.success ? "sent" : "error";
       setStatusMap((prev) => ({ ...prev, [actionData.key as string]: state }));
-
-      setTimeout(() => {
-        setStatusMap((prev) => ({
-          ...prev,
-          [actionData.key as string]: "idle",
-        }));
-      }, 4000);
     }
   }, [actionData]);
 
@@ -145,6 +138,8 @@ export default function ExpectedPayments() {
         return "info";
       case "VENCIDO":
         return "critical";
+      case "EN_REVISION":
+        return "warning";
       default:
         return "neutral";
     }
@@ -218,7 +213,7 @@ export default function ExpectedPayments() {
                         <s-button
                           slot="secondary-actions"
                           tone="auto"
-                          disabled={submittingKey === key || undefined}
+                          disabled={submittingKey === key || payment.status === "EN_REVISION" || statusMap[key] === "sent" || undefined}
                           onClick={() => handleSendReminder(payment)}
                           accessibilityLabel="Enviar recordatorio de pago"
                         >
@@ -230,6 +225,14 @@ export default function ExpectedPayments() {
                                 ? "Reintentar"
                                 : "Enviar Recordatorio"}
                         </s-button>
+                        {statusMap[key] === "sent" && (
+                          <s-button
+                            slot="secondary-actions"
+                            icon="undo"
+                            onClick={() => setStatusMap((prev) => ({ ...prev, [key]: "idle" }))}
+                            accessibilityLabel="Restablecer botón de recordatorio"
+                          />
+                        )}
                       </s-button-group>
                     </s-table-cell>
                   </s-table-row>
