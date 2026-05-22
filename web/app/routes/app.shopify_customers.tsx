@@ -213,16 +213,50 @@ export default function ShopifyCustomers() {
     return parseInt(parts[parts.length - 1], 10);
   };
 
+  const totalRegistrados = customers.length;
+  const operacionesActivas = Object.values(statsMap).filter((s) => s.credits_incomplete > 0).length;
+  const clientesMorosos = Object.values(statsMap).filter((s) => s.payments_late > 0).length;
+  const pagosPendientes = Object.values(statsMap).reduce((acc, curr) => acc + curr.payments_late, 0);
+  const pagosCompletados = Object.values(statsMap).reduce((acc, curr) => acc + curr.payments_on_time, 0);
+
   return (
     <s-page heading="Clientes de Shopify">
       <s-stack gap="base">
         {/* Summary */}
-        <s-grid gridTemplateColumns="repeat(1, 1fr)" gap="small" padding="base">
-          <s-grid-item gridColumn="span 1">
+        <s-grid gridTemplateColumns="repeat(5, 1fr)" gap="small" padding="base">
+          <s-grid-item gridColumn="span 5">
             <s-section>
               <s-stack alignItems="center" gap="small-200">
                 <s-text color="subdued">Total de clientes registrados</s-text>
-                <s-heading>{customers.length}</s-heading>
+                <s-heading>{totalRegistrados}</s-heading>
+              </s-stack>
+            </s-section>
+
+            <s-section>
+              <s-stack alignItems="center" gap="small-200">
+                <s-text color="subdued">Clientes con Operaciones Activas</s-text>
+                <s-heading>{operacionesActivas}</s-heading>
+              </s-stack>
+            </s-section>
+
+            <s-section>
+              <s-stack alignItems="center" gap="small-200">
+                <s-text color="subdued">Clientes Morosos</s-text>
+                <s-heading>{clientesMorosos}</s-heading>
+              </s-stack>
+            </s-section>
+
+            <s-section>
+              <s-stack alignItems="center" gap="small-200">
+                <s-text color="subdued">Número de pagos pendientes</s-text>
+                <s-heading>{pagosPendientes}</s-heading>
+              </s-stack>
+            </s-section>
+
+            <s-section>
+              <s-stack alignItems="center" gap="small-200">
+                <s-text color="subdued">Número de pagos completados</s-text>
+                <s-heading>{pagosCompletados}</s-heading>
               </s-stack>
             </s-section>
           </s-grid-item>

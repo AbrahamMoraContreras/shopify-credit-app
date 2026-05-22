@@ -10,7 +10,7 @@ class PaymentListItem(BaseModel):
     amount: Decimal
     status: PaymentStatus
     reference_number: str
-    payment_method: str
+    payment_method: Optional[str] = None
     bank_name: Optional[str] = None
     installments_covered: Optional[str] = None
     payment_date: datetime
