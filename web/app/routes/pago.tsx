@@ -80,6 +80,7 @@ export default function PagoPublico() {
   });
   const [sending, setSending] = useState(false);
   const [formError, setFormError] = useState("");
+  const [manualTasa, setManualTasa] = useState<string>("");
 
   useEffect(() => {
     if (!token) {
@@ -102,8 +103,10 @@ export default function PagoPublico() {
 
   // Determine if VES conversion applies (Pago Móvil or Transferencia)
   const isVesMethod = !!(info?.pago_movil || info?.transferencia);
+  const effectiveTasa = tasaBcv ?? (manualTasa && !isNaN(Number(manualTasa)) ? Number(manualTasa) : null);
+  const tasaSource = tasaBcv ? "auto" : "manual";
   const montoUsd = info ? Number(info.amount) : 0;
-  const montoVes = tasaBcv && montoUsd ? (montoUsd * tasaBcv) : null;
+  const montoVes = effectiveTasa && montoUsd ? (montoUsd * effectiveTasa) : null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,8 +116,9 @@ export default function PagoPublico() {
 
     // Auto-inject conversion info into notes
     let finalNotes = form.notes;
-    if (isVesMethod && tasaBcv && montoVes) {
-      const conversionNote = `[Conversión BCV] Tasa: ${tasaBcv.toFixed(2)} Bs/USD | Equivalente: Bs. ${montoVes.toFixed(2)} (Fecha tasa: ${tasaFecha || "hoy"})`;
+    if (isVesMethod && effectiveTasa && montoVes) {
+      const sourceLabel = tasaSource === "auto" ? `Fecha tasa: ${tasaFecha || "hoy"}` : "Tasa ingresada manualmente";
+      const conversionNote = `[Conversión BCV] Tasa: ${effectiveTasa.toFixed(2)} Bs/USD | Equivalente: Bs. ${montoVes.toFixed(2)} (${sourceLabel})`;
       finalNotes = finalNotes
         ? `${finalNotes}\n${conversionNote}`
         : conversionNote;
@@ -176,14 +180,31 @@ export default function PagoPublico() {
             <p style={styles.sub}><strong>Monto esperado:</strong> <span style={{ color: "#5C6AC4", fontWeight: "bold" }}>${Number(info.amount).toFixed(2)} USD</span></p>
 
             {/* VES conversion box */}
-            {isVesMethod && tasaBcv && montoVes && (
+            {isVesMethod && effectiveTasa && montoVes && (
               <div style={styles.conversionBox}>
                 <p style={styles.conversionTitle}>💱 Equivalente en Bolívares (Tasa BCV)</p>
                 <p style={styles.conversionAmount}>Bs. {montoVes.toFixed(2)}</p>
                 <p style={styles.conversionRate}>
-                  Tasa oficial: <strong>Bs. {tasaBcv.toFixed(2)}</strong> por USD
-                  {tasaFecha && <span> — Actualizada: {tasaFecha}</span>}
+                  Tasa oficial: <strong>Bs. {effectiveTasa.toFixed(2)}</strong> por USD
+                  {tasaSource === "auto" && tasaFecha && <span> — Actualizada: {tasaFecha}</span>}
+                  {tasaSource === "manual" && <span> — (ingresada manualmente)</span>}
                 </p>
+              </div>
+            )}
+
+            {/* Manual rate input fallback */}
+            {isVesMethod && !tasaBcv && (
+              <div style={styles.manualRateBox}>
+                <p style={styles.manualRateWarning}>⚠️ No se pudo obtener la tasa BCV automáticamente.</p>
+                <label style={styles.label}>Ingresa la tasa de cambio manualmente (Bs/USD):</label>
+                <input
+                  style={styles.input}
+                  type="number"
+                  step="0.01"
+                  value={manualTasa}
+                  onChange={e => setManualTasa(e.target.value)}
+                  placeholder="Ej: 526.87"
+                />
               </div>
             )}
           </div>
@@ -196,7 +217,7 @@ export default function PagoPublico() {
             <p style={styles.methodLine}><strong>Banco:</strong> {info.pago_movil.banco}</p>
             <p style={styles.methodLine}><strong>Teléfono:</strong> {info.pago_movil.telefono}</p>
             <p style={styles.methodLine}><strong>Documento:</strong> {info.pago_movil.tipoCi}-{info.pago_movil.ci}</p>
-            {montoVes && (
+            {effectiveTasa && montoVes && (
               <p style={{ ...styles.methodLine, marginTop: 8, fontWeight: 600, color: "#2B6CB0" }}>
                 Monto a enviar: Bs. {montoVes.toFixed(2)}
               </p>
@@ -209,7 +230,7 @@ export default function PagoPublico() {
             <p style={styles.methodLine}><strong>Banco:</strong> {info.transferencia.banco}</p>
             <p style={styles.methodLine}><strong>Cuenta:</strong> {info.transferencia.numero}</p>
             <p style={styles.methodLine}><strong>Documento:</strong> {info.transferencia.tipoCi}-{info.transferencia.ci}</p>
-            {montoVes && (
+            {effectiveTasa && montoVes && (
               <p style={{ ...styles.methodLine, marginTop: 8, fontWeight: 600, color: "#2B6CB0" }}>
                 Monto a transferir: Bs. {montoVes.toFixed(2)}
               </p>
@@ -233,9 +254,9 @@ export default function PagoPublico() {
           <input style={styles.input} type="number" step="0.01" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} placeholder="0.00" required />
 
           {/* Show VES equivalent for the entered amount */}
-          {isVesMethod && tasaBcv && form.amount && !isNaN(Number(form.amount)) && (
+          {isVesMethod && effectiveTasa && form.amount && !isNaN(Number(form.amount)) && (
             <div style={styles.vesHint}>
-              Equivale a <strong>Bs. {(Number(form.amount) * tasaBcv).toFixed(2)}</strong> a la tasa BCV de hoy
+              Equivale a <strong>Bs. {(Number(form.amount) * effectiveTasa).toFixed(2)}</strong> a la tasa BCV de hoy
             </div>
           )}
 
@@ -271,4 +292,6 @@ const styles: Record<string, React.CSSProperties> = {
   conversionAmount: { fontSize: 24, fontWeight: 700, color: "#B7791F", margin: "4px 0" },
   conversionRate: { fontSize: 12, color: "#975A16", margin: 0 },
   vesHint: { background: "#FFFBEB", border: "1px solid #F6E05E", borderRadius: 6, padding: "8px 12px", fontSize: 13, color: "#975A16" },
+  manualRateBox: { background: "#FFF5F5", border: "1px solid #FEB2B2", borderRadius: 8, padding: "12px 16px", marginTop: 12, display: "flex", flexDirection: "column" as const, gap: 8 },
+  manualRateWarning: { fontSize: 13, fontWeight: 600, color: "#C53030", margin: 0 },
 };
