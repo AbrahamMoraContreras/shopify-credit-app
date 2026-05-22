@@ -1,8 +1,40 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useLoaderData } from 'react-router';
 
-export const loader = () => {
-  return { BACKEND_URL: process.env.BACKEND_URL || "http://localhost:8000" };
+const SPREADSHEET_CSV_URL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vQqrzXGB4grT2FhonRlj3jZVC3E9sSaZl9gkgd0nSrwtA55E_Fcy7Q3QDCO8lTMlDS_D21wgDGaXJ1x/pub?output=csv";
+
+export const loader = async () => {
+  let tasaBcv: number | null = null;
+  let tasaFecha: string | null = null;
+
+  try {
+    const csvRes = await fetch(SPREADSHEET_CSV_URL);
+    if (csvRes.ok) {
+      const text = await csvRes.text();
+      const lines = text.trim().split("\n").filter((l) => l.trim());
+      const lastLine = lines[lines.length - 1];
+      // Format: "526,87 Bs.",22/05/2026 0:24:37
+      const match = lastLine.match(/"([\d.,]+)\s*Bs\."/);
+      if (match) {
+        // "526,87" → replace comma with dot → 526.87
+        tasaBcv = parseFloat(match[1].replace(".", "").replace(",", "."));
+      }
+      // Extract date portion
+      const dateMatch = lastLine.match(/(\d{1,2}\/\d{2}\/\d{4})/);
+      if (dateMatch) {
+        tasaFecha = dateMatch[1];
+      }
+    }
+  } catch (e) {
+    console.error("[pago] Failed to fetch BCV rate:", e);
+  }
+
+  return {
+    BACKEND_URL: process.env.BACKEND_URL || "http://localhost:8000",
+    tasaBcv,
+    tasaFecha,
+  };
 };
 
 const VENEZUELAN_BANKS = [
@@ -31,7 +63,7 @@ interface PaymentInfo {
 
 export default function PagoPublico() {
   const [searchParams] = useSearchParams();
-  const { BACKEND_URL } = useLoaderData<typeof loader>();
+  const { BACKEND_URL, tasaBcv, tasaFecha } = useLoaderData<typeof loader>();
   const API = `${BACKEND_URL}/api`;
   const token = searchParams.get("token") ?? "";
 
@@ -68,18 +100,32 @@ export default function PagoPublico() {
       .finally(() => setLoading(false));
   }, [token]);
 
+  // Determine if VES conversion applies (Pago Móvil or Transferencia)
+  const isVesMethod = !!(info?.pago_movil || info?.transferencia);
+  const montoUsd = info ? Number(info.amount) : 0;
+  const montoVes = tasaBcv && montoUsd ? (montoUsd * tasaBcv) : null;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError("");
     if (!form.reference_number.trim()) { setFormError("El número de referencia es obligatorio."); return; }
     if (!form.amount || isNaN(Number(form.amount))) { setFormError("Ingresa un monto válido."); return; }
 
+    // Auto-inject conversion info into notes
+    let finalNotes = form.notes;
+    if (isVesMethod && tasaBcv && montoVes) {
+      const conversionNote = `[Conversión BCV] Tasa: ${tasaBcv.toFixed(2)} Bs/USD | Equivalente: Bs. ${montoVes.toFixed(2)} (Fecha tasa: ${tasaFecha || "hoy"})`;
+      finalNotes = finalNotes
+        ? `${finalNotes}\n${conversionNote}`
+        : conversionNote;
+    }
+
     setSending(true);
     try {
       const res = await fetch(`${API}/public/payment-proof`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, ...form, amount: parseFloat(form.amount) }),
+        body: JSON.stringify({ token, ...form, notes: finalNotes, amount: parseFloat(form.amount) }),
       });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
@@ -128,6 +174,18 @@ export default function PagoPublico() {
             <p style={styles.sub}><strong>Cliente:</strong> {info.customer_name}</p>
             {info.installment_number && <p style={styles.sub}><strong>Cuota:</strong> #{info.installment_number}</p>}
             <p style={styles.sub}><strong>Monto esperado:</strong> <span style={{ color: "#5C6AC4", fontWeight: "bold" }}>${Number(info.amount).toFixed(2)} USD</span></p>
+
+            {/* VES conversion box */}
+            {isVesMethod && tasaBcv && montoVes && (
+              <div style={styles.conversionBox}>
+                <p style={styles.conversionTitle}>💱 Equivalente en Bolívares (Tasa BCV)</p>
+                <p style={styles.conversionAmount}>Bs. {montoVes.toFixed(2)}</p>
+                <p style={styles.conversionRate}>
+                  Tasa oficial: <strong>Bs. {tasaBcv.toFixed(2)}</strong> por USD
+                  {tasaFecha && <span> — Actualizada: {tasaFecha}</span>}
+                </p>
+              </div>
+            )}
           </div>
         )}
 
@@ -138,6 +196,11 @@ export default function PagoPublico() {
             <p style={styles.methodLine}><strong>Banco:</strong> {info.pago_movil.banco}</p>
             <p style={styles.methodLine}><strong>Teléfono:</strong> {info.pago_movil.telefono}</p>
             <p style={styles.methodLine}><strong>Documento:</strong> {info.pago_movil.tipoCi}-{info.pago_movil.ci}</p>
+            {montoVes && (
+              <p style={{ ...styles.methodLine, marginTop: 8, fontWeight: 600, color: "#2B6CB0" }}>
+                Monto a enviar: Bs. {montoVes.toFixed(2)}
+              </p>
+            )}
           </div>
         )}
         {info?.transferencia && (
@@ -146,6 +209,11 @@ export default function PagoPublico() {
             <p style={styles.methodLine}><strong>Banco:</strong> {info.transferencia.banco}</p>
             <p style={styles.methodLine}><strong>Cuenta:</strong> {info.transferencia.numero}</p>
             <p style={styles.methodLine}><strong>Documento:</strong> {info.transferencia.tipoCi}-{info.transferencia.ci}</p>
+            {montoVes && (
+              <p style={{ ...styles.methodLine, marginTop: 8, fontWeight: 600, color: "#2B6CB0" }}>
+                Monto a transferir: Bs. {montoVes.toFixed(2)}
+              </p>
+            )}
           </div>
         )}
 
@@ -163,6 +231,13 @@ export default function PagoPublico() {
 
           <label style={styles.label}>Monto transferido (USD)</label>
           <input style={styles.input} type="number" step="0.01" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} placeholder="0.00" required />
+
+          {/* Show VES equivalent for the entered amount */}
+          {isVesMethod && tasaBcv && form.amount && !isNaN(Number(form.amount)) && (
+            <div style={styles.vesHint}>
+              Equivale a <strong>Bs. {(Number(form.amount) * tasaBcv).toFixed(2)}</strong> a la tasa BCV de hoy
+            </div>
+          )}
 
           <label style={styles.label}>Notas adicionales (opcional)</label>
           <textarea style={{ ...styles.input, height: 72 }} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Cualquier información relevante..." />
@@ -191,4 +266,9 @@ const styles: Record<string, React.CSSProperties> = {
   label: { fontSize: 13, fontWeight: 600, color: "#4A5568" },
   input: { padding: "10px 12px", borderRadius: 6, border: "1px solid #CBD5E0", fontSize: 14, width: "100%", boxSizing: "border-box" as const, outline: "none" },
   button: { marginTop: 8, background: "#5C6AC4", color: "#fff", border: "none", borderRadius: 8, padding: "12px 0", fontSize: 16, fontWeight: 700, cursor: "pointer", transition: "background 0.2s" },
+  conversionBox: { background: "#FFFBEB", border: "1px solid #F6E05E", borderRadius: 8, padding: "12px 16px", marginTop: 12 },
+  conversionTitle: { fontSize: 13, fontWeight: 600, color: "#975A16", margin: "0 0 4px" },
+  conversionAmount: { fontSize: 24, fontWeight: 700, color: "#B7791F", margin: "4px 0" },
+  conversionRate: { fontSize: 12, color: "#975A16", margin: 0 },
+  vesHint: { background: "#FFFBEB", border: "1px solid #F6E05E", borderRadius: 6, padding: "8px 12px", fontSize: 13, color: "#975A16" },
 };
