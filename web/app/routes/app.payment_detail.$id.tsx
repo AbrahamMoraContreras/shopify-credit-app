@@ -61,7 +61,31 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   });
   if (!res.ok) throw new Error("Pago no encontrado");
   const data: PaymentDetailData = await res.json();
-  return { payment: data };
+
+  const SPREADSHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQqrzXGB4grT2FhonRlj3jZVC3E9sSaZl9gkgd0nSrwtA55E_Fcy7Q3QDCO8lTMlDS_D21wgDGaXJ1x/pub?output=csv";
+  let tasaBcv: number | null = null;
+  let tasaFecha: string | null = null;
+
+  try {
+    const csvRes = await fetch(SPREADSHEET_CSV_URL);
+    if (csvRes.ok) {
+      const text = await csvRes.text();
+      const lines = text.trim().split("\n").filter((l) => l.trim());
+      const lastLine = lines[lines.length - 1];
+      const match = lastLine.match(/"([\d.,]+)\s*Bs\."/);
+      if (match) {
+        tasaBcv = parseFloat(match[1].replace(".", "").replace(",", "."));
+      }
+      const dateMatch = lastLine.match(/(\d{1,2}\/\d{2}\/\d{4})/);
+      if (dateMatch) {
+        tasaFecha = dateMatch[1];
+      }
+    }
+  } catch (e) {
+    console.error("[payment_detail] Failed to fetch BCV rate:", e);
+  }
+
+  return { payment: data, tasaBcv, tasaFecha };
 };
 
 export const action = async ({ request, params }: ActionFunctionArgs) => {
@@ -92,7 +116,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 };
 
 export default function PaymentDetail() {
-  const { payment } = useLoaderData<typeof loader>();
+  const { payment, tasaBcv, tasaFecha } = useLoaderData<typeof loader>();
   const submit = useSubmit();
   const navigation = useNavigation();
   const actionData = useActionData<{ error?: string; success?: boolean }>();
@@ -276,6 +300,18 @@ export default function PaymentDetail() {
           </s-popover>
         </s-stack>
       </s-box>
+
+      {tasaBcv && (
+        <s-box paddingBlockEnd="base">
+          <s-banner tone="info" heading="Tasa de Cambio Oficial (BCV)">
+            <s-text>
+              La tasa de cambio actual es de <strong>Bs. {tasaBcv.toFixed(2)}</strong> por USD.
+              {tasaFecha && ` Actualizada el: ${tasaFecha}.`}
+            </s-text>
+          </s-banner>
+        </s-box>
+      )}
+
       <s-stack gap="base">
         <s-grid gridTemplateColumns="1fr 1fr" gap="base">
           <s-section padding="base">
@@ -288,6 +324,11 @@ export default function PaymentDetail() {
               <s-text>
                 <strong>Monto:</strong> ${Number(payment.amount).toFixed(2)}
               </s-text>
+              {(payment.payment_method === "PAGO_MOVIL" || payment.payment_method === "BANK" || payment.payment_method === "EFECTIVO") && tasaBcv && (
+                <s-text color="subdued">
+                  <em>Equivalente estimado: Bs. {(Number(payment.amount) * tasaBcv).toFixed(2)}</em>
+                </s-text>
+              )}
               <s-text>
                 <strong>Fecha:</strong>{" "}
                 <ClientDate
@@ -389,6 +430,11 @@ export default function PaymentDetail() {
                 <s-stack>
                   <s-text color="subdued">Monto Reportado:</s-text>
                   <s-text>${Number(payment.proof.amount).toFixed(2)}</s-text>
+                  {tasaBcv && (
+                    <s-text color="subdued" size="small">
+                      <em>(Aprox: Bs. {(Number(payment.proof.amount) * tasaBcv).toFixed(2)})</em>
+                    </s-text>
+                  )}
                 </s-stack>
                 <s-stack>
                   <s-text color="subdued">Fecha de Envío:</s-text>

@@ -139,6 +139,29 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     }
   }
 
+  const SPREADSHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQqrzXGB4grT2FhonRlj3jZVC3E9sSaZl9gkgd0nSrwtA55E_Fcy7Q3QDCO8lTMlDS_D21wgDGaXJ1x/pub?output=csv";
+  let tasaBcv: number | null = null;
+  let tasaFecha: string | null = null;
+
+  try {
+    const csvRes = await fetch(SPREADSHEET_CSV_URL);
+    if (csvRes.ok) {
+      const text = await csvRes.text();
+      const lines = text.trim().split("\n").filter((l) => l.trim());
+      const lastLine = lines[lines.length - 1];
+      const match = lastLine.match(/"([\d.,]+)\s*Bs\."/);
+      if (match) {
+        tasaBcv = parseFloat(match[1].replace(".", "").replace(",", "."));
+      }
+      const dateMatch = lastLine.match(/(\d{1,2}\/\d{2}\/\d{4})/);
+      if (dateMatch) {
+        tasaFecha = dateMatch[1];
+      }
+    }
+  } catch (e) {
+    console.error("[payments] Failed to fetch BCV rate:", e);
+  }
+
   const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
   const [paymentsRes, proofsRes] = await Promise.all([
     fetch(`${BACKEND_URL}/api/payments?${params.toString()}`, {
@@ -168,6 +191,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       status,
       limit,
     },
+    tasaBcv,
+    tasaFecha,
   };
 };
 
@@ -259,6 +284,8 @@ export default function PaymentHistorial() {
     proofs: PaymentProof[];
     page: number;
     filters: any;
+    tasaBcv: number | null;
+    tasaFecha: string | null;
   };
   const submit = useSubmit();
   const navigation = useNavigation();
@@ -511,6 +538,15 @@ export default function PaymentHistorial() {
       >
         Registrar Pago
       </s-button>
+
+      {tasaBcv && (
+        <s-banner tone="info" heading="Tasa de Cambio Oficial (BCV)">
+          <s-text>
+            La tasa de cambio actual es de <strong>Bs. {tasaBcv.toFixed(2)}</strong> por USD.
+            {tasaFecha && ` Actualizada el: ${tasaFecha}.`}
+          </s-text>
+        </s-banner>
+      )}
 
       {proofs.length > 0 && (
         <s-section padding="base">
