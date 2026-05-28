@@ -94,7 +94,6 @@ def create_credit(db: Session, merchant_id: str, payload: CreditCreate):
             db.refresh(customer)
 
     credit = Credit(
-        merchant_id=merchant_id,
         customer_id=customer.id,
         concept=payload.concept,
         total_amount=payload.total_amount,
@@ -176,7 +175,7 @@ def list_credits(
     customer_name: Optional[str] = None,
     due_date: Optional[date] = None
 ) -> Tuple[List[Credit], int]:
-    query = db.query(Credit).options(joinedload(Credit.customer)).filter(Credit.merchant_id == merchant_id)
+    query = db.query(Credit).join(Customer, Credit.customer_id == Customer.id).options(joinedload(Credit.customer)).filter(Customer.merchant_id == merchant_id)
     if status:
         if isinstance(status, list):
             query = query.filter(Credit.status.in_(status))
@@ -184,7 +183,6 @@ def list_credits(
             query = query.filter(Credit.status == status)
     
     if customer_id or customer_name:
-        query = query.join(Credit.customer)
         if customer_id:
             query = query.filter(
                 (Credit.customer_id == customer_id) | (Customer.shopify_customer_id == str(customer_id))
@@ -213,7 +211,7 @@ def update_credit(db: Session, credit: Credit, payload: CreditUpdate):
     return credit
 
 def delete_credit(db: Session, credit: Credit):
-    merchant_id = credit.merchant_id
+    merchant_id = credit.customer.merchant_id
     credit_id = credit.id
     db.delete(credit)
     db.commit()
@@ -239,7 +237,7 @@ def cancel_credit(db: Session, credit: Credit):
     
     log_audit_action(
         db=db,
-        merchant_id=credit.merchant_id,
+        merchant_id=credit.customer.merchant_id,
         entity_name="CREDIT",
         action="CANCEL_CREDIT",
         entity_id=str(credit.id),

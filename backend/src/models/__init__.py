@@ -3,7 +3,8 @@ from models.customer import Customer
 from models.merchant import Merchant
 from models.credit import Credit
 from models.installment import CreditInstallment
-from models.payment import Payment
+from models.payment import Payment, payment_installments
+from models.merchant_payment_settings import MerchantPaymentSetting
 from models.history import CreditHistory
 from models.credit_item import CreditItem
 from models.enums import CreditReputation, CreditStatus, InstallmentStatus, PaymentStatus

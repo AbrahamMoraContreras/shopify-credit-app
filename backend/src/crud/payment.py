@@ -36,9 +36,11 @@ def get_payment_with_products(
 ):
     payment = (
         db.query(Payment)
+        .join(Payment.credit)
+        .join(Credit.customer)
         .filter(
             Payment.id == payment_id,
-            Payment.merchant_id == merchant_id
+            Customer.merchant_id == merchant_id
         )
         .first()
     )
@@ -76,9 +78,11 @@ def get_payment_with_credit(
             joinedload(Payment.credit)
             .joinedload("items")  # Credit.items
         )
+        .join(Payment.credit)
+        .join(Credit.customer)
         .filter(
             Payment.id == payment_id,
-            Payment.merchant_id == merchant_id
+            Customer.merchant_id == merchant_id
         )
         .first()
     )
@@ -102,9 +106,11 @@ def get_payment_by_id(
             joinedload(Payment.credit).joinedload(Credit.customer),
             selectinload(Payment.payment_tokens).joinedload(PaymentToken.proof)
         )
+        .join(Payment.credit)
+        .join(Credit.customer)
         .filter(
             Payment.id == payment_id,
-            Payment.merchant_id == merchant_id
+            Customer.merchant_id == merchant_id
         )
         .first()
     )
@@ -118,14 +124,16 @@ def create_payment(
     credit = db.get(Credit, credit_id)
 
     if not credit: raise ValueError("Credit not found")
-    if str(credit.merchant_id) != str(merchant_id):
+    if str(credit.customer.merchant_id) != str(merchant_id):
         raise ValueError("El crédito no pertenece a este merchant")
 
     payment_punctuality = payload.punctuality_feedback
     if payment_punctuality is not None:
         payment_punctuality = Decimal(str(payment_punctuality))
 
-    installments_covered_str = ",".join(map(str, payload.apply_to_installments)) if payload.apply_to_installments else None
+    covered_installments = []
+    if payload.apply_to_installments:
+        covered_installments = db.query(CreditInstallment).filter(CreditInstallment.id.in_(payload.apply_to_installments)).all()
     
     notes = payload.notes or ""
     if payload.distribute_excess:
@@ -148,7 +156,6 @@ def create_payment(
         customer.favorable_balance -= amount_to_apply
 
         payment = Payment(
-            merchant_id=merchant_id,
             credit_id=credit.id,
             amount=amount_to_apply,
             payment_method=payload.payment_method,
@@ -157,7 +164,7 @@ def create_payment(
             payment_date=datetime.utcnow(),
             notes=notes if notes else "Pago aplicado desde Saldo a Favor.",
             punctuality_value=payment_punctuality,
-            installments_covered=installments_covered_str
+            covered_installments=covered_installments
         )
         
         try:
@@ -174,7 +181,6 @@ def create_payment(
         
     else:
         payment = Payment(
-            merchant_id=merchant_id,
             credit_id=credit.id,
             amount=payload_amount,
             payment_method=payload.payment_method,
@@ -183,7 +189,7 @@ def create_payment(
             payment_date=datetime.utcnow(),
             notes=notes,
             punctuality_value=payment_punctuality,
-            installments_covered=installments_covered_str
+            covered_installments=covered_installments
         )
         try:
             db.add(payment)
@@ -343,11 +349,7 @@ def review_payment(
         # Hacemos que todas las cuotas marcadas en `installments_covered` vuelvan a 0.
         amount_to_reverse = Decimal(str(payment.amount))
         
-        target_ids = []
-        if payment.installments_covered:
-            target_ids = [int(x.strip()) for x in payment.installments_covered.split(",") if x.strip()]
-            
-        covered_installments = db.query(CreditInstallment).filter(CreditInstallment.id.in_(target_ids)).all()
+        covered_installments = payment.covered_installments
         for inst in covered_installments:
             inst.status = InstallmentStatus.PENDIENTE
             inst.paid_amount = Decimal("0.00")
@@ -380,15 +382,13 @@ def review_payment(
 
     if status == PaymentStatus.APROBADO:
         distribute_excess = "[DISTRIBUTE_EXCESS]" in (payment.notes or "")
-        target_ids = []
-        if payment.installments_covered:
-            target_ids = [int(x.strip()) for x in payment.installments_covered.split(",") if x.strip()]
+        target_ids = [inst.id for inst in payment.covered_installments]
             
         _apply_payment_distribution(db, payment, credit, target_ids, distribute_excess, credit.customer)
 
     log_audit_action(
         db=db,
-        merchant_id=payment.merchant_id,
+        merchant_id=credit.customer.merchant_id,
         entity_name="PAYMENT",
         action="REVIEW_PAYMENT",
         entity_id=str(payment.id),
@@ -426,10 +426,15 @@ def batch_delete_payments(
     payment_ids: list[int],
     merchant_id: UUID
 ):
-    payments = db.query(Payment).filter(
-        Payment.id.in_(payment_ids),
-        Payment.merchant_id == merchant_id
-    ).all()
+    payments = (
+        db.query(Payment)
+        .join(Payment.credit)
+        .join(Credit.customer)
+        .filter(
+            Payment.id.in_(payment_ids),
+            Customer.merchant_id == merchant_id
+        ).all()
+    )
     
     for p in payments:
         # Si fue aprobado revierte antes de eliminar
@@ -480,6 +485,17 @@ def list_payments(
     status: PaymentStatus | None = None,
 ):
     products_cte = credit_items_agg_cte(db)
+    
+    from models.payment import payment_installments
+    from sqlalchemy import String
+    installments_sq = (
+        db.query(
+            payment_installments.c.payment_id,
+            func.string_agg(cast(payment_installments.c.installment_id, String), ',').label('installments_covered')
+        )
+        .group_by(payment_installments.c.payment_id)
+        .subquery()
+    )
 
     q = (
         db.query(
@@ -488,7 +504,7 @@ def list_payments(
             Payment.amount,
             Payment.status,
             Payment.reference_number,
-            Payment.installments_covered,
+            installments_sq.c.installments_covered,
             Payment.payment_date,
             Payment.payment_method,
             Payment.bank_name,
@@ -509,7 +525,11 @@ def list_payments(
             products_cte,
             products_cte.c.credit_id == Payment.credit_id
         )
-        .filter(Payment.merchant_id == merchant_id)
+        .outerjoin(
+            installments_sq,
+            installments_sq.c.payment_id == Payment.id
+        )
+        .filter(Customer.merchant_id == merchant_id)
     )
 
     if payment_id is not None:

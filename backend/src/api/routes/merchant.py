@@ -8,6 +8,7 @@ from uuid import UUID
 from core.dependencies import get_db, get_merchant_id
 from crud.merchant import get_or_create_merchant
 from models.merchant import Merchant
+from models.merchant_payment_settings import MerchantPaymentSetting
 from core.security import create_access_token, create_refresh_token, verify_token
 from fastapi.responses import JSONResponse
 from fastapi import Request
@@ -138,13 +139,15 @@ def get_merchant_settings(
     merchant = db.query(Merchant).filter(Merchant.id == merchant_id).first()
     if not merchant:
         raise HTTPException(status_code=404, detail="Merchant not found")
+    settings = db.query(MerchantPaymentSetting).filter(MerchantPaymentSetting.merchant_id == merchant_id).all()
+    settings_dict = {s.method_name: s.settings_data for s in settings}
     return MerchantSettingsResponse(
-        pago_movil=merchant.pago_movil_settings,
-        transferencia=merchant.transferencia_settings,
-        binance=merchant.binance_settings,
-        zelle=merchant.zelle_settings,
-        zinli=merchant.zinli_settings,
-        debito=merchant.debito_settings,
+        pago_movil=settings_dict.get("pago_movil"),
+        transferencia=settings_dict.get("transferencia"),
+        binance=settings_dict.get("binance"),
+        zelle=settings_dict.get("zelle"),
+        zinli=settings_dict.get("zinli"),
+        debito=settings_dict.get("debito"),
     )
 
 
@@ -157,25 +160,40 @@ def update_merchant_settings(
     merchant = db.query(Merchant).filter(Merchant.id == merchant_id).first()
     if not merchant:
         raise HTTPException(status_code=404, detail="Merchant not found")
-    if payload.pago_movil is not None:
-        merchant.pago_movil_settings = payload.pago_movil.model_dump()
-    if payload.transferencia is not None:
-        merchant.transferencia_settings = payload.transferencia.model_dump()
-    if payload.binance is not None:
-        merchant.binance_settings = payload.binance
-    if payload.zelle is not None:
-        merchant.zelle_settings = payload.zelle
-    if payload.zinli is not None:
-        merchant.zinli_settings = payload.zinli
-    if payload.debito is not None:
-        merchant.debito_settings = payload.debito
+    updates = {
+        "pago_movil": payload.pago_movil.model_dump() if payload.pago_movil is not None else None,
+        "transferencia": payload.transferencia.model_dump() if payload.transferencia is not None else None,
+        "binance": payload.binance,
+        "zelle": payload.zelle,
+        "zinli": payload.zinli,
+        "debito": payload.debito,
+    }
+    
+    for method_name, settings_data in updates.items():
+        if settings_data is not None:
+            existing = db.query(MerchantPaymentSetting).filter(
+                MerchantPaymentSetting.merchant_id == merchant_id,
+                MerchantPaymentSetting.method_name == method_name
+            ).first()
+            if existing:
+                existing.settings_data = settings_data
+            else:
+                new_setting = MerchantPaymentSetting(
+                    merchant_id=merchant_id,
+                    method_name=method_name,
+                    settings_data=settings_data
+                )
+                db.add(new_setting)
+
     db.commit()
-    db.refresh(merchant)
+
+    settings = db.query(MerchantPaymentSetting).filter(MerchantPaymentSetting.merchant_id == merchant_id).all()
+    settings_dict = {s.method_name: s.settings_data for s in settings}
     return MerchantSettingsResponse(
-        pago_movil=merchant.pago_movil_settings,
-        transferencia=merchant.transferencia_settings,
-        binance=merchant.binance_settings,
-        zelle=merchant.zelle_settings,
-        zinli=merchant.zinli_settings,
-        debito=merchant.debito_settings,
+        pago_movil=settings_dict.get("pago_movil"),
+        transferencia=settings_dict.get("transferencia"),
+        binance=settings_dict.get("binance"),
+        zelle=settings_dict.get("zelle"),
+        zinli=settings_dict.get("zinli"),
+        debito=settings_dict.get("debito"),
     )

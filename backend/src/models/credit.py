@@ -15,7 +15,6 @@ class Credit(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
-    merchant_id = Column(UUID(as_uuid=True), ForeignKey("merchants.id"), nullable=False, index=True)
     customer_id = Column(Integer, ForeignKey("customers.id"), nullable=False, index=True)
 
     concept = Column(String, nullable=False)
