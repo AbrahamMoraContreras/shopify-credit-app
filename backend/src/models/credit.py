@@ -59,6 +59,12 @@ class Credit(Base):
     )
 
     @property
+    def merchant_id(self):
+        if self.customer:
+            return self.customer.merchant_id
+        return None
+
+    @property
     def last_payment_amount(self):
         from decimal import Decimal
         # Filtrar pagos relacionados para APROBADO
