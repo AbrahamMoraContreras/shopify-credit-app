@@ -27,6 +27,7 @@ class Customer(Base):
     punctuality_score = Column(Numeric(5, 2), nullable=True, default=None)
 
     # Relaciones
+    merchant = relationship("Merchant", back_populates="customers")
     credits = relationship("Credit", back_populates="customer")
 
     @property
