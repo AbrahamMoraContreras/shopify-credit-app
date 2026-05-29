@@ -11,40 +11,48 @@ from models.payment import Payment, PaymentStatus
 from models.customer import Customer
 
 def total_credits(db: Session, merchant_id: UUID) -> int:
-    return db.query(Credit).filter(Credit.merchant_id == merchant_id).count()
+    return db.query(Credit).join(Customer, Credit.customer_id == Customer.id).filter(Customer.merchant_id == merchant_id).count()
 
 def active_credits(db: Session, merchant_id: UUID) -> int:
-    return db.query(Credit).filter(
-        Credit.merchant_id == merchant_id,
+    return db.query(Credit).join(Customer, Credit.customer_id == Customer.id).filter(
+        Customer.merchant_id == merchant_id,
         Credit.status.in_([CreditStatus.PENDIENTE_ACTIVACION, CreditStatus.EMITIDO, CreditStatus.EN_PROGRESO])
     ).count()
 
 def morose_credits(db: Session, merchant_id: UUID) -> int:
-    return db.query(Credit).join(CreditInstallment).filter(
-        Credit.merchant_id == merchant_id,
+    return db.query(Credit).join(Customer, Credit.customer_id == Customer.id).join(CreditInstallment).filter(
+        Customer.merchant_id == merchant_id,
         CreditInstallment.status == InstallmentStatus.VENCIDO
     ).distinct().count()
 
 def total_emitted(db: Session, merchant_id: UUID) -> Decimal:
-    res = db.query(func.sum(Credit.total_amount)).filter(Credit.merchant_id == merchant_id).scalar()
+    res = db.query(func.sum(Credit.total_amount)).join(Customer, Credit.customer_id == Customer.id).filter(Customer.merchant_id == merchant_id).scalar()
     return Decimal(str(res or 0))
 
 def total_pending(db: Session, merchant_id: UUID) -> Decimal:
-    res = db.query(func.sum(Credit.balance)).filter(Credit.merchant_id == merchant_id).scalar()
+    res = db.query(func.sum(Credit.balance)).join(Customer, Credit.customer_id == Customer.id).filter(Customer.merchant_id == merchant_id).scalar()
     return Decimal(str(res or 0))
 
 def total_collected(db: Session, merchant_id: UUID) -> Decimal:
-    res = db.query(func.sum(Payment.amount)).filter(
-        Payment.merchant_id == merchant_id,
+    res = db.query(func.sum(Payment.amount)).join(
+        Credit, Credit.id == Payment.credit_id
+    ).join(
+        Customer, Customer.id == Credit.customer_id
+    ).filter(
+        Customer.merchant_id == merchant_id,
         Payment.status == PaymentStatus.APROBADO
     ).scalar()
     return Decimal(str(res or 0))
 
 def overdue_amount(db: Session, merchant_id: UUID) -> Decimal:
-    res = db.query(func.sum(CreditInstallment.amount)).filter(
-        Credit.merchant_id == merchant_id,
+    res = db.query(func.sum(CreditInstallment.amount)).join(
+        Credit, Credit.id == CreditInstallment.credit_id
+    ).join(
+        Customer, Customer.id == Credit.customer_id
+    ).filter(
+        Customer.merchant_id == merchant_id,
         CreditInstallment.status == InstallmentStatus.VENCIDO
-    ).join(Credit).scalar()
+    ).scalar()
     return Decimal(str(res or 0))
 
 def total_customers(db: Session, merchant_id: UUID) -> int:
@@ -57,15 +65,23 @@ def customers_in_mora(db: Session, merchant_id: UUID) -> int:
     ).distinct().count()
 
 def pending_payments(db: Session, merchant_id: UUID) -> int:
-    return db.query(Payment).filter(
-        Payment.merchant_id == merchant_id,
+    return db.query(Payment).join(
+        Credit, Credit.id == Payment.credit_id
+    ).join(
+        Customer, Customer.id == Credit.customer_id
+    ).filter(
+        Customer.merchant_id == merchant_id,
         Payment.status == PaymentStatus.EN_REVISION
     ).count()
 
 def approved_today(db: Session, merchant_id: UUID) -> int:
     today = date.today()
-    return db.query(Payment).filter(
-        Payment.merchant_id == merchant_id,
+    return db.query(Payment).join(
+        Credit, Credit.id == Payment.credit_id
+    ).join(
+        Customer, Customer.id == Credit.customer_id
+    ).filter(
+        Customer.merchant_id == merchant_id,
         Payment.status == PaymentStatus.APROBADO,
         cast(Payment.reviewed_at, Date) == today
     ).count()

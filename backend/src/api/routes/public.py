@@ -11,6 +11,7 @@ from core.dependencies import get_db
 from models.payment_token import PaymentToken, PaymentProof
 from models.payment import Payment
 from models.credit import Credit
+from models.customer import Customer
 from models.merchant import Merchant
 
 router = APIRouter(prefix="/public", tags=["Public"])
@@ -205,8 +206,12 @@ def submit_payment_proof(payload: ProofSubmission, db: Session = Depends(get_db)
 
     if payment:
         # Verificar si la referencia ya existe para este merchant (en OTRO pago)
-        existing_payment = db.query(Payment).filter(
-            Payment.merchant_id == pt.merchant_id,
+        existing_payment = db.query(Payment).join(
+            Credit, Credit.id == Payment.credit_id
+        ).join(
+            Customer, Customer.id == Credit.customer_id
+        ).filter(
+            Customer.merchant_id == pt.merchant_id,
             Payment.reference_number == payload.reference_number,
             Payment.id != pt.payment_id
         ).first()

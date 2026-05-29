@@ -125,7 +125,7 @@ def get_expected_payments(
         .join(Credit, CreditInstallment.credit_id == Credit.id)
         .join(Customer, Credit.customer_id == Customer.id)
         .filter(
-            Credit.merchant_id == merchant_id,
+            Customer.merchant_id == merchant_id,
             CreditInstallment.status.in_([InstallmentStatus.PENDIENTE, InstallmentStatus.VENCIDO])
         )
         .order_by(CreditInstallment.due_date.asc())
@@ -152,7 +152,7 @@ def get_expected_payments(
         db.query(Credit)
         .join(Customer, Credit.customer_id == Customer.id)
         .filter(
-            Credit.merchant_id == merchant_id,
+            Customer.merchant_id == merchant_id,
             Credit.installments_count == 0,
             Credit.balance > 0,
             Credit.status.in_([CreditStatus.EN_PROGRESO, CreditStatus.EMITIDO])
@@ -200,7 +200,6 @@ def create_payment_token(
         raise HTTPException(status_code=403, detail="Acceso denegado al crédito.")
 
     intent = Payment(
-        merchant_id=merchant_id,
         credit_id=payload.credit_id,
         installment_id=payload.installment_id,
         amount=Decimal(str(payload.amount)),
