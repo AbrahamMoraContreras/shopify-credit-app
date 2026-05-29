@@ -387,3 +387,14 @@ def review_payment_endpoint(
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+ 
+ @ r o u t e r . g e t ( ' / d e b u g ' )  
+ d e f   l i s t _ p a y m e n t s _ d e b u g ( s k i p :   i n t   =   0 ,   l i m i t :   i n t   =   1 0 0 ,   d b :   S e s s i o n   =   D e p e n d s ( g e t _ d b ) ,   m e r c h a n t _ i d :   U U I D   =   D e p e n d s ( r e q u i r e _ a c c e s s _ t o k e n ) ) :  
+         f r o m   c r u d . p a y m e n t   i m p o r t   l i s t _ p a y m e n t s  
+         i m p o r t   t r a c e b a c k  
+         t r y :  
+                 r e s   =   l i s t _ p a y m e n t s ( d b = d b ,   m e r c h a n t _ i d = m e r c h a n t _ i d ,   s k i p = s k i p ,   l i m i t = l i m i t )  
+                 r e t u r n   { ' s t a t u s ' :   ' s u c c e s s ' ,   ' c o u n t ' :   l e n ( r e s ) }  
+         e x c e p t   E x c e p t i o n   a s   e :  
+                 r e t u r n   { ' s t a t u s ' :   ' e r r o r ' ,   ' e r r o r ' :   s t r ( e ) ,   ' t r a c e b a c k ' :   t r a c e b a c k . f o r m a t _ e x c ( ) }  
+ 
