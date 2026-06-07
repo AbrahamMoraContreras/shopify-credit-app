@@ -222,6 +222,7 @@ enum installmentstatus {
   PAGADA
   VENCIDA
   VENCIDO
+  NO_PAGADA
 }
 
 enum paymentstatus {
@@ -230,4 +231,5 @@ enum paymentstatus {
   RECHAZADO
   REGISTRADO
   CANCELADO
+  NO_PAGADO
 }

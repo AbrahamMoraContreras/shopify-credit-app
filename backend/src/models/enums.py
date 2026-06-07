@@ -17,7 +17,7 @@ class InstallmentStatus(str, Enum):
     PAGADA = "PAGADA"
     VENCIDO = "VENCIDO"
     CANCELADA = "CANCELADA"
-
+    NO_PAGADA = "NO_PAGADA"
 
 class PaymentStatus(str, Enum):
     REGISTRADO = "REGISTRADO"
@@ -25,6 +25,7 @@ class PaymentStatus(str, Enum):
     RECHAZADO = "RECHAZADO"
     EN_REVISION = "EN_REVISION"
     CANCELADO = "CANCELADO"
+    NO_PAGADO = "NO_PAGADO"
 
 class CreditReputation(str, Enum):
     EXCELENTE = "excelente"
