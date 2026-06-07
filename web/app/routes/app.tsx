@@ -68,6 +68,248 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   };
 };
 
+import { useState, useEffect } from "react";
+
+function NotificationsBell() {
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [isOpen, setIsOpen] = useState(false);
+
+  const fetchNotifications = async () => {
+    try {
+      const res = await fetch("/app/notifications");
+      if (res.ok) {
+        const data = await res.json();
+        setNotifications(Array.isArray(data) ? data : []);
+      }
+    } catch (e) {
+      console.error("Error fetching notifications:", e);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 15000); // poll every 15s
+    return () => clearInterval(interval);
+  }, []);
+
+  const unreadCount = notifications.filter((n) => !n.changes?.is_read).length;
+
+  const markAsRead = async (id: number) => {
+    try {
+      const formData = new FormData();
+      formData.append("intent", "read");
+      formData.append("id", String(id));
+      const res = await fetch("/app/notifications", {
+        method: "POST",
+        body: formData,
+      });
+      if (res.ok) {
+        setNotifications((prev) =>
+          prev.map((n) =>
+            n.id === id ? { ...n, changes: { ...n.changes, is_read: true } } : n
+          )
+        );
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    try {
+      const formData = new FormData();
+      formData.append("intent", "read_all");
+      const res = await fetch("/app/notifications", {
+        method: "POST",
+        body: formData,
+      });
+      if (res.ok) {
+        setNotifications((prev) =>
+          prev.map((n) => ({
+            ...n,
+            changes: { ...n.changes, is_read: true },
+          }))
+        );
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  return (
+    <div style={{ position: "fixed", bottom: "20px", right: "20px", zIndex: 9999 }}>
+      {/* Floating Bell Button */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        style={{
+          width: "56px",
+          height: "56px",
+          borderRadius: "50%",
+          backgroundColor: "#008060", // Shopify green
+          color: "white",
+          border: "none",
+          cursor: "pointer",
+          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          position: "relative",
+          outline: "none",
+          transition: "transform 0.2s",
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
+        onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{ width: "24px", height: "24px" }}
+        >
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+        </svg>
+        {unreadCount > 0 && (
+          <span
+            style={{
+              position: "absolute",
+              top: "-2px",
+              right: "-2px",
+              backgroundColor: "#d82c0d", // Polaris critical red
+              color: "white",
+              borderRadius: "50%",
+              width: "20px",
+              height: "20px",
+              fontSize: "12px",
+              fontWeight: "bold",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+            }}
+          >
+            {unreadCount}
+          </span>
+        )}
+      </button>
+
+      {/* Dropdown Panel */}
+      {isOpen && (
+        <div
+          style={{
+            position: "absolute",
+            bottom: "70px",
+            right: "0",
+            width: "360px",
+            maxHeight: "450px",
+            backgroundColor: "white",
+            borderRadius: "8px",
+            boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)",
+            border: "1px solid #e1e3e5",
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          {/* Header */}
+          <div
+            style={{
+              padding: "12px 16px",
+              borderBottom: "1px solid #e1e3e5",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              backgroundColor: "#f6f6f7",
+            }}
+          >
+            <span style={{ fontWeight: 600, fontSize: "14px", color: "#202223" }}>
+              Notificaciones
+            </span>
+            {unreadCount > 0 && (
+              <button
+                onClick={markAllAsRead}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#008060",
+                  cursor: "pointer",
+                  fontSize: "12px",
+                  fontWeight: 500,
+                  padding: 0,
+                }}
+              >
+                Marcar todo como leído
+              </button>
+            )}
+          </div>
+
+          {/* List */}
+          <div style={{ overflowY: "auto", flex: 1 }}>
+            {notifications.length === 0 ? (
+              <div style={{ padding: "32px 16px", textAlign: "center", color: "#6d7175" }}>
+                No tienes notificaciones
+              </div>
+            ) : (
+              notifications.map((n) => {
+                const isRead = n.changes?.is_read;
+                const paymentId = n.changes?.payment_id;
+                return (
+                  <div
+                    key={n.id}
+                    onClick={() => {
+                      if (!isRead) markAsRead(n.id);
+                    }}
+                    style={{
+                      padding: "12px 16px",
+                      borderBottom: "1px solid #f1f2f4",
+                      backgroundColor: isRead ? "white" : "#f1f8f5",
+                      cursor: "pointer",
+                      transition: "background-color 0.1s",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "4px",
+                    }}
+                  >
+                    <div style={{ fontSize: "13px", color: "#202223", lineHeight: "1.4", textAlign: "left" }}>
+                      {n.changes?.message}
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ fontSize: "11px", color: "#6d7175" }}>
+                        {new Date(n.timestamp).toLocaleDateString("es-ES", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                      {paymentId && (
+                        <a
+                          href={`/app/payment_detail/${paymentId}`}
+                          style={{
+                            fontSize: "11px",
+                            color: "#008060",
+                            textDecoration: "none",
+                            fontWeight: 500,
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          Ver Pago →
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function App() {
   const { apiKey, shopDomain, accessToken } = useLoaderData<typeof loader>();
 
@@ -85,6 +327,7 @@ export default function App() {
       </ui-nav-menu>
 
       <Outlet context={{ shopDomain, accessToken }} />
+      <NotificationsBell />
     </AppProvider>
   );
 }
