@@ -190,15 +190,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     const created = await res.json().catch(() => null);
 
-    // Aprobar automaticamente si el usuario selecciono la opción de "El pago fue revisado y aprobado"
-    if (approvalStatus === "APROBADO" && created?.id) {
+    // Aprobar o marcar como no pagado automáticamente según la selección del usuario
+    if ((approvalStatus === "APROBADO" || approvalStatus === "NO_PAGADO") && created?.id) {
       await fetch(`${BACKEND_URL}/api/payments/batch-review`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${accessToken}`,
         },
-        body: JSON.stringify({ payment_ids: [created.id], status: "APROBADO" }),
+        body: JSON.stringify({ payment_ids: [created.id], status: approvalStatus }),
       });
     }
   } catch (error) {
@@ -717,19 +717,16 @@ export default function RegistrePayment() {
                 <s-select
                   label="Estado de revisión del pago"
                   value={approvalStatus}
-                  onChange={(e: any) =>
-                    setApprovalStatus(
-                      e.target?.value === "APROBADO"
-                        ? "APROBADO"
-                        : "EN_REVISION",
-                    )
-                  }
+                  onChange={(e: any) => setApprovalStatus(e.target?.value || "EN_REVISION")}
                 >
                   <s-option value="EN_REVISION">
                     🕐 El pago está pendiente por revisar
                   </s-option>
                   <s-option value="APROBADO">
                     ✅ El pago fue revisado y aprobado
+                  </s-option>
+                  <s-option value="NO_PAGADO">
+                    ❌ El cliente no realizó el pago (No Pagado)
                   </s-option>
                 </s-select>
               </s-stack>

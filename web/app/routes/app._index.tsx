@@ -103,68 +103,76 @@ export default function Home() {
 
         {showManual && (
           <s-section padding="base" accessibilityLabel="Manual de Usuario">
-            <s-heading paddingBlockEnd="base">
+            <s-heading>
               Guía Rápida de la Aplicación
             </s-heading>
             <s-grid gridTemplateColumns="repeat(2, 1fr)" gap="base">
               <s-box>
                 <s-text type="strong">CREAR UN CRÉDITO: PRIMEROS PASOS</s-text>
-                <s-text color="subdued">
-                  1. Ve a "Registrar Crédito". Selecciona uno de los clientes registrados en tu comercio de Shopify y empieza una nueva operación crediticia. 
-                  2. En la tabla inferior de productos, selecciona los que el cliente desea. 
-                  3. Selecciona la periodicidad: Mensual, quincenal oi fiado, y planifica los pago en múltiples cuotas si es necesario.
-                  4. Verifica que toda la información sea la correcta, y finaliza la creación del crédito.
-                </s-text>
+                  <s-unordered-list>
+                    <s-list-item>1. Ve a "Registrar Crédito". Selecciona uno de los clientes registrados en tu comercio de Shopify y empieza una nueva operación crediticia.</s-list-item> 
+                    <s-list-item>2. En la tabla inferior de productos, selecciona los que el cliente desea. </s-list-item>
+                    <s-list-item>3. Selecciona la periodicidad: Mensual, quincenal oi fiado, y planifica los pago en múltiples cuotas si es necesario.</s-list-item>
+                    <s-list-item>4. Verifica que toda la información sea la correcta, y finaliza la creación del crédito.</s-list-item>
+                  </s-unordered-list>
               </s-box>
               <s-box>
                 <s-text type="strong">REGISTRAR PAGOS: FORMA DIRECTA</s-text>
-                <s-text color="subdued">
-                  1- Ve a "Registrar Pago". Selecciona el clientes. 
-                  2. Selecciona el método de pago, la cantidad en divisas y el código de referencia asociado al pago del cliente. 
-                  3. En la parte inferior, selecciona las cuotas que el cliente desea pagar.
-                  IMPORTANTE: Este método se usa en caso de que el clinete pague de forma directa sin usar el recordatorio por e-mail.
-                </s-text>
+                  <s-unordered-list>
+                    <s-list-item>1- Ve a "Registrar Pago". Selecciona el clientes.</s-list-item>
+                    <s-list-item>2. Selecciona el método de pago, la cantidad en divisas y el código de referencia asociado al pago del cliente.</s-list-item> 
+                    <s-list-item>3. En la parte inferior, selecciona las cuotas que el cliente desea pagar.</s-list-item>
+                    <s-list-item>IMPORTANTE: Este método se usa en caso de que el clinete pague de forma directa sin usar el recordatorio por e-mail.</s-list-item>
+                  </s-unordered-list>
               </s-box>
               <s-box>
                 <s-text type="strong">REGISTRAR PAGOS: USANDO EL RECORDATORIO POR E.MAIL</s-text>
-                <s-text color="subdued">
-                  1- Ve a "Pagos Esperados" o a "Detalles de Crédito". Oprime el botón de "Enviar Recordatorio". 
-                  2. El cliente recibirá un e-mail con un link de pago. Deberá seleccionar el método de pago preferido, y llenar un formulario con la información de su pago. 
-                  3. Al completar el formulario, la información del pago llegará automáticamente a la app en Shopify.
-                  4. Contrasta la información del formulario con los estados financieros del comercio. Finalmente desde "Pagos", aprueba o rechaza el pago.
-                </s-text>
+                  <s-unordered-list>
+                    <s-list-item>1- Ve a "Pagos Esperados" o a "Detalles de Crédito". Oprime el botón de "Enviar Recordatorio". </s-list-item>
+                    <s-list-item>2. El cliente recibirá un e-mail con un link de pago. Deberá seleccionar el método de pago preferido, y llenar un formulario con la información de su pago. </s-list-item>
+                    <s-list-item>3. Al completar el formulario, la información del pago llegará automáticamente a la app en Shopify.</s-list-item>
+                    <s-list-item>4. Contrasta la información del formulario con los estados financieros del comercio. Finalmente desde "Pagos", aprueba o rechaza el pago.</s-list-item>
+                  </s-unordered-list>
+
               </s-box>
               <s-box>
                 <s-text type="strong">CONFIGURANDO LA INFORMACIÓN DE PAGO</s-text>
-                <s-text color="subdued">
+                <s-paragraph color="subdued">
                   Desde "Configuración", edita los datos de los métodos de pago y los datos a los cuales los clientes realizarán los pagos.
+                </s-paragraph>
+                <s-paragraph color="subdued">
                   Se aceptan:
-                  Pago Movil (Bancos venezolanos)
-                  Transferencia Bancaria (Bancos venezolanos)
-                  Zinli
-                  Zelle
-                  Binance/USDT
-                  Débito (POS)
-                </s-text>
+                </s-paragraph>
+                  <s-unordered-list>
+                    <s-list-item>Pago Movil (Bancos venezolanos)</s-list-item>
+                    <s-list-item>Transferencia Bancaria (Bancos venezolanos)</s-list-item>
+                    <s-list-item>Zinli</s-list-item>
+                    <s-list-item>Zelle</s-list-item>
+                    <s-list-item>Binance/USDT</s-list-item>
+                    <s-list-item>Débito (POS)</s-list-item>
+                  </s-unordered-list>
+
               </s-box>
               <s-box>
                 <s-text type="strong">MONITOREO DE CRÉDITOS</s-text>
-                <s-text color="subdued">
+                <s-paragraph color="subdued">
                   Desde "Créditos", "Pagos", "Pagos Esperados" y las páginas de "Detalles de Crédito" y "Detalles de Pago" se puede monitorear los estatus de cada operación crediticia activa.
+                </s-paragraph>
+                <s-paragraph color="subdued">
                   La reputación crediticia de cada cliente se actualizará automáticamente dependiendo del promedio de créditos y pagos completados por cada cliente.
-                </s-text>
+                </s-paragraph>
               </s-box>
             </s-grid>
           </s-section>
         )}
 
         {/* Summary Cards */}
-        <s-grid gridTemplateColumns="repeat(2, 1fr)" gap="small" padding="base">
+        <s-grid gridTemplateColumns="repeat(4, 1fr)" gap="small" padding="base">
           <s-grid-item gridColumn="span 1">
             <s-section>
               <s-stack alignItems="center" gap="small-200">
-                <s-text color="subdued">Dinero total en deudas</s-text>
-                <s-heading>{formatCurrency(totalDebt)}</s-heading>
+                <s-text color="subdued">Créditos Activos</s-text>
+                <s-heading>{dashboardData?.credits?.active ?? 0}</s-heading>
               </s-stack>
             </s-section>
           </s-grid-item>
@@ -172,8 +180,26 @@ export default function Home() {
           <s-grid-item gridColumn="span 1">
             <s-section>
               <s-stack alignItems="center" gap="small-200">
-                <s-text color="subdued">Clientes con deuda</s-text>
-                <s-heading>{clientsWithDebt}</s-heading>
+                <s-text color="subdued">Créditos Finalizados</s-text>
+                <s-heading>{dashboardData?.credits?.total != null ? dashboardData.credits.total - (dashboardData?.credits?.active ?? 0) - (dashboardData?.credits?.morose ?? 0) : 0}</s-heading>
+              </s-stack>
+            </s-section>
+          </s-grid-item>
+
+          <s-grid-item gridColumn="span 1">
+            <s-section>
+              <s-stack alignItems="center" gap="small-200">
+                <s-text color="subdued">Pagos Esperados</s-text>
+                <s-heading>{dashboardData?.payments?.pending_review ?? 0}</s-heading>
+              </s-stack>
+            </s-section>
+          </s-grid-item>
+
+          <s-grid-item gridColumn="span 1">
+            <s-section>
+              <s-stack alignItems="center" gap="small-200">
+                <s-text color="subdued">Pagos No Completados</s-text>
+                <s-heading>{dashboardData?.payments?.not_paid ?? 0}</s-heading>
               </s-stack>
             </s-section>
           </s-grid-item>

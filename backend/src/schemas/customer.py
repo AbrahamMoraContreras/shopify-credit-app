@@ -44,3 +44,8 @@ class CustomerResponse(CustomerBase):
     model_config = {
         "from_attributes": True
     }
+
+class BalanceAdjustmentRequest(BaseModel):
+    amount: Decimal
+    action: str  # "ADD" o "SUBTRACT"
+    reason: str

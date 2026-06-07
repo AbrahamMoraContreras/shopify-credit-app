@@ -315,10 +315,26 @@ export default function PaymentDetail() {
       <s-stack gap="base">
         <s-grid gridTemplateColumns="1fr 1fr" gap="base">
           <s-section padding="base">
-            <s-stack alignItems="center" gap="base">
+            <s-stack direction="inline" alignItems="center" gap="small" justifyContent="space-between">
               <s-heading>
                 <strong>Información del Pago</strong>
               </s-heading>
+              <s-badge
+                tone={
+                  payment.status === "APROBADO"
+                    ? "success"
+                    : payment.status === "RECHAZADO" || payment.status === "NO_PAGADO"
+                      ? "critical"
+                      : "warning"
+                }
+              >
+                {payment.status === "APROBADO" ? "✅ Aprobado"
+                  : payment.status === "EN_REVISION" ? "🕐 En Revisión"
+                  : payment.status === "RECHAZADO" ? "❌ Rechazado"
+                  : payment.status === "NO_PAGADO" ? "🚫 No Pagado"
+                  : payment.status === "CANCELADO" ? "⛔ Cancelado"
+                  : payment.status}
+              </s-badge>
             </s-stack>
             <s-stack gap="small" padding="base">
               <s-text>
@@ -361,22 +377,6 @@ export default function PaymentDetail() {
                   ? `RECORDATORIO-${payment.reference_number.split("-")[1]}-ENVIADO`
                   : payment.reference_number}
               </s-text>
-              <s-stack direction="inline" gap="small" alignItems="center">
-                <s-text>
-                  <strong>Estado:</strong>
-                </s-text>
-                <s-badge
-                  tone={
-                    payment.status === "APROBADO"
-                      ? "success"
-                      : payment.status === "RECHAZADO"
-                        ? "critical"
-                        : "warning"
-                  }
-                >
-                  {payment.status}
-                </s-badge>
-              </s-stack>
               {payment.notes && (
                 <s-text>
                   <strong>Detalles:</strong> {payment.notes}

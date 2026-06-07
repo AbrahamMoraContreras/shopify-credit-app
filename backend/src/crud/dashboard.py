@@ -137,6 +137,16 @@ def customers_summary_data(db: Session, merchant_id: UUID):
         "totalCustomers": total_customers
     }
 
+def not_paid_payments(db: Session, merchant_id: UUID) -> int:
+    return db.query(Payment).join(
+        Credit, Credit.id == Payment.credit_id
+    ).join(
+        Customer, Customer.id == Credit.customer_id
+    ).filter(
+        Customer.merchant_id == merchant_id,
+        Payment.status == PaymentStatus.NO_PAGADO
+    ).count()
+
 def dashboard_snapshot(db: Session, merchant_id: UUID):
     summary_data = customers_summary_data(db, merchant_id)
     
@@ -166,6 +176,7 @@ def dashboard_snapshot(db: Session, merchant_id: UUID):
         "payments": {
             "pending_review": pending_payments(db, merchant_id),
             "approved_today": approved_today(db, merchant_id),
+            "not_paid": not_paid_payments(db, merchant_id),
         },
         "generated_at": date.today()
     }

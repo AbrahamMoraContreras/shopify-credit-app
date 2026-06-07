@@ -1,4 +1,5 @@
-import { useLoaderData, useNavigation } from "react-router";
+import { useLoaderData, useNavigation, useSubmit, Form, useActionData } from "react-router";
+import { useState, useEffect } from "react";
 import type { LoaderFunctionArgs } from "react-router";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
@@ -46,13 +47,63 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   const paymentsArrays = await Promise.all(paymentsPromises);
   const allPayments = paymentsArrays.flat();
 
-  return { customer, credits, allPayments, shopifyCustomerId };
+  const balanceHistoryRes = await fetch(
+    `${BACKEND_URL}/api/audit/customer/${customer.id}/balance-history`,
+    {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    },
+  );
+  const balanceHistory = balanceHistoryRes.ok ? await balanceHistoryRes.json() : [];
+
+  return { customer, credits, allPayments, shopifyCustomerId, balanceHistory };
+};
+
+export const action = async ({ request, params }: any) => {
+  const { session } = await authenticate.admin(request);
+  const accessToken = await getAccessTokenForShop(session.shop);
+  if (!accessToken) return { error: "Token no disponible" };
+
+  const formData = await request.formData();
+  const intent = formData.get("intent");
+  const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
+
+  if (intent === "manage_balance") {
+    const customerId = formData.get("customer_id");
+    const amount = formData.get("amount");
+    const actionType = formData.get("action_type");
+    const reason = formData.get("reason");
+
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/customers/${customerId}/favorable-balance`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ amount: Number(amount), action: actionType, reason }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        return { error: err.detail || "Error al actualizar saldo" };
+      }
+      return { success: true };
+    } catch (e) {
+      return { error: "Error de conexión al actualizar saldo" };
+    }
+  }
+
+  return null;
 };
 
 export default function CustomerDetail() {
-  const { customer, credits, allPayments, shopifyCustomerId } =
+  const { customer, credits, allPayments, shopifyCustomerId, balanceHistory } =
     useLoaderData<typeof loader>();
   const navigation = useNavigation();
+  const actionData = useActionData<any>();
+  const [isBalanceModalOpen, setIsBalanceModalOpen] = useState(false);
+  const [balanceForm, setBalanceForm] = useState({ amount: "", action: "ADD", reason: "" });
+  const submit = useSubmit();
+
   const operations: any[] = [];
 
   credits.forEach((c: any) => {
@@ -260,11 +311,20 @@ export default function CustomerDetail() {
           </s-section>
           <s-section padding="base">
             <s-heading>Saldo a Favor</s-heading>
-            <s-box>
-              <s-text type="strong">
-                ${Number(customer.favorable_balance || 0).toFixed(2)}
-              </s-text>
-            </s-box>
+            <s-stack direction="inline" gap="small" alignItems="center">
+              <s-box>
+                <s-text type="strong" tone="success">
+                  ${Number(customer.favorable_balance || 0).toFixed(2)}
+                </s-text>
+              </s-box>
+              <s-button 
+                variant="secondary" 
+                onClick={() => setIsBalanceModalOpen(true)}
+                accessibilityLabel="Gestionar saldo a favor"
+              >
+                Gestionar Saldo
+              </s-button>
+            </s-stack>
           </s-section>
           <s-section padding="base">
             <s-heading>Reputación Crediticia</s-heading>
@@ -400,6 +460,114 @@ export default function CustomerDetail() {
             </s-table-body>
           </s-table>
         </s-section>
+
+        {/* Historial de Saldo a Favor */}
+        <s-section padding="base">
+          <s-heading>Historial de Saldo a Favor</s-heading>
+          <s-table variant="auto">
+            <s-table-header-row>
+              <s-table-header listSlot="primary">Fecha</s-table-header>
+              <s-table-header listSlot="primary">Acción</s-table-header>
+              <s-table-header format="numeric">Monto</s-table-header>
+              <s-table-header>Razón</s-table-header>
+              <s-table-header format="numeric">Saldo Resultante</s-table-header>
+            </s-table-header-row>
+            <s-table-body>
+              {balanceHistory && balanceHistory.length === 0 ? (
+                <s-table-row>
+                  <s-table-cell>
+                    <div style={{ textAlign: "center" }}>
+                      <s-text color="subdued">No hay movimientos de saldo a favor.</s-text>
+                    </div>
+                  </s-table-cell>
+                </s-table-row>
+              ) : (
+                balanceHistory && balanceHistory.map((log: any) => (
+                  <s-table-row key={log.id}>
+                    <s-table-cell><ClientDate dateString={log.timestamp} format="datetime" /></s-table-cell>
+                    <s-table-cell>
+                      {log.changes?.action === "ADD" ? (
+                        <s-badge tone="success">Nota de Crédito (+)</s-badge>
+                      ) : (
+                        <s-badge tone="warning">Retiro de Fondos (-)</s-badge>
+                      )}
+                    </s-table-cell>
+                    <s-table-cell>${Number(log.changes?.amount_changed).toFixed(2)}</s-table-cell>
+                    <s-table-cell>{log.changes?.reason}</s-table-cell>
+                    <s-table-cell>${Number(log.changes?.new_balance).toFixed(2)}</s-table-cell>
+                  </s-table-row>
+                ))
+              )}
+            </s-table-body>
+          </s-table>
+        </s-section>
+
+        {isBalanceModalOpen && (
+          <s-modal
+            open={isBalanceModalOpen}
+            onClose={() => setIsBalanceModalOpen(false)}
+            title="Gestionar Saldo a Favor"
+          >
+            <s-box padding="base">
+              {actionData?.error && (
+                <s-banner tone="critical" heading="Error">
+                  <s-text>{actionData.error}</s-text>
+                </s-banner>
+              )}
+              {actionData?.success && (
+                <s-banner tone="success" heading="Éxito">
+                  <s-text>Saldo actualizado correctamente.</s-text>
+                </s-banner>
+              )}
+              <s-stack gap="base" direction="block">
+                <s-select
+                  label="Tipo de Operación"
+                  value={balanceForm.action}
+                  onChange={(e: any) => setBalanceForm((p) => ({ ...p, action: e.target.value }))}
+                >
+                  <s-option value="ADD">Emitir Nota de Crédito (+ Aumentar saldo)</s-option>
+                  <s-option value="SUBTRACT">Retirar Fondos (- Devolver efectivo al cliente)</s-option>
+                </s-select>
+
+                <s-number-field
+                  label="Monto (USD)"
+                  value={balanceForm.amount}
+                  onChange={(e: any) => setBalanceForm((p) => ({ ...p, amount: e.target.value }))}
+                />
+
+                <s-text-area
+                  label="Motivo o Referencia"
+                  value={balanceForm.reason}
+                  onChange={(e: any) => setBalanceForm((p) => ({ ...p, reason: e.target.value }))}
+                  placeholder="Ej: Devolución de mercancía..."
+                  rows={2}
+                />
+                
+                <s-stack direction="inline" gap="small" justifyContent="end">
+                  <s-button variant="secondary" onClick={() => setIsBalanceModalOpen(false)}>
+                    Cerrar
+                  </s-button>
+                  <s-button
+                    variant="primary"
+                    disabled={!balanceForm.amount || !balanceForm.reason}
+                    onClick={() => {
+                      const formData = new FormData();
+                      formData.append("intent", "manage_balance");
+                      formData.append("customer_id", String(customer.id));
+                      formData.append("amount", balanceForm.amount);
+                      formData.append("action_type", balanceForm.action);
+                      formData.append("reason", balanceForm.reason);
+                      submit(formData, { method: "post" });
+                      setBalanceForm({ amount: "", action: "ADD", reason: "" });
+                    }}
+                  >
+                    Confirmar
+                  </s-button>
+                </s-stack>
+              </s-stack>
+            </s-box>
+          </s-modal>
+        )}
 
         <s-stack padding="base" alignItems="center" gap="base">
           <s-text color="subdued">Desarrollado por Opentech LCC</s-text>

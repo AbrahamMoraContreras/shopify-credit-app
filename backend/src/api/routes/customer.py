@@ -5,7 +5,8 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 
 from core.dependencies import get_db, get_merchant_id
-from schemas.customer import CustomerCreate, CustomerUpdate, CustomerResponse
+from schemas.customer import CustomerCreate, CustomerUpdate, CustomerResponse, BalanceAdjustmentRequest
+from models.audit_log import AuditLog
 from crud.customer import (
     create_customer,
     get_customer,
@@ -184,5 +185,56 @@ def api_reset_favorable_balance(
     existing.favorable_balance = 0
     db.commit()
     db.refresh(existing)
-    
     return existing
+
+@router.post(
+    "/{customer_id}/favorable-balance",
+    response_model=CustomerResponse,
+    status_code=status.HTTP_200_OK
+)
+def api_adjust_favorable_balance(
+    customer_id: int,
+    payload: BalanceAdjustmentRequest,
+    db: Session = Depends(get_db),
+    merchant_id: str = Depends(get_merchant_id)
+):
+    from decimal import Decimal
+    obj = get_customer(db=db, customer_id=customer_id)
+
+    if not obj:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    if str(obj.merchant_id) != str(merchant_id):
+        raise HTTPException(status_code=403, detail="Forbidden: customer does not belong to your store")
+
+    amount = Decimal(str(payload.amount))
+    if amount <= 0:
+        raise HTTPException(status_code=400, detail="Amount must be positive")
+
+    if payload.action == "SUBTRACT":
+        if obj.favorable_balance < amount:
+            raise HTTPException(status_code=400, detail="Insufficient favorable balance")
+        obj.favorable_balance -= amount
+    elif payload.action == "ADD":
+        obj.favorable_balance += amount
+    else:
+        raise HTTPException(status_code=400, detail="Invalid action")
+
+    # Log the adjustment in AuditLog
+    audit = AuditLog(
+        merchant_id=merchant_id,
+        entity_name="CUSTOMER_BALANCE",
+        entity_id=str(customer_id),
+        action="ADJUST_BALANCE",
+        changes={
+            "amount_changed": float(amount),
+            "action": payload.action,
+            "reason": payload.reason,
+            "new_balance": float(obj.favorable_balance)
+        }
+    )
+    db.add(audit)
+    db.commit()
+    db.refresh(obj)
+
+    return obj

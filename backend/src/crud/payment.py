@@ -385,6 +385,9 @@ def review_payment(
         target_ids = [inst.id for inst in payment.covered_installments]
             
         _apply_payment_distribution(db, payment, credit, target_ids, distribute_excess, credit.customer)
+    elif status == PaymentStatus.NO_PAGADO:
+        for inst in payment.covered_installments:
+            inst.status = InstallmentStatus.NO_PAGADA
 
     log_audit_action(
         db=db,

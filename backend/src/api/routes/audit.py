@@ -21,3 +21,18 @@ def log_login(
     )
     db.commit()
     return {"ok": True}
+
+@router.get("/customer/{customer_id}/balance-history", summary="Obtener historial de saldo a favor de un cliente")
+def get_customer_balance_history(
+    customer_id: int,
+    db: Session = Depends(get_db),
+    merchant_id: UUID = Depends(get_merchant_id),
+):
+    from models.audit_log import AuditLog
+    logs = db.query(AuditLog).filter(
+        AuditLog.merchant_id == merchant_id,
+        AuditLog.entity_name == "CUSTOMER_BALANCE",
+        AuditLog.entity_id == str(customer_id)
+    ).order_by(AuditLog.timestamp.desc()).all()
+    
+    return logs
