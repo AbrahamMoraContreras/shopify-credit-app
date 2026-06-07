@@ -39,6 +39,7 @@ class CustomerResponse(CustomerBase):
     credits_incomplete: int = 0
     payments_on_time: int = 0
     payments_late: int = 0
+    payments_incomplete: int = 0
 
     model_config = {
         "from_attributes": True

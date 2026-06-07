@@ -86,3 +86,13 @@ class Customer(Base):
                         and Decimal(str(p.punctuality_value)) == Decimal("0")):
                     count += 1
         return count
+
+    @property
+    def payments_incomplete(self) -> int:
+        """Pagos con status RECHAZADO o CANCELADO."""
+        count = 0
+        for c in self.credits:
+            for p in c.payments:
+                if getattr(p.status, "value", p.status) in ["RECHAZADO", "CANCELADO"]:
+                    count += 1
+        return count

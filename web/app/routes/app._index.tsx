@@ -108,35 +108,50 @@ export default function Home() {
             </s-heading>
             <s-grid gridTemplateColumns="repeat(2, 1fr)" gap="base">
               <s-box>
-                <s-text type="strong">1. Gestión de Créditos</s-text>
+                <s-text type="strong">CREAR UN CRÉDITO: PRIMEROS PASOS</s-text>
                 <s-text color="subdued">
-                  Busca clientes de Shopify para crearles créditos. Ingresa el
-                  concepto, selecciona las compras que fían y planifica el pago
-                  en múltiples cuotas.
+                  1. Ve a "Registrar Crédito". Selecciona uno de los clientes registrados en tu comercio de Shopify y empieza una nueva operación crediticia. 
+                  2. En la tabla inferior de productos, selecciona los que el cliente desea. 
+                  3. Selecciona la periodicidad: Mensual, quincenal oi fiado, y planifica los pago en múltiples cuotas si es necesario.
+                  4. Verifica que toda la información sea la correcta, y finaliza la creación del crédito.
                 </s-text>
               </s-box>
               <s-box>
-                <s-text type="strong">2. Registro de Pagos</s-text>
+                <s-text type="strong">REGISTRAR PAGOS: FORMA DIRECTA</s-text>
                 <s-text color="subdued">
-                  Abona a un crédito existente registrando el método de pago
-                  (Efectivo, Zelle, Pago Móvil), añadiendo referencias o
-                  procesando reportes web de clientes.
+                  1- Ve a "Registrar Pago". Selecciona el clientes. 
+                  2. Selecciona el método de pago, la cantidad en divisas y el código de referencia asociado al pago del cliente. 
+                  3. En la parte inferior, selecciona las cuotas que el cliente desea pagar.
+                  IMPORTANTE: Este método se usa en caso de que el clinete pague de forma directa sin usar el recordatorio por e-mail.
                 </s-text>
               </s-box>
               <s-box>
-                <s-text type="strong">3. Pagos Esperados</s-text>
+                <s-text type="strong">REGISTRAR PAGOS: USANDO EL RECORDATORIO POR E.MAIL</s-text>
                 <s-text color="subdued">
-                  Haz seguimiento de las próximas cuotas a vencer en la pestaña
-                  respectiva. Manda recordatorios al cliente para agilizar la
-                  cobranza.
+                  1- Ve a "Pagos Esperados" o a "Detalles de Crédito". Oprime el botón de "Enviar Recordatorio". 
+                  2. El cliente recibirá un e-mail con un link de pago. Deberá seleccionar el método de pago preferido, y llenar un formulario con la información de su pago. 
+                  3. Al completar el formulario, la información del pago llegará automáticamente a la app en Shopify.
+                  4. Contrasta la información del formulario con los estados financieros del comercio. Finalmente desde "Pagos", aprueba o rechaza el pago.
                 </s-text>
               </s-box>
               <s-box>
-                <s-text type="strong">4. Clientes y Documentos</s-text>
+                <s-text type="strong">CONFIGURANDO LA INFORMACIÓN DE PAGO</s-text>
                 <s-text color="subdued">
-                  Inspecciona la reputación de tu cliente. Si abonan demás,
-                  quedará guardado como Saldo a Favor. Completa sus tipos
-                  documentos (V, J, E) desde sus perfiles.
+                  Desde "Configuración", edita los datos de los métodos de pago y los datos a los cuales los clientes realizarán los pagos.
+                  Se aceptan:
+                  Pago Movil (Bancos venezolanos)
+                  Transferencia Bancaria (Bancos venezolanos)
+                  Zinli
+                  Zelle
+                  Binance/USDT
+                  Débito (POS)
+                </s-text>
+              </s-box>
+              <s-box>
+                <s-text type="strong">MONITOREO DE CRÉDITOS</s-text>
+                <s-text color="subdued">
+                  Desde "Créditos", "Pagos", "Pagos Esperados" y las páginas de "Detalles de Crédito" y "Detalles de Pago" se puede monitorear los estatus de cada operación crediticia activa.
+                  La reputación crediticia de cada cliente se actualizará automáticamente dependiendo del promedio de créditos y pagos completados por cada cliente.
                 </s-text>
               </s-box>
             </s-grid>
@@ -239,8 +254,8 @@ export default function Home() {
         </s-section>
 
         {/* Footer */}
-        <s-stack padding="base" alignItems="center" gap="tight">
-          <s-text color="subdued" variant="bodySm">
+        <s-stack padding="base" alignItems="center">
+          <s-text color="subdued">
             Desarrollado por Opentech LCC
           </s-text>
           <s-text>

@@ -27,6 +27,7 @@ interface BackendCustomer {
   credits_incomplete: number;
   payments_on_time: number;
   payments_late: number;
+  payments_incomplete: number;
 }
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -97,7 +98,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   > = {};
   let statsMap: Record<
     number,
-    { credits_completed: number; credits_incomplete: number; payments_on_time: number; payments_late: number }
+    { credits_completed: number; credits_incomplete: number; payments_on_time: number; payments_late: number; payments_incomplete: number }
   > = {};
   const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
 
@@ -124,6 +125,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
               credits_incomplete: bc.credits_incomplete ?? 0,
               payments_on_time: bc.payments_on_time ?? 0,
               payments_late: bc.payments_late ?? 0,
+              payments_incomplete: bc.payments_incomplete ?? 0,
             };
           }
         }
@@ -221,7 +223,7 @@ export default function ShopifyCustomers() {
 
   return (
     <s-page heading="Clientes de Shopify">
-      <s-stack gap="base">
+      <s-stack gap="large">
         {/* Summary */}
         <s-grid gridTemplateColumns="repeat(5, 1fr)" gap="small" padding="base">
           <s-grid-item gridColumn="span 5">
@@ -282,11 +284,13 @@ export default function ShopifyCustomers() {
                 <s-table-header listSlot="primary" format="numeric">
                   Saldo a Favor
                 </s-table-header>
-                <s-table-header>Reputación Crediticia</s-table-header>
+                <s-table-header>Reputación</s-table-header>
                 <s-table-header format="numeric">Créd. Completados</s-table-header>
                 <s-table-header format="numeric">Créd. Pendientes</s-table-header>
                 <s-table-header format="numeric">Pagos a Tiempo</s-table-header>
                 <s-table-header format="numeric">Pagos Tardíos</s-table-header>
+                <s-table-header format="numeric">Pagos No Completados</s-table-header>
+
                 <s-table-header>Acciones</s-table-header>
               </s-table-header-row>
 
@@ -366,6 +370,17 @@ export default function ShopifyCustomers() {
                         {stats ? (
                           stats.payments_late > 0 ? (
                             <s-badge tone="critical">{stats.payments_late}</s-badge>
+                          ) : (
+                            <s-text color="subdued">0</s-text>
+                          )
+                        ) : (
+                          <s-text color="subdued">—</s-text>
+                        )}
+                      </s-table-cell>
+                      <s-table-cell>
+                        {stats ? (
+                          stats.payments_incomplete > 0 ? (
+                            <s-badge tone="warning">{stats.payments_incomplete}</s-badge>
                           ) : (
                             <s-text color="subdued">0</s-text>
                           )

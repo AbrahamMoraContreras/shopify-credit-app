@@ -1,0 +1,49 @@
+Actúa como un Arquitecto de Software Experto. Tu tarea es generar un código Mermaid para un Diagrama de Secuencia (Sequence Diagram) detallado que modele el flujo principal de mi sistema "Shopify Credit App". 
+
+Aquí tienes el contexto técnico y los pasos del flujo que debes modelar:
+
+**Actores del Sistema:**
+1. **Comerciante (Merchant)**: Usuario administrador de la tienda en Shopify.
+2. **Frontend (Remix / React)**: Aplicación embebida de Shopify (Admin UI) y página pública de pagos.
+3. **Backend (FastAPI)**: Servidor Python que maneja la lógica de negocio.
+4. **Base de Datos (PostgreSQL 3NF)**: Almacena los registros usando SQLAlchemy.
+5. **Cliente (Customer)**: Usuario final que recibe el crédito y realiza los pagos.
+6. **Servicio de Correo (SMTP)**: Envía los correos de recordatorio y links de pago.
+
+**Flujo a Modelar (Por favor estructura el diagrama siguiendo este orden):**
+
+1. **Creación del Crédito:**
+   - El Comerciante llena el formulario de "Nuevo Crédito" en el Frontend (Admin).
+   - El Frontend envía una petición `POST /api/credits` al Backend con los datos del crédito, cliente y productos.
+   - El Backend calcula las cuotas (installments) según el monto y la frecuencia.
+   - El Backend guarda el Crédito, el Cliente (asociando su ID de Shopify) y las Cuotas en la Base de Datos.
+   - La BD responde OK, y el Backend devuelve la confirmación al Frontend.
+
+2. **Generación del Link de Cobro:**
+   - El Comerciante selecciona una cuota o el crédito y presiona "Generar Link de Pago".
+   - El Frontend solicita al Backend (`POST /api/payments/payment-tokens`) generar el token.
+   - El Backend registra una intención de pago y crea un Token seguro con expiración en la Base de Datos.
+   - El Backend usa el Servicio de Correo (SMTP) para enviar un email al Cliente con el link de pago público (incluye el token).
+
+3. **Reporte de Pago por el Cliente:**
+   - El Cliente recibe el email, hace clic en el link y abre el Frontend (Página Pública).
+   - El Cliente llena el formulario de reporte de pago (Referencia, Banco, Fecha) y lo envía.
+   - El Frontend envía una petición `POST /api/public/submit-payment` al Backend.
+   - El Backend registra el "Comprobante de Pago" (Payment Proof) con estado "PENDIENTE" en la BD.
+   - El Cliente ve una pantalla de éxito ("Pago en revisión").
+
+4. **Revisión y Aprobación del Pago:**
+   - El Comerciante entra a la pestaña "Pagos" en su Dashboard.
+   - El Frontend solicita los comprobantes pendientes (`GET /api/payments/payment-proofs`).
+   - El Comerciante hace clic en "Aprobar" sobre un comprobante.
+   - El Frontend envía `PATCH /api/payments/{id}/review` con estado "APROBADO" al Backend.
+   - El Backend procesa el pago: actualiza el saldo del Crédito, marca las Cuotas involucradas como pagadas, y actualiza el saldo a favor del Cliente si hubo un pago de más. Todo esto se guarda en la BD.
+   - El Backend devuelve OK y el Frontend actualiza el Dashboard mostrando el saldo reducido.
+
+**Requisitos del Diagrama:**
+- Usa `sequenceDiagram` de Mermaid.
+- Usa `autonumber`.
+- Usa notas (`Note over Actor: texto`) para aclarar acciones importantes como cálculos internos de saldos o transacciones de base de datos.
+- Agrupa las fases usando `rect` o `alt/opt` para separar visualmente "Creación", "Notificación", "Reporte de Pago" y "Aprobación".
+
+Genera únicamente el código Mermaid dentro de un bloque de código markdown, listo para ser copiado y renderizado.

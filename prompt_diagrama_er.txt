@@ -1,0 +1,93 @@
+Actúa como un Arquitecto de Base de Datos y Administrador DBA Experto. Tu tarea es generar el código Mermaid para un Diagrama de Entidad-Relación (Entity-Relationship Diagram) sumamente detallado que modele la base de datos de mi sistema "Shopify Credit App".
+
+El sistema fue recientemente refactorizado para cumplir con la Tercera Forma Normal (3NF), eliminando columnas redundantes y dependencias transitivas.
+
+A continuación, te detallo las tablas exactas de la base de datos, sus columnas principales y cómo se relacionan. Usa esta información al pie de la letra para construir el diagrama:
+
+**Tablas y Columnas Principales:**
+
+1. **merchants** (Comerciantes)
+   - `id` (PK, UUID)
+   - `shop_domain` (String, Único)
+   - `created_at` (DateTime)
+
+2. **merchant_payment_settings** (Configuración de métodos de pago extraída en 3NF)
+   - `id` (PK, Integer)
+   - `merchant_id` (FK, UUID)
+   - `payment_method` (String, Ej: Zelle, Pago Móvil)
+   - `settings` (JSONB, Detalles de la cuenta)
+   - `is_active` (Boolean)
+
+3. **customers** (Clientes asociados a un comercio)
+   - `id` (PK, Integer)
+   - `merchant_id` (FK, UUID)
+   - `shopify_customer_id` (String)
+   - `full_name` (String)
+   - `favorable_balance` (Numeric, Saldo a favor)
+
+4. **credits** (Créditos otorgados a los clientes)
+   - `id` (PK, Integer)
+   - `customer_id` (FK, Integer)
+   - `total_amount` (Numeric)
+   - `balance` (Numeric, Saldo restante)
+   - `status` (Enum: EMITIDO, EN_PROGRESO, PAGADO, etc.)
+
+5. **credit_items** (Productos financiados en un crédito específico)
+   - `id` (PK, Integer)
+   - `credit_id` (FK, Integer)
+   - `product_name` (String)
+   - `quantity` (Integer)
+   - `unit_price` (Numeric)
+
+6. **credit_installments** (Cuotas generadas para pagar un crédito)
+   - `id` (PK, Integer)
+   - `credit_id` (FK, Integer)
+   - `number` (Integer, Número de cuota)
+   - `amount` (Numeric)
+   - `due_date` (Date)
+   - `status` (Enum: PENDIENTE, PAGADA, VENCIDA)
+
+7. **payments** (Pagos realizados y aprobados/rechazados)
+   - `id` (PK, Integer)
+   - `credit_id` (FK, Integer)
+   - `amount` (Numeric)
+   - `reference_number` (String, Único)
+   - `bank_name` (String)
+   - `status` (Enum: APROBADO, EN_REVISION, RECHAZADO)
+
+8. **payment_installments** (Tabla intermedia Muchos-a-Muchos para 3NF)
+   - `payment_id` (PK/FK, Integer)
+   - `installment_id` (PK/FK, Integer)
+   *(Relaciona un pago con las cuotas específicas que está cubriendo)*
+
+9. **payment_tokens** (Tokens de un solo uso para links de pago públicos)
+   - `id` (PK, Integer)
+   - `payment_id` (FK, Integer, Relación 1:1 con un payment EN_REVISION)
+   - `merchant_id` (FK, UUID)
+   - `token` (String, UUID)
+
+10. **payment_proofs** (Comprobantes cargados por el cliente desde el portal público)
+    - `id` (PK, Integer)
+    - `token_id` (FK, Integer)
+    - `reference_number` (String)
+    - `amount` (Numeric)
+    - `status` (Enum: PENDIENTE, REVISADO)
+
+**Relaciones Exactas (Usa la sintaxis de cardinalidad de Mermaid):**
+- `merchants` ||--o{ `customers` : "tiene"
+- `merchants` ||--o{ `merchant_payment_settings` : "configura"
+- `merchants` ||--o{ `payment_tokens` : "emite"
+- `customers` ||--o{ `credits` : "solicita"
+- `credits` ||--o{ `credit_items` : "contiene"
+- `credits` ||--o{ `credit_installments` : "se divide en"
+- `credits` ||--o{ `payments` : "recibe"
+- `payments` ||--o{ `payment_installments` : "cubre"
+- `credit_installments` ||--o{ `payment_installments` : "es cubierta por"
+- `payments` ||--o| `payment_tokens` : "autorizado por"
+- `payment_tokens` ||--o| `payment_proofs` : "respaldado por"
+
+**Requisitos del Diagrama:**
+- Usa el tipo `erDiagram` exclusivo de Mermaid.
+- Especifica los tipos de datos principales al lado de cada columna.
+- Agrega marcas como `PK` y `FK` a las columnas que correspondan según el detalle provisto.
+- Genera el diagrama de forma limpia, únicamente devolviendo el bloque de código markdown con sintaxis Mermaid. No asumas ni agregues tablas que no estén en la lista.

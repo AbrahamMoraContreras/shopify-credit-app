@@ -1,0 +1,41 @@
+Actúa como un Analista de Sistemas y Arquitecto de Software Experto. Tu tarea es generar el código Mermaid para un Diagrama de Casos de Uso (Use Case Diagram) que modele las interacciones principales de los usuarios con el sistema "Shopify Credit App".
+
+Dado que Mermaid no tiene un tipo de gráfico "Use Case" nativo estricto, utiliza un `flowchart LR` (de izquierda a derecha), donde los actores sean nodos rectangulares o representados de forma visualmente distinta, y los casos de uso sean nodos ovalados o circulares, encerrados dentro de un "subgraph" que represente los límites del sistema (El Backend/Frontend de la App).
+
+Aquí tienes el contexto de los actores y sus capacidades dentro del sistema:
+
+**Actores Externos:**
+1. **Comerciante (Merchant)**: El administrador de la tienda de Shopify.
+2. **Cliente (Customer)**: El comprador que recibe el crédito.
+3. **Servicio de Correo (SMTP)**: Actor de sistema externo que envía notificaciones.
+
+**Límites del Sistema (El Subgraph principal):** "Shopify Credit App"
+
+**Casos de Uso del Comerciante:**
+- "Configurar Métodos de Pago" (Zelle, Binance, Pago Móvil, etc.)
+- "Emitir Nuevo Crédito"
+- "Registrar Cliente Manualmente"
+- "Generar Link de Cobro"
+- "Revisar Comprobantes Pendientes"
+- "Aprobar/Rechazar Pagos"
+- "Visualizar Métricas en Dashboard" (Deuda Total, Clientes Morosos)
+
+**Casos de Uso del Cliente:**
+- "Recibir Notificación de Cobro" (Extendido por el Servicio de Correo)
+- "Acceder a la Página Pública de Pagos"
+- "Reportar Comprobante de Pago" (Subir Referencia, Banco y Monto)
+
+**Relaciones e Inclusiones (<<include>> / <<extend>>):**
+- "Emitir Nuevo Crédito" <<include>> "Calcular Cuotas Automáticamente".
+- "Generar Link de Cobro" <<include>> "Enviar Email al Cliente" (Involucra al Servicio de Correo).
+- "Aprobar/Rechazar Pagos" <<include>> "Actualizar Saldo del Crédito".
+
+**Requisitos del Diagrama:**
+- Usa `flowchart LR`.
+- Agrupa todos los casos de uso dentro de un `subgraph Shopify Credit App`.
+- Coloca a los Actores fuera del subgraph.
+- Usa estilos (`classDef` o sintaxis de formas como `([Caso de Uso])`) para que los casos de uso tengan forma redondeada.
+- Conecta a los Actores con los Casos de Uso usando flechas simples (`-->` o `---`).
+- Usa líneas punteadas (`-.->`) para las relaciones de <<include>> o <<extend>>, agregando el texto en la flecha.
+
+Genera únicamente el código Mermaid dentro de un bloque de código markdown, listo para ser copiado y renderizado.
