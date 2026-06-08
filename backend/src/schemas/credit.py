@@ -28,6 +28,7 @@ class CreditCreate(BaseModel):
     frequency: Optional[str] = None  # "quincenal" | "mensual"
     status: Optional[CreditStatus] = None
     items: List[CreditItemCreate] = []
+    bypass_reputation_block: Optional[bool] = False
 
 
 

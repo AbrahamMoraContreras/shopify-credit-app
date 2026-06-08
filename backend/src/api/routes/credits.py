@@ -27,6 +27,29 @@ def create_credit_endpoint(
     Crea un crédito con o sin cuotas.
     IMPORTANTE: create_credit() DEBE retornar el objeto Credit.
     """
+    # Check reputation blocking
+    if not payload.bypass_reputation_block:
+        from models.customer import Customer
+        from models.merchant_payment_settings import MerchantPaymentSetting
+        
+        customer = db.query(Customer).filter(
+            Customer.id == payload.customer_id,
+            Customer.merchant_id == merchant_id
+        ).first()
+        
+        if customer and customer.reputation == "mala":
+            # Check settings
+            general_settings = db.query(MerchantPaymentSetting).filter(
+                MerchantPaymentSetting.merchant_id == merchant_id,
+                MerchantPaymentSetting.method_name == "general"
+            ).first()
+            if general_settings and general_settings.settings_data:
+                if general_settings.settings_data.get("block_bad_reputation", False):
+                    raise HTTPException(
+                        status_code=400,
+                        detail="REPUTATION_BLOCK: El cliente tiene baja reputación (mala) y el bloqueo automático está activo."
+                    )
+
     try:
         credit = create_credit(
             db=db,

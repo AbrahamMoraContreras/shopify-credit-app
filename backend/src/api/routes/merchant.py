@@ -120,6 +120,7 @@ class MerchantSettingsPayload(BaseModel):
     zelle: Optional[dict] = None
     zinli: Optional[dict] = None
     debito: Optional[dict] = None
+    general: Optional[dict] = None
 
 
 class MerchantSettingsResponse(BaseModel):
@@ -129,6 +130,7 @@ class MerchantSettingsResponse(BaseModel):
     zelle: Optional[Any] = None
     zinli: Optional[Any] = None
     debito: Optional[Any] = None
+    general: Optional[Any] = None
 
 
 @router.get("/settings", response_model=MerchantSettingsResponse)
@@ -148,6 +150,7 @@ def get_merchant_settings(
         zelle=settings_dict.get("zelle"),
         zinli=settings_dict.get("zinli"),
         debito=settings_dict.get("debito"),
+        general=settings_dict.get("general"),
     )
 
 
@@ -167,6 +170,7 @@ def update_merchant_settings(
         "zelle": payload.zelle,
         "zinli": payload.zinli,
         "debito": payload.debito,
+        "general": payload.general,
     }
     
     for method_name, settings_data in updates.items():
@@ -196,4 +200,5 @@ def update_merchant_settings(
         zelle=settings_dict.get("zelle"),
         zinli=settings_dict.get("zinli"),
         debito=settings_dict.get("debito"),
+        general=settings_dict.get("general"),
     )

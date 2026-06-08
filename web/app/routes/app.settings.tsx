@@ -80,6 +80,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const zelle = formData.get("zelle") ? JSON.parse(formData.get("zelle") as string) : null;
   const zinli = formData.get("zinli") ? JSON.parse(formData.get("zinli") as string) : null;
   const debito = formData.get("debito") ? JSON.parse(formData.get("debito") as string) : null;
+  const general = formData.get("general") ? JSON.parse(formData.get("general") as string) : null;
 
   const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
   const res = await fetch(`${BACKEND_URL}/api/merchants/settings`, {
@@ -88,7 +89,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       "Content-Type": "application/json",
       Authorization: `Bearer ${accessToken}`,
     },
-    body: JSON.stringify({ pago_movil: pagoMovil, transferencia, binance, zelle, zinli, debito }),
+    body: JSON.stringify({ pago_movil: pagoMovil, transferencia, binance, zelle, zinli, debito, general }),
   });
 
   if (!res.ok) return { success: false };
@@ -127,6 +128,11 @@ export default function Settings() {
   const [debito, setDebito] = useState(
     settings?.debito ? { enabled: false, details: "", ...settings.debito } : { enabled: false, details: "" }
   );
+  const [general, setGeneral] = useState(
+    settings?.general
+      ? { silence_notifications: false, block_bad_reputation: false, ...settings.general }
+      : { silence_notifications: false, block_bad_reputation: false }
+  );
   const [paypal, setPaypal] = useState({ email: "", titular: "" });
   const [saveStatus, setSaveStatus] = useState<
     "idle" | "saving" | "saved" | "error"
@@ -151,6 +157,7 @@ export default function Settings() {
         zelle: JSON.stringify(zelle),
         zinli: JSON.stringify(zinli),
         debito: JSON.stringify(debito),
+        general: JSON.stringify(general),
       },
       { method: "post" },
     );
@@ -389,27 +396,27 @@ export default function Settings() {
         </s-stack>
       </s-section>
 
-      <s-section heading="Notifications">
-        <s-select
-          label="Frecuencia de Notificaciones"
-          name="notification-frequency"
-        >
-          <s-option value="immediately" selected>
-            Inmediata
-          </s-option>
-          <s-option value="hourly">Hourly digest</s-option>
-          <s-option value="daily">Daily digest</s-option>
-        </s-select>
-        <s-choice-list
-          label="Notification types"
-          name="notifications-type"
-          multiple
-        >
-          <s-choice value="new-order" selected>
-            New order notifications
-          </s-choice>
-          <s-choice value="low-stock">Low stock alerts</s-choice>
-        </s-choice-list>
+      <s-section heading="Configuración General e Integraciones">
+        <s-grid gridTemplateColumns="1fr" gap="base" padding="base">
+          <s-grid-item>
+            <s-box border="base" borderRadius="base" padding="base">
+              <s-stack gap="base">
+                <s-heading>Políticas y Alertas de la Tienda</s-heading>
+                <s-divider />
+                <s-checkbox
+                  label="Silenciar alertas de la campanita (no recibir notificaciones flotantes al registrar pagos)"
+                  checked={general.silence_notifications}
+                  onChange={(e: any) => setGeneral({ ...general, silence_notifications: e.target.checked })}
+                />
+                <s-checkbox
+                  label="Bloqueo automático de créditos para clientes con mala reputación (requiere bypass manual del admin)"
+                  checked={general.block_bad_reputation}
+                  onChange={(e: any) => setGeneral({ ...general, block_bad_reputation: e.target.checked })}
+                />
+              </s-stack>
+            </s-box>
+          </s-grid-item>
+        </s-grid>
       </s-section>
 
 

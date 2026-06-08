@@ -300,6 +300,7 @@ export default function RegistreCredit() {
     null,
   );
   const [mounted, setMounted] = useState(false);
+  const [showBypassModal, setShowBypassModal] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -310,6 +311,12 @@ export default function RegistreCredit() {
       setClientError(null);
     }
   }, [navigation.state]);
+
+  useEffect(() => {
+    if (actionData?.error && actionData.error.includes("REPUTATION_BLOCK")) {
+      setShowBypassModal(true);
+    }
+  }, [actionData]);
 
   const initialForm = {
     customer: "",
@@ -453,7 +460,7 @@ export default function RegistreCredit() {
     }
   };
 
-  const handleRegisterCredit = (isDraft: boolean = false) => {
+  const handleRegisterCredit = (isDraft: boolean = false, bypass: boolean = false) => {
     setClientError(null);
 
     if (isNewCustomer) {
@@ -541,6 +548,7 @@ export default function RegistreCredit() {
       frequency: form.frequency,
       status: isDraft ? "PENDIENTE_ACTIVACION" : "EMITIDO",
       inventory_adjustments: inventoryAdjustments,
+      bypass_reputation_block: bypass,
       items: selectedList.map((p) => {
         const variant = p.variants.nodes[0];
         const qty = quantities[p.id] || 0;
@@ -1241,6 +1249,42 @@ export default function RegistreCredit() {
           .
         </s-text>
       </s-stack>
-    </s-page>
+      {showBypassModal && (
+        <s-modal
+          open={showBypassModal}
+          onClose={() => setShowBypassModal(false)}
+          title="Confirmar Emisión de Crédito"
+        >
+          <s-box padding="base">
+            <s-stack gap="base" direction="block">
+              <s-text tone="critical" type="strong">
+                Advertencia de Reputación Crediticia
+              </s-text>
+              <s-paragraph>
+                El cliente seleccionado tiene reputación clasificada como **Mala** y el bloqueo automático de créditos está activo.
+              </s-paragraph>
+              <s-paragraph>
+                ¿Desea omitir el bloqueo de reputación y registrar el crédito de todas formas?
+              </s-paragraph>
+              <s-stack direction="inline" gap="small" justifyContent="end">
+                <s-button variant="secondary" onClick={() => setShowBypassModal(false)}>
+                  Cancelar
+                </s-button>
+                <s-button
+                  variant="primary"
+                  tone="critical"
+                  onClick={() => {
+                    setShowBypassModal(false);
+                    handleRegisterCredit(false, true); // Bypass = true
+                  }}
+                >
+                  Confirmar y Registrar
+                </s-button>
+              </s-stack>
+            </s-stack>
+          </s-box>
+        </s-modal>
+      )}
+      </s-page>
   );
 }

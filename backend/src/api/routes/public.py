@@ -256,37 +256,48 @@ def submit_payment_proof(payload: ProofSubmission, db: Session = Depends(get_db)
 
     # Log notification in AuditLog for the merchant dashboard
     try:
-        from models.audit_log import AuditLog
-        customer_name = "Cliente"
-        credit_id = "N/A"
-        installment_number = "N/A"
-        
-        if payment:
-            if payment.credit:
-                credit_id = str(payment.credit.id)
-                if payment.credit.customer:
-                    customer_name = payment.credit.customer.full_name
-            if payment.installment_id and payment.credit:
-                inst = next((i for i in payment.credit.installments if i.id == payment.installment_id), None)
-                if inst:
-                    installment_number = str(inst.number)
+        from models.merchant_payment_settings import MerchantPaymentSetting
+        # Check if notifications are silenced
+        silence_notifications = False
+        general_settings = db.query(MerchantPaymentSetting).filter(
+            MerchantPaymentSetting.merchant_id == pt.merchant_id,
+            MerchantPaymentSetting.method_name == "general"
+        ).first()
+        if general_settings and general_settings.settings_data:
+            silence_notifications = general_settings.settings_data.get("silence_notifications", False)
 
-        msg = f"Cliente {customer_name} realizó el pago de cuota #{installment_number} del Crédito #{credit_id}. Por favor, verificalo."
-        
-        notification = AuditLog(
-            merchant_id=pt.merchant_id,
-            entity_name="NOTIFICATION",
-            entity_id=str(payment.id) if payment else "0",
-            action="PAYMENT_SUBMITTED",
-            changes={
-                "message": msg,
-                "is_read": False,
-                "payment_id": payment.id if payment else None,
-                "customer_name": customer_name,
-                "credit_id": credit_id,
-            }
-        )
-        db.add(notification)
+        if not silence_notifications:
+            from models.audit_log import AuditLog
+            customer_name = "Cliente"
+            credit_id = "N/A"
+            installment_number = "N/A"
+            
+            if payment:
+                if payment.credit:
+                    credit_id = str(payment.credit.id)
+                    if payment.credit.customer:
+                        customer_name = payment.credit.customer.full_name
+                if payment.installment_id and payment.credit:
+                    inst = next((i for i in payment.credit.installments if i.id == payment.installment_id), None)
+                    if inst:
+                        installment_number = str(inst.number)
+
+            msg = f"Cliente {customer_name} realizó el pago de cuota #{installment_number} del Crédito #{credit_id}. Por favor, verificalo."
+            
+            notification = AuditLog(
+                merchant_id=pt.merchant_id,
+                entity_name="NOTIFICATION",
+                entity_id=str(payment.id) if payment else "0",
+                action="PAYMENT_SUBMITTED",
+                changes={
+                    "message": msg,
+                    "is_read": False,
+                    "payment_id": payment.id if payment else None,
+                    "customer_name": customer_name,
+                    "credit_id": credit_id,
+                }
+            )
+            db.add(notification)
     except Exception as e:
         print("[submit_payment_proof] Error creating notification log:", e)
 

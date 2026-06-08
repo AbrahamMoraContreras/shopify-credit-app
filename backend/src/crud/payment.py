@@ -316,8 +316,8 @@ def _apply_payment_distribution(db: Session, payment: Payment, credit: Credit, t
             earliest_due = min(valid_due_dates)
             payment.punctuality_value = Decimal("100") if payment_date_only <= earliest_due else Decimal("0")
 
-    # Última actualización del status del crédito
-    if credit.balance <= 0:
+    # Última actualización del status del crédito (con margen de error de hasta 0.10$)
+    if credit.balance <= Decimal("0.10"):
         credit.balance = Decimal("0.00")
         credit.status = CreditStatus.PAGADO
     else:
