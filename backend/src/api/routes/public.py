@@ -129,16 +129,21 @@ def get_payment_info(token: str, db: Session = Depends(get_db)):
 
     fecha_str = credit.created_at.strftime("%d de %B, %Y") if credit else datetime.utcnow().strftime("%d de %B, %Y")
     
-    pm_settings = getattr(merchant, "pago_movil_settings", {}) or {}
-    tr_settings = getattr(merchant, "transferencia_settings", {}) or {}
-    binance_settings = getattr(merchant, "binance_settings", {}) or {}
-    zelle_settings = getattr(merchant, "zelle_settings", {}) or {}
-    zinli_settings = getattr(merchant, "zinli_settings", {}) or {}
-    debito_settings = getattr(merchant, "debito_settings", {}) or {}
+    # Extract payment settings from relationship
+    settings_dict = {}
+    if merchant and getattr(merchant, "payment_settings", None):
+        settings_dict = {s.method_name: s.settings_data for s in merchant.payment_settings if s.settings_data}
+        
+    pm_settings = settings_dict.get("pago_movil", {})
+    tr_settings = settings_dict.get("transferencia", {})
+    binance_settings = settings_dict.get("binance", {})
+    zelle_settings = settings_dict.get("zelle", {})
+    zinli_settings = settings_dict.get("zinli", {})
+    debito_settings = settings_dict.get("debito", {})
     
     metodos = []
-    if pm_settings: metodos.append("Pago Móvil")
-    if tr_settings: metodos.append("Transferencia Bancaria")
+    if pm_settings and pm_settings.get("banco"): metodos.append("Pago Móvil")
+    if tr_settings and tr_settings.get("banco"): metodos.append("Transferencia Bancaria")
     if binance_settings and binance_settings.get("enabled"): metodos.append("Binance")
     if zelle_settings and zelle_settings.get("enabled"): metodos.append("Zelle")
     if zinli_settings and zinli_settings.get("enabled"): metodos.append("Zinli")

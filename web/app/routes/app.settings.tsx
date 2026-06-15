@@ -188,9 +188,11 @@ export default function Settings() {
                 <s-text-field
                   label="Teléfono"
                   value={pagoMovil.telefono}
-                  onChange={(e: any) =>
-                    setPagoMovil({ ...pagoMovil, telefono: e.target.value.replace(/\D/g, "") })
-                  }
+                  onInput={(e: any) => {
+                    const val = e.target.value.replace(/\D/g, "");
+                    e.target.value = val;
+                    setPagoMovil({ ...pagoMovil, telefono: val });
+                  }}
                 />
                 <s-grid
                   gridTemplateColumns="1fr 3fr"
@@ -211,9 +213,11 @@ export default function Settings() {
                   <s-text-field
                     label="Documento de Identidad"
                     value={pagoMovil.ci}
-                    onChange={(e: any) =>
-                      setPagoMovil({ ...pagoMovil, ci: e.target.value.replace(/\D/g, "") })
-                    }
+                    onInput={(e: any) => {
+                      const val = e.target.value.replace(/\D/g, "");
+                      e.target.value = val;
+                      setPagoMovil({ ...pagoMovil, ci: val });
+                    }}
                   />
                 </s-grid>
               </s-stack>
@@ -244,12 +248,14 @@ export default function Settings() {
                 <s-text-field
                   label="Número de Cuenta"
                   value={transferencia.numero}
-                  onChange={(e: any) =>
+                  onInput={(e: any) => {
+                    const val = e.target.value.replace(/\D/g, "");
+                    e.target.value = val;
                     setTransferencia({
                       ...transferencia,
-                      numero: e.target.value.replace(/\D/g, ""),
-                    })
-                  }
+                      numero: val,
+                    });
+                  }}
                 />
                 <s-grid
                   gridTemplateColumns="1fr 3fr"
@@ -273,9 +279,11 @@ export default function Settings() {
                   <s-text-field
                     label="Documento de Identidad"
                     value={transferencia.ci}
-                    onChange={(e: any) =>
-                      setTransferencia({ ...transferencia, ci: e.target.value.replace(/\D/g, "") })
-                    }
+                    onInput={(e: any) => {
+                      const val = e.target.value.replace(/\D/g, "");
+                      e.target.value = val;
+                      setTransferencia({ ...transferencia, ci: val });
+                    }}
                   />
                 </s-grid>
               </s-stack>
