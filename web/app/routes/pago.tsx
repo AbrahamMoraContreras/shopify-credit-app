@@ -131,13 +131,15 @@ export default function PagoPublico() {
     if (!form.amount || isNaN(Number(form.amount))) { setFormError("Ingresa un monto válido."); return; }
 
     // Auto-inject conversion info into notes
-    let finalNotes = form.notes;
-    if (isVesMethod && effectiveTasa && montoVes) {
+    let finalNotes = "";
+    if (isVesMethod && effectiveTasa && form.amount && !isNaN(Number(form.amount))) {
+      const montoVesCalc = Number(form.amount) * effectiveTasa;
       const sourceLabel = tasaSource === "auto" ? `Fecha tasa: ${tasaFecha || "hoy"}` : "Tasa ingresada manualmente";
-      const conversionNote = `[Conversión BCV] Tasa: ${effectiveTasa.toFixed(2)} Bs/USD | Equivalente: Bs. ${montoVes.toFixed(2)} (${sourceLabel})`;
-      finalNotes = finalNotes
-        ? `${finalNotes}\n${conversionNote}`
-        : conversionNote;
+      finalNotes = `[Conversión BCV] Tasa: ${effectiveTasa.toFixed(2)} Bs/USD | Equivalente: Bs. ${montoVesCalc.toFixed(2)} (${sourceLabel})`;
+    }
+    
+    if (form.notes) {
+      finalNotes = finalNotes ? `${finalNotes} | Extra: ${form.notes}` : `Extra: ${form.notes}`;
     }
 
     setSending(true);

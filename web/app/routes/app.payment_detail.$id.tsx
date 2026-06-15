@@ -149,7 +149,7 @@ export default function PaymentDetail() {
       ["Monto Abonado", `$${Number(payment.amount).toFixed(2)}`],
       ["Fecha", new Date(payment.payment_date).toLocaleDateString()],
       ["Método", payment.payment_method],
-      ["Banco", payment.bank_name || "N/A"],
+      ["Banco", payment.bank_name || payment.proof?.bank_name || "N/A"],
       ["Referencia", payment.reference_number || "N/A"],
       ["Estado", payment.status || ""],
     ];
@@ -367,8 +367,8 @@ export default function PaymentDetail() {
                           ? "Pago Móvil"
                           : payment.payment_method}
                 </s-badge>
-                {payment.bank_name && (
-                  <s-badge tone="neutral">{payment.bank_name}</s-badge>
+                {(payment.bank_name || payment.proof?.bank_name) && (
+                  <s-badge tone="neutral">{payment.bank_name || payment.proof?.bank_name}</s-badge>
                 )}
               </s-stack>
               <s-text>

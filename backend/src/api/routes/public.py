@@ -207,7 +207,7 @@ def submit_payment_proof(payload: ProofSubmission, db: Session = Depends(get_db)
     if payload.account_number:
         notes_parts.append(f"Cuenta: {payload.account_number}")
     if payload.notes:
-        notes_parts.append(f"Extra: {payload.notes}")
+        notes_parts.append(payload.notes)
 
     if payment:
         # Verificar si la referencia ya existe para este merchant (en OTRO pago)
