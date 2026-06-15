@@ -52,13 +52,23 @@ const VENEZUELAN_BANKS = [
 // API URL is derived from loader data dynamically
 
 interface PaymentInfo {
+  numeroOrden: string;
+  fecha: string;
+  tienda: string;
+  productos: any[];
+  subtotal: number;
+  iva: number;
+  total: number;
+  cuotas?: { cantidad: number; valorCuota: number } | null;
+  metodosAceptados: string[];
+  cuentaDestino: { banco?: string; rif?: string; telefono?: string; cuenta?: string; };
+  binanceDestino?: Record<string, string> | null;
+  zelleDestino?: Record<string, string> | null;
+  zinliDestino?: Record<string, string> | null;
+  debitoDestino?: Record<string, string> | null;
   customer_name: string;
   customer_email: string;
-  installment_number: number | null;
-  amount: number;
-  credit_id: number;
-  pago_movil: Record<string, string> | null;
-  transferencia: Record<string, string> | null;
+  saldo_a_favor: number;
 }
 
 export default function PagoPublico() {
@@ -71,6 +81,7 @@ export default function PagoPublico() {
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [submitted, setSubmitted] = useState(false);
+  const [selectedMethod, setSelectedMethod] = useState("");
 
   const [form, setForm] = useState({
     bank_name: VENEZUELAN_BANKS[0],
@@ -96,16 +107,21 @@ export default function PagoPublico() {
         }
         return r.json();
       })
-      .then((data) => { setInfo(data); setForm(f => ({ ...f, amount: String(data.amount) })); })
+      .then((data) => { 
+        setInfo(data); 
+        setForm(f => ({ ...f, amount: String(data.total) })); 
+        if (data.metodosAceptados && data.metodosAceptados.length > 0) {
+          setSelectedMethod(data.metodosAceptados[0]);
+        }
+      })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, [token]);
 
-  // Determine if VES conversion applies (Pago Móvil or Transferencia)
-  const isVesMethod = !!(info?.pago_movil || info?.transferencia);
+  const isVesMethod = selectedMethod === "Pago Móvil" || selectedMethod === "Transferencia Bancaria";
   const effectiveTasa = tasaBcv ?? (manualTasa && !isNaN(Number(manualTasa)) ? Number(manualTasa) : null);
   const tasaSource = tasaBcv ? "auto" : "manual";
-  const montoUsd = info ? Number(info.amount) : 0;
+  const montoUsd = info ? Number(info.total) : 0;
   const montoVes = effectiveTasa && montoUsd ? (montoUsd * effectiveTasa) : null;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -129,7 +145,7 @@ export default function PagoPublico() {
       const res = await fetch(`${API}/public/payment-proof`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, ...form, notes: finalNotes, amount: parseFloat(form.amount) }),
+        body: JSON.stringify({ token, ...form, bank_name: isVesMethod ? form.bank_name : selectedMethod, notes: finalNotes, amount: parseFloat(form.amount) }),
       });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
@@ -176,8 +192,8 @@ export default function PagoPublico() {
         {info && (
           <div style={styles.infoBox}>
             <p style={styles.sub}><strong>Cliente:</strong> {info.customer_name}</p>
-            {info.installment_number && <p style={styles.sub}><strong>Cuota:</strong> #{info.installment_number}</p>}
-            <p style={styles.sub}><strong>Monto esperado:</strong> <span style={{ color: "#5C6AC4", fontWeight: "bold" }}>${Number(info.amount).toFixed(2)} USD</span></p>
+            {info.cuotas && <p style={styles.sub}><strong>Cuotas pendientes:</strong> {info.cuotas.cantidad}</p>}
+            <p style={styles.sub}><strong>Monto esperado:</strong> <span style={{ color: "#5C6AC4", fontWeight: "bold" }}>${Number(info.total).toFixed(2)} USD</span></p>
 
             {/* VES conversion box */}
             {isVesMethod && effectiveTasa && montoVes && (
@@ -210,13 +226,22 @@ export default function PagoPublico() {
           </div>
         )}
 
+        {info?.metodosAceptados && info.metodosAceptados.length > 0 && (
+          <>
+            <label style={styles.label}>Método de pago a utilizar</label>
+            <select style={{ ...styles.input, marginBottom: 16 }} value={selectedMethod} onChange={e => setSelectedMethod(e.target.value)}>
+              {info.metodosAceptados.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+          </>
+        )}
+
         {/* Payment method details */}
-        {info?.pago_movil && (
+        {selectedMethod === "Pago Móvil" && info?.cuentaDestino?.telefono && (
           <div style={styles.methodBox}>
             <h3 style={styles.methodTitle}>📱 Pago Móvil</h3>
-            <p style={styles.methodLine}><strong>Banco:</strong> {info.pago_movil.banco}</p>
-            <p style={styles.methodLine}><strong>Teléfono:</strong> {info.pago_movil.telefono}</p>
-            <p style={styles.methodLine}><strong>Documento:</strong> {info.pago_movil.tipoCi}-{info.pago_movil.ci}</p>
+            <p style={styles.methodLine}><strong>Banco:</strong> {info.cuentaDestino.banco}</p>
+            <p style={styles.methodLine}><strong>Teléfono:</strong> {info.cuentaDestino.telefono}</p>
+            <p style={styles.methodLine}><strong>Documento:</strong> {info.cuentaDestino.rif}</p>
             {effectiveTasa && montoVes && (
               <p style={{ ...styles.methodLine, marginTop: 8, fontWeight: 600, color: "#2B6CB0" }}>
                 Monto a enviar: Bs. {montoVes.toFixed(2)}
@@ -224,12 +249,12 @@ export default function PagoPublico() {
             )}
           </div>
         )}
-        {info?.transferencia && (
+        {selectedMethod === "Transferencia Bancaria" && info?.cuentaDestino?.cuenta && (
           <div style={styles.methodBox}>
             <h3 style={styles.methodTitle}>🏦 Transferencia Bancaria</h3>
-            <p style={styles.methodLine}><strong>Banco:</strong> {info.transferencia.banco}</p>
-            <p style={styles.methodLine}><strong>Cuenta:</strong> {info.transferencia.numero}</p>
-            <p style={styles.methodLine}><strong>Documento:</strong> {info.transferencia.tipoCi}-{info.transferencia.ci}</p>
+            <p style={styles.methodLine}><strong>Banco:</strong> {info.cuentaDestino.banco}</p>
+            <p style={styles.methodLine}><strong>Cuenta:</strong> {info.cuentaDestino.cuenta}</p>
+            <p style={styles.methodLine}><strong>Documento:</strong> {info.cuentaDestino.rif}</p>
             {effectiveTasa && montoVes && (
               <p style={{ ...styles.methodLine, marginTop: 8, fontWeight: 600, color: "#2B6CB0" }}>
                 Monto a transferir: Bs. {montoVes.toFixed(2)}
@@ -237,15 +262,45 @@ export default function PagoPublico() {
             )}
           </div>
         )}
+        {selectedMethod === "Binance" && info?.binanceDestino && (
+          <div style={styles.methodBox}>
+            <h3 style={styles.methodTitle}>🔶 Binance Pay</h3>
+            {info.binanceDestino.payId && <p style={styles.methodLine}><strong>Pay ID:</strong> {info.binanceDestino.payId}</p>}
+            {info.binanceDestino.email && <p style={styles.methodLine}><strong>Email:</strong> {info.binanceDestino.email}</p>}
+          </div>
+        )}
+        {selectedMethod === "Zelle" && info?.zelleDestino && (
+          <div style={styles.methodBox}>
+            <h3 style={styles.methodTitle}>🟣 Zelle</h3>
+            <p style={styles.methodLine}><strong>Nombre:</strong> {info.zelleDestino.nombre}</p>
+            <p style={styles.methodLine}><strong>Email:</strong> {info.zelleDestino.email}</p>
+          </div>
+        )}
+        {selectedMethod === "Zinli" && info?.zinliDestino && (
+          <div style={styles.methodBox}>
+            <h3 style={styles.methodTitle}>💳 Zinli</h3>
+            <p style={styles.methodLine}><strong>Email:</strong> {info.zinliDestino.email}</p>
+          </div>
+        )}
+        {selectedMethod === "Débito" && info?.debitoDestino && (
+          <div style={styles.methodBox}>
+            <h3 style={styles.methodTitle}>🏦 Tarjeta de Débito</h3>
+            <p style={styles.methodLine}>Por favor, realice el pago con tarjeta de débito y guarde el número de recibo.</p>
+          </div>
+        )}
 
         <hr style={{ margin: "24px 0", borderColor: "#E2E8F0" }} />
         <h2 style={{ ...styles.title, fontSize: 18 }}>Completa los datos de tu pago</h2>
 
         <form onSubmit={handleSubmit} style={styles.form}>
-          <label style={styles.label}>Banco desde el que pago</label>
-          <select style={styles.input} value={form.bank_name} onChange={e => setForm({ ...form, bank_name: e.target.value })}>
-            {VENEZUELAN_BANKS.map(b => <option key={b} value={b}>{b}</option>)}
-          </select>
+          {isVesMethod && (
+            <>
+              <label style={styles.label}>Banco desde el que pago</label>
+              <select style={styles.input} value={form.bank_name} onChange={e => setForm({ ...form, bank_name: e.target.value })}>
+                {VENEZUELAN_BANKS.map(b => <option key={b} value={b}>{b}</option>)}
+              </select>
+            </>
+          )}
 
           <label style={styles.label}>Número de referencia / comprobante</label>
           <input style={styles.input} value={form.reference_number} onChange={e => setForm({ ...form, reference_number: e.target.value })} placeholder="Ej: 00234567890" required />

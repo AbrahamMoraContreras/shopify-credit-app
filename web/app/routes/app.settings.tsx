@@ -189,7 +189,7 @@ export default function Settings() {
                   label="Teléfono"
                   value={pagoMovil.telefono}
                   onChange={(e: any) =>
-                    setPagoMovil({ ...pagoMovil, telefono: e.target.value })
+                    setPagoMovil({ ...pagoMovil, telefono: e.target.value.replace(/\D/g, "") })
                   }
                 />
                 <s-grid
@@ -212,7 +212,7 @@ export default function Settings() {
                     label="Documento de Identidad"
                     value={pagoMovil.ci}
                     onChange={(e: any) =>
-                      setPagoMovil({ ...pagoMovil, ci: e.target.value })
+                      setPagoMovil({ ...pagoMovil, ci: e.target.value.replace(/\D/g, "") })
                     }
                   />
                 </s-grid>
@@ -247,7 +247,7 @@ export default function Settings() {
                   onChange={(e: any) =>
                     setTransferencia({
                       ...transferencia,
-                      numero: e.target.value,
+                      numero: e.target.value.replace(/\D/g, ""),
                     })
                   }
                 />
@@ -274,7 +274,7 @@ export default function Settings() {
                     label="Documento de Identidad"
                     value={transferencia.ci}
                     onChange={(e: any) =>
-                      setTransferencia({ ...transferencia, ci: e.target.value })
+                      setTransferencia({ ...transferencia, ci: e.target.value.replace(/\D/g, "") })
                     }
                   />
                 </s-grid>
