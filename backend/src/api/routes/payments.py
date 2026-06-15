@@ -108,6 +108,8 @@ def batch_delete_endpoint(
 class ExpectedPaymentResponse(BaseModel):
     credit_id: int
     installment_id: Optional[int]
+    customer_id: int
+    shopify_customer_id: Optional[int] = None
     customer_name: str
     customer_email: Optional[str] = None
     customer_phone: Optional[str] = None
@@ -141,6 +143,8 @@ def get_expected_payments(
         result.append(ExpectedPaymentResponse(
             credit_id=credit.id,
             installment_id=inst.id,
+            customer_id=customer.id,
+            shopify_customer_id=customer.shopify_customer_id,
             customer_name=customer.full_name,
             customer_email=customer.email,
             customer_phone=customer.phone,
@@ -167,6 +171,8 @@ def get_expected_payments(
         result.append(ExpectedPaymentResponse(
             credit_id=fiado.id,
             installment_id=None,
+            customer_id=customer.id,
+            shopify_customer_id=customer.shopify_customer_id,
             customer_name=customer.full_name,
             customer_email=customer.email,
             customer_phone=customer.phone,

@@ -630,6 +630,10 @@ export default function CreditDetail() {
                                     <s-button
                                       variant="secondary"
                                       onClick={() => {
+                                        if (!urlsMap[keystr]) {
+                                          alert("Por favor, haga clic primero en 'Enviar Recordatorio' para generar el link de pago único.");
+                                          return;
+                                        }
                                         const phone = cleanPhoneForWhatsApp(credit.customer!.phone!);
                                         let msg = `Hola ${credit.customer!.full_name}, le recordamos que tiene un pago pendiente de $${Number(inst.amount).toFixed(2)} correspondiente al Credito #${credit.id} (Cuota #${inst.number}). Por favor, realice su pago a la brevedad posible.`;
                                         
@@ -710,6 +714,10 @@ export default function CreditDetail() {
                           <s-button
                             variant="secondary"
                             onClick={() => {
+                              if (!urlsMap["fiado"]) {
+                                alert("Por favor, haga clic primero en 'Enviar Recordatorio' para generar el link de pago único.");
+                                return;
+                              }
                               const phone = cleanPhoneForWhatsApp(credit.customer!.phone!);
                               let msg = `Hola ${credit.customer!.full_name}, le recordamos que tiene un pago pendiente de $${remainingDebt.toFixed(2)} correspondiente al Credito #${credit.id} (Fiado). Por favor, realice su pago a la brevedad posible.`;
                               

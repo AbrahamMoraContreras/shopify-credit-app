@@ -16,6 +16,8 @@ const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
 export interface ExpectedPayment {
   credit_id: number;
   installment_id?: number | null;
+  customer_id: number;
+  shopify_customer_id?: number | null;
   customer_name: string;
   customer_email?: string;
   customer_phone?: string;
@@ -36,7 +38,7 @@ const WhatsAppIcon = () => (
 );
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  const { session, admin } = await authenticate.admin(request);
   const accessToken = await getAccessTokenForShop(session.shop);
   if (!accessToken) throw new Error("Token no disponible");
 
@@ -46,6 +48,43 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   if (!res.ok) throw new Error("Error fetching expected payments");
 
   const payments: ExpectedPayment[] = await res.json();
+
+  const shopifyIds = [...new Set(payments.map(p => p.shopify_customer_id).filter(Boolean))];
+  
+  if (shopifyIds.length > 0) {
+    try {
+      const idQuery = shopifyIds.map(id => `id:${id}`).join(" OR ");
+      const shopifyRes = await admin.graphql(`
+        query getFreshCustomers($query: String!) {
+          customers(first: 50, query: $query) {
+            nodes {
+              id
+              phone
+              email
+            }
+          }
+        }
+      `, { variables: { query: idQuery } });
+      
+      const shopifyData = await shopifyRes.json();
+      const freshCustomers = shopifyData.data?.customers?.nodes || [];
+      
+      const phoneMap: Record<string, string> = {};
+      freshCustomers.forEach((c: any) => {
+        const numericId = c.id.split("/").pop();
+        if (c.phone) phoneMap[numericId] = c.phone;
+      });
+      
+      payments.forEach(p => {
+        if (p.shopify_customer_id && phoneMap[p.shopify_customer_id]) {
+          p.customer_phone = phoneMap[p.shopify_customer_id];
+        }
+      });
+    } catch (e) {
+      console.error("Error syncing shopify customers in expected payments:", e);
+    }
+  }
+
   return { payments };
 };
 
@@ -251,6 +290,10 @@ export default function ExpectedPayments() {
                           <s-button
                             slot="secondary-actions"
                             onClick={() => {
+                              if (!urlsMap[key]) {
+                                alert("Por favor, haga clic primero en 'Enviar Recordatorio' para generar el link de pago único.");
+                                return;
+                              }
                               const phone = cleanPhoneForWhatsApp(payment.customer_phone!);
                               let msg = `Hola ${payment.customer_name}, le recordamos que tiene un pago pendiente de $${payment.expected_amount.toFixed(2)} correspondiente al Credito #${payment.credit_id}${payment.installment_number ? ` (Cuota #${payment.installment_number})` : " (Fiado)"}. Por favor, realice su pago a la brevedad posible.`;
                               

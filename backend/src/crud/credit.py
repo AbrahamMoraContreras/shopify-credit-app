@@ -81,15 +81,15 @@ def create_credit(db: Session, merchant_id: str, payload: CreditCreate):
         )
         customer = create_customer(db, payload=placeholder)
     else:
-        # Actualizar email o telefono si falta
+        # Actualizar email o telefono si son distintos a Shopify
         updated = False
-        if payload.customer_email and not customer.email:
+        if payload.customer_email and customer.email != payload.customer_email:
             customer.email = payload.customer_email
             updated = True
-        if payload.customer_phone and not customer.phone:
+        if payload.customer_phone and customer.phone != payload.customer_phone:
             customer.phone = payload.customer_phone
             updated = True
-        if payload.customer_name and (customer.full_name.startswith("Shopify Customer") or not customer.full_name):
+        if payload.customer_name and customer.full_name != payload.customer_name:
             customer.full_name = payload.customer_name
             updated = True
         
