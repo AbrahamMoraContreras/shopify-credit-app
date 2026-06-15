@@ -9,8 +9,9 @@ from decimal import Decimal
 # Base schema (shared input fields)
 # ------------------------------------------
 class CustomerBase(BaseModel):
-    full_name: str = Field(..., example="María Pérez")
+    full_name: str = Field(..., example="Maria Perez")
     email: Optional[str] = Field(None, example="maria@example.com")
+    phone: Optional[str] = Field(None, example="+584160129986")
     shopify_customer_id: Optional[int] = Field(None, example=1234567890)
 
 # ------------------------------------------

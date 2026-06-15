@@ -495,6 +495,7 @@ export default function RegistreCredit() {
     let numericCustomerId = 0;
     let customerName = "";
     let customerEmail = "";
+    let customerPhone = "";
 
     if (!isNewCustomer) {
       // Extracción del Shopify ID de cada clientes
@@ -509,6 +510,7 @@ export default function RegistreCredit() {
       );
       customerName = selected?.displayName || "";
       customerEmail = selected?.email || "";
+      customerPhone = selected?.phone || "";
     }
 
     const concept = selectedList
@@ -528,6 +530,7 @@ export default function RegistreCredit() {
       numericId: numericCustomerId,
       foundName: customerName,
       foundEmail: customerEmail,
+      foundPhone: customerPhone,
       newCustomerData: isNewCustomer ? newCustomerForm : null,
     });
 
@@ -537,6 +540,7 @@ export default function RegistreCredit() {
       customer_id: numericCustomerId,
       customer_name: customerName,
       customer_email: customerEmail,
+      customer_phone: customerPhone,
       concept: concept,
       total_amount: totalProductsAmount,
       installments_count:

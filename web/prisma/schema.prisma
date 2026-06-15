@@ -95,6 +95,7 @@ model customers {
   favorable_balance   Decimal   @db.Decimal(12, 2)
   punctuality_score   Decimal?  @db.Decimal(5, 2)
   email               String?   @db.VarChar
+  phone               String?   @db.VarChar
   credits             credits[]
   merchants           merchants @relation(fields: [merchant_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
@@ -223,6 +224,7 @@ enum installmentstatus {
   VENCIDA
   VENCIDO
   NO_PAGADA
+  CANCELADA
 }
 
 enum paymentstatus {

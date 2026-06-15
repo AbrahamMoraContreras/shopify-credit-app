@@ -110,6 +110,7 @@ class ExpectedPaymentResponse(BaseModel):
     installment_id: Optional[int]
     customer_name: str
     customer_email: Optional[str] = None
+    customer_phone: Optional[str] = None
     installment_number: Optional[int]
     due_date: Optional[date]
     expected_amount: float
@@ -142,6 +143,7 @@ def get_expected_payments(
             installment_id=inst.id,
             customer_name=customer.full_name,
             customer_email=customer.email,
+            customer_phone=customer.phone,
             installment_number=inst.number,
             due_date=inst.due_date,
             expected_amount=float(inst.amount) - float(inst.paid_amount),
@@ -167,6 +169,7 @@ def get_expected_payments(
             installment_id=None,
             customer_name=customer.full_name,
             customer_email=customer.email,
+            customer_phone=customer.phone,
             installment_number=None,
             due_date=None, 
             expected_amount=float(fiado.balance),

@@ -21,6 +21,7 @@ class CreditCreate(BaseModel):
     customer_id: int
     customer_name: Optional[str] = None
     customer_email: Optional[str] = None
+    customer_phone: Optional[str] = None
     concept: str
     total_amount: Decimal
     installments_count: int

@@ -18,6 +18,7 @@ class Customer(Base):
 
     full_name = Column(String, nullable=False)
     email = Column(String, nullable=True)
+    phone = Column(String, nullable=True)
 
     # Shopify integration
     shopify_customer_id = Column(BigInteger, nullable=True, index=True)

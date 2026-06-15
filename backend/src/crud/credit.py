@@ -76,14 +76,18 @@ def create_credit(db: Session, merchant_id: str, payload: CreditCreate):
             full_name=desired_name,
             shopify_customer_id=payload.customer_id,
             email=payload.customer_email,
+            phone=payload.customer_phone,
             merchant_id=merchant_id
         )
         customer = create_customer(db, payload=placeholder)
     else:
-        # Actualizar email si falta
+        # Actualizar email o telefono si falta
         updated = False
         if payload.customer_email and not customer.email:
             customer.email = payload.customer_email
+            updated = True
+        if payload.customer_phone and not customer.phone:
+            customer.phone = payload.customer_phone
             updated = True
         if payload.customer_name and (customer.full_name.startswith("Shopify Customer") or not customer.full_name):
             customer.full_name = payload.customer_name
