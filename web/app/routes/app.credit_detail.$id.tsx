@@ -126,12 +126,13 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
         headers: authHeaders,
         body: JSON.stringify(body),
       });
+      const data = await res.json();
       if (!res.ok)
         return {
           error: "No se pudo enviar",
           key: formData.get("key") as string,
         };
-      return { success: true, key: formData.get("key") as string };
+      return { success: true, key: formData.get("key") as string, url: data.url };
     } catch {
       return { error: "Error", key: formData.get("key") as string };
     }
@@ -148,6 +149,7 @@ export default function CreditDetail() {
     error?: string;
     success?: boolean;
     key?: string;
+    url?: string;
   }>();
   const isSubmitting = navigation.state === "submitting";
   const submittingKey = navigation.formData?.get("key") as string | undefined;
@@ -156,6 +158,7 @@ export default function CreditDetail() {
   const [isEditing, setIsEditing] = useState(false);
   const [editConcept, setEditConcept] = useState(credit.concept || "");
   const [statusMap, setStatusMap] = useState<Record<string, string>>({});
+  const [urlsMap, setUrlsMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (
@@ -169,6 +172,12 @@ export default function CreditDetail() {
         ...prev,
         [actionData.key as string]: actionData.success ? "sent" : "error",
       }));
+      if (actionData.url) {
+        setUrlsMap((prev) => ({
+          ...prev,
+          [actionData.key as string]: actionData.url,
+        }));
+      }
     }
   }, [actionData, navigation.formData]);
 
@@ -622,12 +631,16 @@ export default function CreditDetail() {
                                       variant="secondary"
                                       onClick={() => {
                                         const phone = cleanPhoneForWhatsApp(credit.customer!.phone!);
-                                        const msg = encodeURIComponent(
-                                          `Hola ${credit.customer!.full_name}, le recordamos que tiene un pago pendiente de $${Number(inst.amount).toFixed(2)} correspondiente al Credito #${credit.id} (Cuota #${inst.number}). Por favor, realice su pago a la brevedad posible.`
-                                        );
-                                        window.open(`https://wa.me/${phone}?text=${msg}`, "_blank");
+                                        let msg = `Hola ${credit.customer!.full_name}, le recordamos que tiene un pago pendiente de $${Number(inst.amount).toFixed(2)} correspondiente al Credito #${credit.id} (Cuota #${inst.number}). Por favor, realice su pago a la brevedad posible.`;
+                                        
+                                        if (urlsMap[keystr]) {
+                                          msg += `\n\nPuede confirmar y pagar su deuda directamente en el siguiente enlace: ${urlsMap[keystr]}`;
+                                        }
+                                        
+                                        window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
                                       }}
                                       accessibilityLabel="Enviar recordatorio por WhatsApp"
+                                      tone={urlsMap[keystr] ? "success" : undefined}
                                     >
                                       <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
                                         <WhatsAppIcon /> WhatsApp
@@ -698,12 +711,16 @@ export default function CreditDetail() {
                             variant="secondary"
                             onClick={() => {
                               const phone = cleanPhoneForWhatsApp(credit.customer!.phone!);
-                              const msg = encodeURIComponent(
-                                `Hola ${credit.customer!.full_name}, le recordamos que tiene un pago pendiente de $${remainingDebt.toFixed(2)} correspondiente al Credito #${credit.id} (Fiado). Por favor, realice su pago a la brevedad posible.`
-                              );
-                              window.open(`https://wa.me/${phone}?text=${msg}`, "_blank");
+                              let msg = `Hola ${credit.customer!.full_name}, le recordamos que tiene un pago pendiente de $${remainingDebt.toFixed(2)} correspondiente al Credito #${credit.id} (Fiado). Por favor, realice su pago a la brevedad posible.`;
+                              
+                              if (urlsMap["fiado"]) {
+                                msg += `\n\nPuede confirmar y pagar su deuda directamente en el siguiente enlace: ${urlsMap["fiado"]}`;
+                              }
+                              
+                              window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
                             }}
                             accessibilityLabel="Enviar recordatorio por WhatsApp"
+                            tone={urlsMap["fiado"] ? "success" : undefined}
                           >
                             <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
                               <WhatsAppIcon /> WhatsApp

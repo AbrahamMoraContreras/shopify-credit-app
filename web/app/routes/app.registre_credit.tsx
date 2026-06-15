@@ -206,7 +206,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       );
     }
 
-    return redirect("/app/expected_payments");
+    return redirect("/app/credits");
   } catch (error) {
     console.error("[registre_credit] Action error:", error);
     return {

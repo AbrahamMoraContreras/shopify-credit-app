@@ -75,10 +75,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       body: JSON.stringify(body),
     });
 
+    const data = await res.json();
     if (!res.ok) {
       return { error: "No se pudo enviar", key };
     }
-    return { success: true, key };
+    return { success: true, key, url: data.url };
   }
   return null;
 };
@@ -95,14 +96,19 @@ export default function ExpectedPayments() {
     success?: boolean;
     error?: string;
     key?: string;
+    url?: string;
   }>();
 
   const [statusMap, setStatusMap] = useState<Record<string, string>>({});
+  const [urlsMap, setUrlsMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (actionData?.key) {
       const state = actionData.success ? "sent" : "error";
       setStatusMap((prev) => ({ ...prev, [actionData.key as string]: state }));
+      if (actionData.url) {
+        setUrlsMap((prev) => ({ ...prev, [actionData.key as string]: actionData.url }));
+      }
     }
   }, [actionData]);
 
@@ -246,12 +252,16 @@ export default function ExpectedPayments() {
                             slot="secondary-actions"
                             onClick={() => {
                               const phone = cleanPhoneForWhatsApp(payment.customer_phone!);
-                              const msg = encodeURIComponent(
-                                `Hola ${payment.customer_name}, le recordamos que tiene un pago pendiente de $${payment.expected_amount.toFixed(2)} correspondiente al Credito #${payment.credit_id}${payment.installment_number ? ` (Cuota #${payment.installment_number})` : " (Fiado)"}. Por favor, realice su pago a la brevedad posible.`
-                              );
-                              window.open(`https://wa.me/${phone}?text=${msg}`, "_blank");
+                              let msg = `Hola ${payment.customer_name}, le recordamos que tiene un pago pendiente de $${payment.expected_amount.toFixed(2)} correspondiente al Credito #${payment.credit_id}${payment.installment_number ? ` (Cuota #${payment.installment_number})` : " (Fiado)"}. Por favor, realice su pago a la brevedad posible.`;
+                              
+                              if (urlsMap[key]) {
+                                msg += `\n\nPuede confirmar y pagar su deuda directamente en el siguiente enlace: ${urlsMap[key]}`;
+                              }
+                              
+                              window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
                             }}
                             accessibilityLabel="Enviar recordatorio por WhatsApp"
+                            tone={urlsMap[key] ? "success" : undefined}
                           >
                             <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
                               <WhatsAppIcon /> WhatsApp
