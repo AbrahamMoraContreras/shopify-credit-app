@@ -75,7 +75,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   if (credit_id) params.append("credit_id", credit_id);
   if (customer_name) params.append("customer_name", customer_name);
   if (payment_date) params.append("payment_date", payment_date);
-  if (status) params.append("status", status);
+  if (status && status !== "Todos") params.append("status", status);
 
   if (document_type || document_id) {
     try {
