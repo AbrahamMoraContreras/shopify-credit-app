@@ -62,7 +62,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   if (customer_name) params.append("customer_name", customer_name);
   if (created_at_date) params.append("created_at_date", created_at_date);
   if (due_date) params.append("due_date", due_date);
-  if (status) params.append("status", status);
+  if (status && status !== "Todos") params.append("status", status);
 
   if (document_type || document_id) {
     try {

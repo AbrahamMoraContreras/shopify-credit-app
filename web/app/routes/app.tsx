@@ -69,71 +69,57 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 import { useState, useEffect } from "react";
+import { useFetcher } from "react-router";
 
 function NotificationsBell() {
+  const fetcher = useFetcher();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [isOpen, setIsOpen] = useState(false);
 
-  const fetchNotifications = async () => {
-    try {
-      const res = await fetch("/app/notifications");
-      if (res.ok) {
-        const data = await res.json();
-        setNotifications(Array.isArray(data) ? data : []);
+  useEffect(() => {
+    if (fetcher.state === "idle" && fetcher.data) {
+      if (Array.isArray(fetcher.data)) {
+        setNotifications(fetcher.data);
       }
-    } catch (e) {
-      console.error("Error fetching notifications:", e);
+    }
+  }, [fetcher.state, fetcher.data]);
+
+  const loadNotifications = () => {
+    if (fetcher.state === "idle") {
+      fetcher.load("/app/notifications");
     }
   };
 
   useEffect(() => {
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, 15000); // poll every 15s
+    loadNotifications();
+    const interval = setInterval(loadNotifications, 15000); // poll every 15s
     return () => clearInterval(interval);
   }, []);
 
   const unreadCount = notifications.filter((n) => !n.changes?.is_read).length;
 
   const markAsRead = async (id: number) => {
-    try {
-      const formData = new FormData();
-      formData.append("intent", "read");
-      formData.append("id", String(id));
-      const res = await fetch("/app/notifications", {
-        method: "POST",
-        body: formData,
-      });
-      if (res.ok) {
-        setNotifications((prev) =>
-          prev.map((n) =>
-            n.id === id ? { ...n, changes: { ...n.changes, is_read: true } } : n
-          )
-        );
-      }
-    } catch (e) {
-      console.error(e);
-    }
+    const formData = new FormData();
+    formData.append("intent", "read");
+    formData.append("id", String(id));
+    fetcher.submit(formData, { method: "POST", action: "/app/notifications" });
+    setNotifications((prev) =>
+      prev.map((n) =>
+        n.id === id ? { ...n, changes: { ...n.changes, is_read: true } } : n
+      )
+    );
   };
 
   const markAllAsRead = async () => {
-    try {
-      const formData = new FormData();
-      formData.append("intent", "read_all");
-      const res = await fetch("/app/notifications", {
-        method: "POST",
-        body: formData,
-      });
-      if (res.ok) {
-        setNotifications((prev) =>
-          prev.map((n) => ({
-            ...n,
-            changes: { ...n.changes, is_read: true },
-          }))
-        );
-      }
-    } catch (e) {
-      console.error(e);
-    }
+    const formData = new FormData();
+    formData.append("intent", "read_all");
+    fetcher.submit(formData, { method: "POST", action: "/app/notifications" });
+    setNotifications((prev) =>
+      prev.map((n) => ({
+        ...n,
+        changes: { ...n.changes, is_read: true },
+      }))
+    );
   };
 
   return (
