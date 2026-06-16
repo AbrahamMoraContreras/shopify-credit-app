@@ -151,7 +151,7 @@ export default function PaymentDetail() {
       ["Método", payment.payment_method],
       ["Banco", payment.bank_name || payment.proof?.bank_name || "N/A"],
       ["Referencia", payment.reference_number || "N/A"],
-      ["Estado", payment.status || ""],
+      ["Estado", payment.status?.replace(/_/g, " ") || ""],
     ];
 
     const creditDetailsData = [
@@ -291,7 +291,7 @@ export default function PaymentDetail() {
                   : payment.status === "RECHAZADO" ? "❌ Rechazado"
                   : payment.status === "NO_PAGADO" ? "🚫 No Pagado"
                   : payment.status === "CANCELADO" ? "⛔ Cancelado"
-                  : payment.status}
+                  : payment.status?.replace(/_/g, " ")}
               </s-badge>
             </s-stack>
             <s-stack gap="small" padding="base">

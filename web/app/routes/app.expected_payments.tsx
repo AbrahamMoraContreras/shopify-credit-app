@@ -258,7 +258,7 @@ export default function ExpectedPayments() {
                     </s-table-cell>
                     <s-table-cell>
                       <s-badge tone={getStatusTone(payment.status)}>
-                        {payment.status}
+                        {payment.status?.replace(/_/g, " ")}
                       </s-badge>
                     </s-table-cell>
                     <s-table-cell>

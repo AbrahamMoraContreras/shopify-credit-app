@@ -275,7 +275,7 @@ def submit_payment_proof(payload: ProofSubmission, db: Session = Depends(get_db)
             from models.audit_log import AuditLog
             customer_name = "Cliente"
             credit_id = "N/A"
-            installment_number = "N/A"
+            installment_number = "Fiado (sin cuotas)"
             
             if payment:
                 if payment.credit:

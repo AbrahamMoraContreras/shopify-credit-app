@@ -112,7 +112,7 @@ export default function CustomerDetail() {
       id: c.id,
       date: c.created_at,
       amount: c.total_amount,
-      status: c.status,
+      status: c.status?.replace(/_/g, " "),
       reference: c.invoice_code || `Credito #${c.id}`,
       label: "Crédito Solicitado",
       link: `/app/credit_detail/${c.id}`,
@@ -125,7 +125,7 @@ export default function CustomerDetail() {
       id: p.id,
       date: p.payment_date,
       amount: p.amount,
-      status: p.status,
+      status: p.status?.replace(/_/g, " "),
       reference: `Pago-Credito #${p.credit_id}: ${p.reference_number || "S/N"}`,
       label: "Abono Registrado",
       link: `/app/payment_detail/${p.id}`,
@@ -204,7 +204,7 @@ export default function CustomerDetail() {
       "Tipo Operación": op.label,
       Referencia: op.reference,
       Monto: `$${Number(op.amount).toFixed(2)}`,
-      Estatus: op.status,
+      Estatus: op.status?.replace(/_/g, " "),
     }));
 
     if (format === "csv" || format === "xlsx") {
@@ -448,7 +448,7 @@ export default function CustomerDetail() {
                                 : "neutral"
                         }
                       >
-                        {op.status}
+                        {op.status?.replace(/_/g, " ")}
                       </s-badge>
                     </s-table-cell>
                     <s-table-cell>

@@ -243,7 +243,7 @@ export default function CreditDetail() {
       ["ID Crédito", credit.id?.toString() || ""],
       ["Cliente", credit.customer?.full_name || ""],
       ["Email", credit.customer?.email || ""],
-      ["Estado", credit.status || ""],
+      ["Estado", credit.status?.replace(/_/g, " ") || ""],
       ["Monto Total Crédito", `$${Number(credit.total_amount).toFixed(2)}`],
       ["Último Monto Pagado", `$${lastPaymentAmount.toFixed(2)}`],
       ["Deuda Total Restante", `$${remainingDebt.toFixed(2)}`],
@@ -259,14 +259,14 @@ export default function CreditDetail() {
       Vencimiento: new Date(i.due_date).toLocaleDateString(),
       "Cuota Nro": i.number.toString(),
       "Monto Esperado": `$${Number(i.amount).toFixed(2)}`,
-      Estado: i.status,
+      Estado: i.status?.replace(/_/g, " "),
     }));
 
     const paymentsData = payments.map((p) => ({
       Fecha: new Date(p.payment_date).toLocaleDateString(),
       Referencia: p.reference_number || "N/A",
       "Monto Abonado": `$${Number(p.amount).toFixed(2)}`,
-      Estatus: p.status,
+      Estatus: p.status?.replace(/_/g, " "),
     }));
 
     const productsData = (credit.items || []).map((i) => ({
@@ -592,7 +592,7 @@ export default function CreditDetail() {
                                       : "success"
                                 }
                               >
-                                {inst.status}
+                                {inst.status?.replace(/_/g, " ")}
                               </s-badge>
                             </s-table-cell>
                             <s-table-cell>
@@ -681,7 +681,7 @@ export default function CreditDetail() {
                 ) : // FIADO (No installments)
                 credit.balance > 0 ? (
                   <s-table-row>
-                    <s-table-cell>N/A</s-table-cell>
+                    <s-table-cell>Fiado (sin cuotas)</s-table-cell>
                     <s-table-cell>Total (Fiado)</s-table-cell>
                     <s-table-cell>${remainingDebt.toFixed(2)}</s-table-cell>
                     <s-table-cell>
@@ -811,7 +811,7 @@ export default function CreditDetail() {
                                   : "neutral"
                             }
                           >
-                            {p.status}
+                            {p.status?.replace(/_/g, " ")}
                           </s-badge>
                         </s-table-cell>
                         <s-table-cell>

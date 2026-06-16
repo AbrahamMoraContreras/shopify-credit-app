@@ -485,7 +485,7 @@ export default function PaymentHistorial() {
         "Balance Cliente": `$${saldoAFavor.toFixed(2)}`,
         "Balance Restante": `$${saldoRestante.toFixed(2)}`,
         Referencia: p.reference_number,
-        Estado: p.status,
+        Estado: p.status?.replace(/_/g, " "),
       };
     });
 
@@ -1021,7 +1021,7 @@ export default function PaymentHistorial() {
                   </s-table-cell>
                   <s-table-cell>
                     <s-badge tone={getStatusTone(payment.status)}>
-                      {payment.status}
+                      {payment.status?.replace(/_/g, " ")}
                     </s-badge>
                   </s-table-cell>
                   <s-table-cell>
