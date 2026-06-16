@@ -364,56 +364,62 @@ export default function CreditDetail() {
   };
 
   return (
-    <s-page heading="Detalles de Crédito">
-      <s-button
-        variant="primary"
-        href="/app/registre_payment"
-        accessibilityLabel="Registrar un nuevo pago"
-        slot="primary-action"
-      >
-        Registrar Pago
-      </s-button>
+    <s-page>
+      <ui-title-bar title={`Detalles de Crédito #${credit.id}`}>
+        <button variant="breadcrumb" onClick={() => window.history.back()}>
+          Créditos
+        </button>
+      </ui-title-bar>
 
-      <s-box
-        paddingBlockEnd="base"
-        paddingInlineStart="base"
-        paddingInlineEnd="base"
-      >
-        <s-stack direction="inline" justifyContent="end" gap="small-200">
-          <s-button
-            variant="secondary"
-            accessibilityLabel="Opciones de exportación"
-            commandFor="export-popover"
-            command="--toggle"
-          >
-            Exportar
-          </s-button>
+      <s-box paddingBlockEnd="base">
+        <s-stack direction="inline" justifyContent="space-between" alignItems="center">
+          <s-stack direction="block" gap="none">
+            <s-heading level="1">Detalles de Crédito #{credit.id}</s-heading>
+            <s-text color="subdued">Visualiza la información completa de este crédito</s-text>
+          </s-stack>
+          <s-stack direction="inline" gap="small">
+            <s-button
+              variant="secondary"
+              accessibilityLabel="Opciones de exportación"
+              commandFor="export-popover"
+              command="--toggle"
+            >
+              Exportar
+            </s-button>
 
-          <s-popover id="export-popover">
-            <s-stack direction="block" gap="small" padding="base">
-              <s-button
-                accessibilityLabel="Exportar como CSV"
-                variant="tertiary"
-                onClick={() => handleExport("csv")}
-              >
-                Exportar a CSV
-              </s-button>
-              <s-button
-                accessibilityLabel="Exportar como XLSX"
-                variant="tertiary"
-                onClick={() => handleExport("xlsx")}
-              >
-                Exportar a XLSX
-              </s-button>
-              <s-button
-                accessibilityLabel="Exportar como PDF"
-                variant="tertiary"
-                onClick={() => handleExport("pdf")}
-              >
-                Exportar a PDF
-              </s-button>
-            </s-stack>
-          </s-popover>
+            <s-popover id="export-popover">
+              <s-stack direction="block" gap="small" padding="base">
+                <s-button
+                  accessibilityLabel="Exportar como CSV"
+                  variant="tertiary"
+                  onClick={() => handleExport("csv")}
+                >
+                  Exportar a CSV
+                </s-button>
+                <s-button
+                  accessibilityLabel="Exportar como XLSX"
+                  variant="tertiary"
+                  onClick={() => handleExport("xlsx")}
+                >
+                  Exportar a XLSX
+                </s-button>
+                <s-button
+                  accessibilityLabel="Exportar como PDF"
+                  variant="tertiary"
+                  onClick={() => handleExport("pdf")}
+                >
+                  Exportar a PDF
+                </s-button>
+              </s-stack>
+            </s-popover>
+            <s-button
+              variant="primary"
+              href="/app/registre_payment"
+              accessibilityLabel="Registrar un nuevo pago"
+            >
+              Registrar Pago
+            </s-button>
+          </s-stack>
         </s-stack>
       </s-box>
 
@@ -512,20 +518,7 @@ export default function CreditDetail() {
                   </s-stack>
                 </s-box>
               )}
-              {credit.status !== "CANCELADO" &&
-                credit.status !== "PAGADO" &&
-                credit.status !== "PENDIENTE_ACTIVACION" && (
-                  <s-box paddingBlockStart="base">
-                    <s-button
-                      variant="primary"
-                      tone="critical"
-                      onClick={handleCancel}
-                      accessibilityLabel="Cancelar este crédito"
-                    >
-                      Cancelar
-                    </s-button>
-                  </s-box>
-                )}
+
             </s-stack>
           </s-grid>
 
@@ -885,16 +878,36 @@ export default function CreditDetail() {
         </s-stack>
       )}
 
-      <s-stack padding="base" alignItems="center" gap="base">
-        <s-text color="subdued">Desarrollado por Opentech LCC</s-text>
-        <s-text>
-          ¿Tienes alguna duda?{" "}
-          <s-link href="https://lccopen.tech/contact" target="_blank">
-            Contáctanos
-          </s-link>
-          .
-        </s-text>
-      </s-stack>
+      <s-box paddingBlockStart="large" paddingBlockEnd="base">
+        <s-divider />
+        <s-box paddingBlockStart="base">
+          <s-stack direction="inline" justifyContent="space-between" alignItems="center">
+            <s-stack direction="inline" gap="small" alignItems="center">
+              <s-text color="subdued">Desarrollado por Opentech LCC</s-text>
+              <s-text color="subdued">•</s-text>
+              <s-text>
+                ¿Tienes alguna duda?{" "}
+                <s-link href="https://lccopen.tech/contact" target="_blank">
+                  Contáctanos
+                </s-link>
+              </s-text>
+            </s-stack>
+
+            {credit.status !== "CANCELADO" &&
+              credit.status !== "PAGADO" &&
+              credit.status !== "PENDIENTE_ACTIVACION" && (
+                <s-button
+                  variant="primary"
+                  tone="critical"
+                  onClick={handleCancel}
+                  accessibilityLabel="Cancelar este crédito"
+                >
+                  Cancelar Crédito
+                </s-button>
+              )}
+          </s-stack>
+        </s-box>
+      </s-box>
     </s-page>
   );
 }

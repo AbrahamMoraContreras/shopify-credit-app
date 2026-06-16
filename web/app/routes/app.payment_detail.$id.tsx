@@ -257,7 +257,57 @@ export default function PaymentDetail() {
   };
 
   return (
-    <s-page heading={`Detalles de Pago #${payment.id}`}>
+    <s-page>
+      <ui-title-bar title={`Detalles de Pago #${payment.id}`}>
+        <button variant="breadcrumb" onClick={() => window.history.back()}>
+          Pagos
+        </button>
+      </ui-title-bar>
+
+      <s-box paddingBlockEnd="base">
+        <s-stack direction="inline" justifyContent="space-between" alignItems="center">
+          <s-stack direction="block" gap="none">
+            <s-heading level="1">Detalles de Pago #{payment.id}</s-heading>
+            <s-text color="subdued">Visualiza la información completa de este pago</s-text>
+          </s-stack>
+          <s-stack direction="inline" gap="small">
+            <s-button
+              variant="secondary"
+              accessibilityLabel="Opciones de exportación"
+              commandFor="export-popover"
+              command="--toggle"
+            >
+              Exportar
+            </s-button>
+
+            <s-popover id="export-popover">
+              <s-stack direction="block" gap="small" padding="base">
+                <s-button
+                  accessibilityLabel="Exportar como CSV"
+                  variant="tertiary"
+                  onClick={() => handleExport("csv")}
+                >
+                  Exportar a CSV
+                </s-button>
+                <s-button
+                  accessibilityLabel="Exportar como XLSX"
+                  variant="tertiary"
+                  onClick={() => handleExport("xlsx")}
+                >
+                  Exportar a XLSX
+                </s-button>
+                <s-button
+                  accessibilityLabel="Exportar como PDF"
+                  variant="tertiary"
+                  onClick={() => handleExport("pdf")}
+                >
+                  Exportar a PDF
+                </s-button>
+              </s-stack>
+            </s-popover>
+          </s-stack>
+        </s-stack>
+      </s-box>
 
       {tasaBcv && (
         <s-box paddingBlockEnd="base">
@@ -441,77 +491,36 @@ export default function PaymentDetail() {
             </s-table-body>
           </s-table>
         </s-section>
-      <s-box
-        paddingBlockEnd="base"
-        paddingInlineStart="base"
-        paddingInlineEnd="base"
-      >
-        <s-stack direction="inline" justifyContent="end" gap="small-200">
-          <s-button
-            variant="secondary"
-            accessibilityLabel="Opciones de exportación"
-            commandFor="export-popover"
-            command="--toggle"
-          >
-            Exportar
-          </s-button>
+      </s-stack>
 
-          <s-popover id="export-popover">
-            <s-stack direction="block" gap="small" padding="base">
-              <s-button
-                accessibilityLabel="Exportar como CSV"
-                variant="tertiary"
-                onClick={() => handleExport("csv")}
-              >
-                Exportar a CSV
-              </s-button>
-              <s-button
-                accessibilityLabel="Exportar como XLSX"
-                variant="tertiary"
-                onClick={() => handleExport("xlsx")}
-              >
-                Exportar a XLSX
-              </s-button>
-              <s-button
-                accessibilityLabel="Exportar como PDF"
-                variant="tertiary"
-                onClick={() => handleExport("pdf")}
-              >
-                Exportar a PDF
-              </s-button>
+      <s-box paddingBlockStart="large" paddingBlockEnd="base">
+        <s-divider />
+        <s-box paddingBlockStart="base">
+          <s-stack direction="inline" justifyContent="space-between" alignItems="center">
+            <s-stack direction="inline" gap="small" alignItems="center">
+              <s-text color="subdued">Desarrollado por Opentech LCC</s-text>
+              <s-text color="subdued">•</s-text>
+              <s-text>
+                ¿Tienes alguna duda?{" "}
+                <s-link href="https://lccopen.tech/contact" target="_blank">
+                  Contáctanos
+                </s-link>
+              </s-text>
             </s-stack>
-          </s-popover>
-        </s-stack>
-      </s-box>
-        <s-stack
-          direction="inline"
-          padding="base"
-          justifyContent="end"
-          gap="small"
-        >
-          {payment.status !== "CANCELADO" && payment.status !== "RECHAZADO" && (
-            <s-button
-              variant="primary"
-              tone="critical"
-              onClick={handleCancel}
-              accessibilityLabel="Cancelar este pago"
-            >
-              Cancelar
-            </s-button>
-          )}
-        </s-stack>
-      </s-stack>
 
-      <s-stack padding="base" alignItems="center" gap="small">
-        <s-text color="subdued">Desarrollado por Opentech LCC</s-text>
-        <s-text>
-          ¿Tienes alguna duda?{" "}
-          <s-link href="https://lccopen.tech/contact" target="_blank">
-            Contáctanos
-          </s-link>
-          .
-        </s-text>
-      </s-stack>
+            {payment.status !== "CANCELADO" && payment.status !== "RECHAZADO" && (
+              <s-button
+                variant="primary"
+                tone="critical"
+                onClick={handleCancel}
+                accessibilityLabel="Cancelar este pago"
+              >
+                Cancelar Pago
+              </s-button>
+            )}
+          </s-stack>
+        </s-box>
+      </s-box>
     </s-page>
   );
 }
