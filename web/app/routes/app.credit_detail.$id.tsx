@@ -419,6 +419,18 @@ export default function CreditDetail() {
             >
               Registrar Pago
             </s-button>
+            {credit.status !== "CANCELADO" &&
+              credit.status !== "PAGADO" &&
+              credit.status !== "PENDIENTE_ACTIVACION" && (
+                <s-button
+                  variant="primary"
+                  tone="critical"
+                  onClick={handleCancel}
+                  accessibilityLabel="Cancelar este crédito"
+                >
+                  Cancelar Crédito
+                </s-button>
+              )}
           </s-stack>
         </s-stack>
       </s-box>
@@ -893,18 +905,6 @@ export default function CreditDetail() {
               </s-text>
             </s-stack>
 
-            {credit.status !== "CANCELADO" &&
-              credit.status !== "PAGADO" &&
-              credit.status !== "PENDIENTE_ACTIVACION" && (
-                <s-button
-                  variant="primary"
-                  tone="critical"
-                  onClick={handleCancel}
-                  accessibilityLabel="Cancelar este crédito"
-                >
-                  Cancelar Crédito
-                </s-button>
-              )}
           </s-stack>
         </s-box>
       </s-box>

@@ -279,6 +279,16 @@ export default function PaymentDetail() {
             >
               Exportar
             </s-button>
+            {payment.status !== "CANCELADO" && payment.status !== "RECHAZADO" && (
+              <s-button
+                variant="primary"
+                tone="critical"
+                onClick={handleCancel}
+                accessibilityLabel="Cancelar este pago"
+              >
+                Cancelar Pago
+              </s-button>
+            )}
 
             <s-popover id="export-popover">
               <s-stack direction="block" gap="small" padding="base">
@@ -508,16 +518,6 @@ export default function PaymentDetail() {
               </s-text>
             </s-stack>
 
-            {payment.status !== "CANCELADO" && payment.status !== "RECHAZADO" && (
-              <s-button
-                variant="primary"
-                tone="critical"
-                onClick={handleCancel}
-                accessibilityLabel="Cancelar este pago"
-              >
-                Cancelar Pago
-              </s-button>
-            )}
           </s-stack>
         </s-box>
       </s-box>
