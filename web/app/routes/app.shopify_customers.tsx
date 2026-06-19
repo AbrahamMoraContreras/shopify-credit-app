@@ -250,14 +250,14 @@ export default function ShopifyCustomers() {
 
             <s-section>
               <s-stack alignItems="center" gap="small-200">
-                <s-text color="subdued">Número de pagos pendientes</s-text>
+                <s-text color="subdued">Número de cobros pendientes</s-text>
                 <s-heading>{pagosPendientes}</s-heading>
               </s-stack>
             </s-section>
 
             <s-section>
               <s-stack alignItems="center" gap="small-200">
-                <s-text color="subdued">Número de pagos completados</s-text>
+                <s-text color="subdued">Número de cobros completados</s-text>
                 <s-heading>{pagosCompletados}</s-heading>
               </s-stack>
             </s-section>
@@ -287,9 +287,9 @@ export default function ShopifyCustomers() {
                 <s-table-header>Reputación</s-table-header>
                 <s-table-header format="numeric">Créd. Completados</s-table-header>
                 <s-table-header format="numeric">Créd. Pendientes</s-table-header>
-                <s-table-header format="numeric">Pagos a Tiempo</s-table-header>
-                <s-table-header format="numeric">Pagos Tardíos</s-table-header>
-                <s-table-header format="numeric">Pagos No Completados</s-table-header>
+                <s-table-header format="numeric">Cobros a Tiempo</s-table-header>
+                <s-table-header format="numeric">Cobros Tardíos</s-table-header>
+                <s-table-header format="numeric">Cobros No Completados</s-table-header>
 
                 <s-table-header>Acciones</s-table-header>
               </s-table-header-row>

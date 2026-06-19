@@ -412,7 +412,7 @@ export default function Settings() {
                 <s-heading>Políticas y Alertas de la Tienda</s-heading>
                 <s-divider />
                 <s-checkbox
-                  label="Silenciar alertas de la campanita (no recibir notificaciones flotantes al registrar pagos)"
+                  label="Silenciar alertas de la campanita (no recibir notificaciones flotantes al registrar cobros)"
                   checked={general.silence_notifications}
                   onChange={(e: any) => setGeneral({ ...general, silence_notifications: e.target.checked })}
                 />

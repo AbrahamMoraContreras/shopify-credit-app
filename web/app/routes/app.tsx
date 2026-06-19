@@ -281,7 +281,7 @@ function NotificationsBell() {
                           }}
                           onClick={(e) => e.stopPropagation()}
                         >
-                          Ver Pago →
+                          Ver Cobro →
                         </a>
                       )}
                     </div>
@@ -306,9 +306,9 @@ export default function App() {
         <s-link href="/app/shopify_customers">Clientes Shopify</s-link>
         <s-link href="/app/credits">Creditos</s-link>
         <s-link href="/app/registre_credit">Registrar Crédito</s-link>
-        <s-link href="/app/payments">Pagos</s-link>
-        <s-link href="/app/expected_payments">Pagos Esperados</s-link>
-        <s-link href="/app/registre_payment">Registrar Pago</s-link>
+        <s-link href="/app/payments">Cobros</s-link>
+        <s-link href="/app/expected_payments">Cobros Esperados</s-link>
+        <s-link href="/app/registre_payment">Registrar Cobro</s-link>
         <s-link href="/app/settings">Configuracion</s-link>
       </ui-nav-menu>
 

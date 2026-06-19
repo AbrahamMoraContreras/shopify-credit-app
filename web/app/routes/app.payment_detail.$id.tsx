@@ -228,7 +228,7 @@ export default function PaymentDetail() {
       }
     } else if (format === "pdf") {
       const doc = new jsPDF();
-      doc.text(`Detalles de Pago #${payment.id}`, 14, 15);
+      doc.text(`Detalles de Cobro #${payment.id}`, 14, 15);
 
       autoTable(doc, { startY: 20, head: summaryHeader, body: summaryData });
       let currentY = (doc as any).lastAutoTable.finalY + 10;
@@ -258,7 +258,7 @@ export default function PaymentDetail() {
 
   return (
     <s-page>
-      <ui-title-bar title={`Detalles de Pago #${payment.id}`}>
+      <ui-title-bar title={`Detalles de Cobro #${payment.id}`}>
         <button variant="breadcrumb" onClick={() => window.history.back()}>
           Pagos
         </button>
@@ -267,7 +267,7 @@ export default function PaymentDetail() {
       <s-box paddingBlockEnd="base">
         <s-stack direction="inline" justifyContent="space-between" alignItems="center">
           <s-stack direction="block" gap="none">
-            <s-heading level="1">Detalles de Pago #{payment.id}</s-heading>
+            <s-heading level="1">Detalles de Cobro #{payment.id}</s-heading>
             <s-text color="subdued">Visualiza la información completa de este pago</s-text>
           </s-stack>
           <s-stack direction="inline" gap="small">

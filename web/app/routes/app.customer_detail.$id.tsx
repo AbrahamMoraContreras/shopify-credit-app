@@ -354,7 +354,7 @@ export default function CustomerDetail() {
             </s-box>
           </s-section>
           <s-section padding="base">
-            <s-heading>Pagos a Tiempo</s-heading>
+            <s-heading>Cobros a Tiempo</s-heading>
             <s-box>
               {paymentsOnTime > 0 ? (
                 <s-badge tone="success">{paymentsOnTime}</s-badge>
@@ -364,7 +364,7 @@ export default function CustomerDetail() {
             </s-box>
           </s-section>
           <s-section padding="base">
-            <s-heading>Pagos Tardíos</s-heading>
+            <s-heading>Cobros Tardíos</s-heading>
             <s-box>
               {paymentsLate > 0 ? (
                 <s-badge tone="critical">{paymentsLate}</s-badge>

@@ -1,0 +1,30 @@
+Actúa como un Analista de Sistemas y Arquitecto de Software Experto. Tu tarea es generar el código Mermaid para un Diagrama de Flujo del Sistema (System Flowchart) que modele el proceso lógico y el ciclo de vida completo de un crédito y sus pagos dentro del sistema "Shopify Credit App".
+
+Aquí tienes el contexto del flujo paso a paso:
+
+**Flujo del Sistema:**
+1. **Inicio:** Un Cliente realiza una compra en la tienda de Shopify pero acuerda un pago a plazos.
+2. **Creación del Crédito:** El Comerciante entra al Dashboard de la App en Shopify y emite un crédito para esa orden, definiendo plazos y número de cuotas.
+3. **Procesamiento (Backend):** El sistema calcula automáticamente el valor de las cuotas y genera los registros en la Base de Datos.
+4. **Notificación:** El sistema envía un correo/SMS al Cliente con un Enlace de Cobro (Link seguro con Token).
+5. **Ingreso al Portal:** El Cliente hace clic en el enlace y accede a la Página Pública de Pagos.
+6. **Acción del Cliente:** El Cliente realiza el pago en su banco y registra en el portal el Número de Referencia, Monto y Banco Emisor.
+7. **Registro Temporal:** El sistema guarda el pago con estado "Pendiente" (Pending) y notifica al Comerciante.
+8. **Auditoría (Decisión):** El Comerciante revisa la conciliación bancaria desde su Dashboard. ¿El pago se refleja en su cuenta?
+   - **Camino A (Sí):** El Comerciante aprueba el pago. El sistema actualiza el estado del pago a "Confirmado", descuenta la cuota del crédito y el saldo del cliente.
+   - **Camino B (No):** El Comerciante rechaza el pago. El sistema lo marca como "Rechazado" y solicita al cliente que ingrese una nueva referencia.
+9. **Verificación de Cierre (Decisión):** Tras una aprobación, el sistema evalúa: ¿El saldo restante del crédito es igual a cero?
+   - **Camino A (Sí):** El estado del crédito cambia a "Pagado" (Completed). Fin del proceso.
+   - **Camino B (No):** El crédito sigue "Activo". El proceso vuelve a la espera de un nuevo pago (Paso 4 / Paso 5).
+
+**Requisitos del Diagrama:**
+- Usa `flowchart TD` (Top-Down, de arriba hacia abajo) para mostrar la secuencia cronológica.
+- Usa formas adecuadas: 
+  - Nodos redondeados `([ ])` o `( )` para Inicio/Fin.
+  - Rectángulos `[ ]` para procesos o acciones.
+  - Rombos `{ }` para nodos de Decisión.
+  - Cilindros `[( )]` para interacciones con la Base de Datos (opcional pero recomendado).
+- Usa etiquetas en las flechas de decisión (ej: `-->|Sí|` y `-->|No|`).
+- Agrupa los pasos en "Swimlanes" utilizando `subgraph` si lo consideras útil (ej. `subgraph Cliente`, `subgraph App/Backend`, `subgraph Comerciante`), o simplemente usa estilos (`classDef`) para colorear los nodos según quién realiza la acción (Cliente, Comerciante o Sistema).
+
+Genera únicamente el código Mermaid dentro de un bloque de código markdown, listo para ser copiado y renderizado.

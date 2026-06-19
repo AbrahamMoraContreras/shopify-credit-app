@@ -1,0 +1,38 @@
+Actúa como un Analista de Sistemas y Arquitecto de Software Experto. Tu tarea es generar el código Mermaid para un Diagrama de Flujo del Sistema (System Flowchart) que modele el proceso manual previo a la implementación de la aplicación (proceso "AS-IS").
+
+Aquí tienes el contexto detallado de cómo funciona el flujo manual del sistema:
+
+**Proceso de Créditos Manual:**
+1. **Inicio:** El Cliente ingresa a la página web del e-commerce.
+2. **Selección:** El Cliente selecciona un producto y su respectiva cantidad.
+3. **Checkout:** El Cliente selecciona la opción de "Pagar a Crédito".
+4. **Recepción:** La información de la orden llega al panel de administración de Shopify, donde el Administrador del comercio (Admin) la procesa.
+5. **Negociación Externa:** Por medio de métodos externos, el Admin y el Cliente se comunican. Acuerdan el número de cuotas, método y fechas de pago (aceptando: Pago Móvil, Transferencia Bancaria, Efectivo Bs/Divisas, Zinli, Criptoactivos).
+6. **Decisión - ¿Hay acuerdo de pago?** (¿Se acordó método y fechas?):
+   - **No:** Se hacen renegociaciones y el flujo vuelve al punto 5 de "Negociación Externa".
+   - **Sí:** El crédito se emite de forma acordada.
+7. **Registro Manual:** El Admin recopila y registra toda la información del crédito en formatos como hojas de cálculo virtuales o medios físicos, los cuales revisa constantemente para seguimiento.
+8. **Espera:** Se aproxima una fecha de pago estipulada.
+9. **Decisión - ¿El Cliente Paga?**:
+   - **No:** El Admin se comunica con el cliente para renegociar el pago pendiente.
+     - **Decisión - ¿Toda negociación fracasa?**:
+       - **Sí:** El crédito se cancela (asumiendo pérdidas monetarias). **Fin del ciclo.**
+       - **No:** Se insta al cliente a pagar sus cuotas (regresando al punto previo de espera de pago).
+   - **Sí:** El Admin recibe la información del pago (comprobantes) por métodos externos y la contrasta manualmente con sus estados financieros (cuentas bancarias).
+10. **Decisión - ¿La información coincide con lo reportado?** (Auditoría del pago):
+    - **No:** Se asume como inválido y el flujo vuelve al punto de instar al cliente a pagar sus cuotas.
+    - **Sí:** El Admin registra manualmente en sus hojas de cálculo la cuota como pagada.
+11. **Decisión - ¿Quedan cuotas por pagar?**:
+    - **Sí:** El proceso continúa con la siguiente cuota, volviendo a la etapa 8 ("Se aproxima una fecha de pago").
+    - **No:** Se finaliza la operación crediticia con éxito. **Fin de ciclo.**
+
+**Requisitos del Diagrama:**
+- Usa `flowchart TD` (Top-Down, de arriba hacia abajo) para una lectura secuencial clara.
+- Aplica las formas estándar de diagramas de flujo:
+  - Óvalos o nodos redondeados `([ ])` para marcar el Inicio y los distintos puntos de Fin de ciclo.
+  - Rectángulos `[ ]` para procesos y acciones.
+  - Rombos `{ }` explícitamente para todas las decisiones indicadas ("¿Hay acuerdo?", "¿El cliente paga?", "¿Toda negociación fracasa?", "¿La información coincide?", "¿Quedan cuotas?").
+- Todas las salidas de los rombos de decisión deben estar etiquetadas claramente (`-->|Sí|` o `-->|No|`).
+- Usa etiquetas de agrupación (`subgraph`) o clases de estilo CSS (`classDef`) para diferenciar visualmente los procesos realizados por el **Cliente**, los procesos manuales del **Administrador**, y las herramientas precarias utilizadas (Hojas de cálculo/Shopify base).
+
+Genera únicamente el código Mermaid dentro un bloque de código markdown, sin explicaciones adicionales, para que pueda ser copiado directamente y renderizado.

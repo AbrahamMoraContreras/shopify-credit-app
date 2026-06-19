@@ -117,28 +117,28 @@ export default function Home() {
                   </s-unordered-list>
               </s-box>
               <s-box>
-                <s-text type="strong">REGISTRAR PAGOS: FORMA DIRECTA</s-text>
+                <s-text type="strong">REGISTRAR COBROS: FORMA DIRECTA</s-text>
                   <s-unordered-list>
-                    <s-list-item>1- Ve a "Registrar Pago". Selecciona el clientes.</s-list-item>
+                    <s-list-item>1- Ve a "Registrar Cobro". Selecciona el clientes.</s-list-item>
                     <s-list-item>2. Selecciona el método de pago, la cantidad en divisas y el código de referencia asociado al pago del cliente.</s-list-item> 
                     <s-list-item>3. En la parte inferior, selecciona las cuotas que el cliente desea pagar.</s-list-item>
                     <s-list-item>IMPORTANTE: Este método se usa en caso de que el clinete pague de forma directa sin usar el recordatorio por e-mail.</s-list-item>
                   </s-unordered-list>
               </s-box>
               <s-box>
-                <s-text type="strong">REGISTRAR PAGOS: USANDO EL RECORDATORIO POR E.MAIL</s-text>
+                <s-text type="strong">REGISTRAR COBROS: USANDO EL RECORDATORIO POR E.MAIL</s-text>
                   <s-unordered-list>
-                    <s-list-item>1- Ve a "Pagos Esperados" o a "Detalles de Crédito". Oprime el botón de "Enviar Recordatorio". </s-list-item>
+                    <s-list-item>1- Ve a "Cobros Esperados" o a "Detalles de Crédito". Oprime el botón de "Enviar Recordatorio". </s-list-item>
                     <s-list-item>2. El cliente recibirá un e-mail con un link de pago. Deberá seleccionar el método de pago preferido, y llenar un formulario con la información de su pago. </s-list-item>
-                    <s-list-item>3. Al completar el formulario, la información del pago llegará automáticamente a la app en Shopify.</s-list-item>
-                    <s-list-item>4. Contrasta la información del formulario con los estados financieros del comercio. Finalmente desde "Pagos", aprueba o rechaza el pago.</s-list-item>
+                    <s-list-item>3. Al completar el formulario, la información del cobro llegará automáticamente a la app en Shopify.</s-list-item>
+                    <s-list-item>4. Contrasta la información del formulario con los estados financieros del comercio. Finalmente desde "Cobros", aprueba o rechaza el cobro.</s-list-item>
                   </s-unordered-list>
 
               </s-box>
               <s-box>
-                <s-text type="strong">CONFIGURANDO LA INFORMACIÓN DE PAGO</s-text>
+                <s-text type="strong">CONFIGURANDO LA INFORMACIÓN DE COBRO</s-text>
                 <s-paragraph color="subdued">
-                  Desde "Configuración", edita los datos de los métodos de pago y los datos a los cuales los clientes realizarán los pagos.
+                  Desde "Configuración", edita los datos de los métodos de pago y los datos a los cuales los clientes realizarán los cobros.
                 </s-paragraph>
                 <s-paragraph color="subdued">
                   Se aceptan:
@@ -156,10 +156,10 @@ export default function Home() {
               <s-box>
                 <s-text type="strong">MONITOREO DE CRÉDITOS</s-text>
                 <s-paragraph color="subdued">
-                  Desde "Créditos", "Pagos", "Pagos Esperados" y las páginas de "Detalles de Crédito" y "Detalles de Pago" se puede monitorear los estatus de cada operación crediticia activa.
+                  Desde "Créditos", "Cobros", "Cobros Esperados" y las páginas de "Detalles de Crédito" y "Detalles de Cobro" se puede monitorear los estatus de cada operación crediticia activa.
                 </s-paragraph>
                 <s-paragraph color="subdued">
-                  La reputación crediticia de cada cliente se actualizará automáticamente dependiendo del promedio de créditos y pagos completados por cada cliente.
+                  La reputación crediticia de cada cliente se actualizará automáticamente dependiendo del promedio de créditos y cobros completados por cada cliente.
                 </s-paragraph>
               </s-box>
             </s-grid>
@@ -189,7 +189,7 @@ export default function Home() {
           <s-grid-item gridColumn="span 1">
             <s-section>
               <s-stack alignItems="center" gap="small-200">
-                <s-text color="subdued">Pagos Esperados</s-text>
+                <s-text color="subdued">Cobros Esperados</s-text>
                 <s-heading>{dashboardData?.payments?.pending_review ?? 0}</s-heading>
               </s-stack>
             </s-section>
@@ -198,7 +198,7 @@ export default function Home() {
           <s-grid-item gridColumn="span 1">
             <s-section>
               <s-stack alignItems="center" gap="small-200">
-                <s-text color="subdued">Pagos No Completados</s-text>
+                <s-text color="subdued">Cobros No Completados</s-text>
                 <s-heading>{dashboardData?.payments?.not_paid ?? 0}</s-heading>
               </s-stack>
             </s-section>

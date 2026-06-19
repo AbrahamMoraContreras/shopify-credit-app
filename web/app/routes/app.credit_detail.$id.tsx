@@ -188,7 +188,7 @@ export default function CreditDetail() {
   const handleCancel = () => {
     if (
       !confirm(
-        "¿Seguro que deseas cancelar este crédito? Los pagos pendientes ya no serán esperados.",
+        "¿Seguro que deseas cancelar este crédito? Los cobros pendientes ya no serán esperados.",
       )
     )
       return;
@@ -331,7 +331,7 @@ export default function CreditDetail() {
       let currentY = (doc as any).lastAutoTable.finalY + 10;
 
       if (installmentsData.length > 0) {
-        doc.text("Cuotas / Pagos Esperados", 14, currentY);
+        doc.text("Cuotas / Cobros Esperados", 14, currentY);
         autoTable(doc, {
           startY: currentY + 5,
           head: [Object.keys(installmentsData[0])],
@@ -417,7 +417,7 @@ export default function CreditDetail() {
               href="/app/registre_payment"
               accessibilityLabel="Registrar un nuevo pago"
             >
-              Registrar Pago
+              Registrar Cobro
             </s-button>
             {credit.status !== "CANCELADO" &&
               credit.status !== "PAGADO" &&
@@ -560,7 +560,7 @@ export default function CreditDetail() {
 
           {/* Pagos Pendientes / Cuotas Section */}
           <s-section padding="base">
-            <s-heading>Pagos Pendientes / Cuotas</s-heading>
+            <s-heading>Cobros Pendientes / Cuotas</s-heading>
             <s-table variant="auto">
               <s-table-header-row>
                 <s-table-header listSlot="primary">Vencimiento</s-table-header>
@@ -778,7 +778,7 @@ export default function CreditDetail() {
                 <s-table-header format="numeric">Monto Abonado</s-table-header>
                 <s-table-header listSlot="primary">Estatus</s-table-header>
                 <s-table-header listSlot="primary">
-                  Detalles de Pago
+                  Detalles de Cobro
                 </s-table-header>
               </s-table-header-row>
               <s-table-body>

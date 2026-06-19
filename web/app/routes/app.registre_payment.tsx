@@ -517,7 +517,7 @@ export default function RegistrePayment() {
   };
 
   return (
-    <s-page heading="Registrar Pago">
+    <s-page heading="Registrar Cobro">
       <s-stack gap="base">
         {actionError && (
           <s-banner tone="critical" onDismiss={() => setActionError(null)}>

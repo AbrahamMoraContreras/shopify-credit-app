@@ -202,7 +202,7 @@ export default function ExpectedPayments() {
   };
 
   return (
-    <s-page heading="Pagos Esperados" inlineSize="large">
+    <s-page heading="Cobros Esperados" inlineSize="large">
       <s-section padding="base">
         <s-heading>Cuotas y Saldos por Cobrar</s-heading>
         <s-text color="subdued">
@@ -329,7 +329,7 @@ export default function ExpectedPayments() {
                   <s-table-cell>
                     <div style={{ textAlign: "center", gridColumn: "span 7" }}>
                       <s-text color="subdued">
-                        No hay pagos esperados en este momento.
+                        No hay cobros esperados en este momento.
                       </s-text>
                     </div>
                   </s-table-cell>

@@ -271,7 +271,7 @@ export default function CreditHistorial() {
   async function handleCancel(id: number, e: Event) {
     if (e && e.preventDefault) e.preventDefault();
     const confirmed = window.confirm(
-      "¿Seguro que deseas cancelar este crédito? Los pagos esperados se eliminarán de la lista.",
+      "¿Seguro que deseas cancelar este crédito? Los cobros esperados se eliminarán de la lista.",
     );
     if (!confirmed) return;
 
@@ -745,7 +745,7 @@ export default function CreditHistorial() {
                         slot="secondary-actions"
                         icon="payment"
                         href={`/app/payments?creditId=${credit.id}`}
-                        accessibilityLabel="Ver pagos de este crédito"
+                        accessibilityLabel="Ver cobros de este crédito"
                       >
                         Pagos
                       </s-button>

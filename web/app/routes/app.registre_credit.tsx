@@ -355,6 +355,22 @@ export default function RegistreCredit() {
   >({});
   const [quantities, setQuantities] = useState<Record<string, number>>({});
 
+  const [productSearchQuery, setProductSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
+
+  const productCategories = useMemo(() => {
+    const unique = new Set(products.map((p) => p.productType).filter(Boolean));
+    return Array.from(unique).sort();
+  }, [products]);
+
+  const filteredProducts = useMemo(() => {
+    return products.filter((p) => {
+      const matchesSearch = p.title.toLowerCase().includes(productSearchQuery.toLowerCase());
+      const matchesCategory = selectedCategory ? p.productType === selectedCategory : true;
+      return matchesSearch && matchesCategory;
+    });
+  }, [products, productSearchQuery, selectedCategory]);
+
   const selectedCustomer = useMemo(() => {
     if (!form.customer) return undefined;
     return customers.find((c) => c.id === form.customer);
@@ -1005,9 +1021,34 @@ export default function RegistreCredit() {
           <s-section padding="base">
             <s-heading>Lista de Productos</s-heading>
 
-            {products.length === 0 ? (
+            <s-grid gridTemplateColumns="repeat(2, 1fr)" gap="small" padding="base">
+              <s-grid-item>
+                <s-text-field
+                  label="Buscar producto por nombre"
+                  value={productSearchQuery}
+                  onInput={(e: any) => setProductSearchQuery(e.target?.value || "")}
+                  placeholder="Ej: Camisa"
+                />
+              </s-grid-item>
+              <s-grid-item>
+                <s-select
+                  label="Filtrar por categoría"
+                  value={selectedCategory}
+                  onChange={(e: any) => setSelectedCategory(e.target?.value || "")}
+                >
+                  <s-option value="">Todas las categorías</s-option>
+                  {productCategories.map((cat) => (
+                    <s-option key={cat} value={cat}>
+                      {cat}
+                    </s-option>
+                  ))}
+                </s-select>
+              </s-grid-item>
+            </s-grid>
+
+            {filteredProducts.length === 0 ? (
               <s-text color="subdued">
-                No hay productos disponibles en esta tienda.
+                No hay productos disponibles o que coincidan con la búsqueda.
               </s-text>
             ) : (
               <s-table variant="auto">
@@ -1023,7 +1064,7 @@ export default function RegistreCredit() {
                 </s-table-header-row>
 
                 <s-table-body>
-                  {products.map((product) => {
+                  {filteredProducts.map((product) => {
                     const isSelected = selectedProducts[product.id] ?? false;
                     const qty = quantities[product.id] ?? 0;
                     const available = product.totalInventory ?? 0;

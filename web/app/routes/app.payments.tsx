@@ -357,7 +357,7 @@ export default function PaymentHistorial() {
 
   const handleBatchDelete = () => {
     if (selectedIds.size === 0) return;
-    if (!confirm(`¿Está seguro de eliminar ${selectedIds.size} pagos?`)) return;
+    if (!confirm(`¿Está seguro de eliminar ${selectedIds.size} cobros?`)) return;
     submit(
       {
         intent: "batch-delete",
@@ -371,7 +371,7 @@ export default function PaymentHistorial() {
     if (selectedIds.size === 0) return;
     if (
       !confirm(
-        "¿Seguro que deseas cancelar los pagos seleccionados? Se revertirá en resuelto en el crédito asociado.",
+        "¿Seguro que deseas cancelar los cobros seleccionados? Se revertirá en resuelto en el crédito asociado.",
       )
     )
       return;
@@ -492,15 +492,15 @@ export default function PaymentHistorial() {
     if (format === "csv" || format === "xlsx") {
       const ws = XLSX.utils.json_to_sheet(exportData);
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Pagos");
+      XLSX.utils.book_append_sheet(wb, ws, "Cobros");
       if (format === "csv") {
-        XLSX.writeFile(wb, "pagos.csv");
+        XLSX.writeFile(wb, "cobros.csv");
       } else {
-        XLSX.writeFile(wb, "pagos.xlsx");
+        XLSX.writeFile(wb, "cobros.xlsx");
       }
     } else if (format === "pdf") {
       const doc = new jsPDF("landscape");
-      doc.text("Reporte de Pagos", 14, 15);
+      doc.text("Reporte de Cobros", 14, 15);
       autoTable(doc, {
         startY: 20,
         head: [
@@ -526,19 +526,19 @@ export default function PaymentHistorial() {
           d.Estado,
         ]),
       });
-      doc.save("pagos.pdf");
+      doc.save("cobros.pdf");
     }
   };
 
   return (
-    <s-page heading="Historial de Pagos" inlineSize="large">
+    <s-page heading="Historial de Cobros" inlineSize="large">
       <s-button
         slot="primary-action"
         icon="plus"
         href="/app/registre_payment"
         accessibilityLabel="Ir a registrar pago"
       >
-        Registrar Pago
+        Registrar Cobro
       </s-button>
 
       {tasaBcv && (
@@ -645,7 +645,7 @@ export default function PaymentHistorial() {
       <s-divider />
 
       <s-section padding="base">
-        <s-heading>Lista de Pagos</s-heading>
+        <s-heading>Lista de Cobros</s-heading>
 
         <s-stack direction="block" gap="small" paddingBlockEnd="base">
           <s-stack
@@ -872,7 +872,7 @@ export default function PaymentHistorial() {
                     undefined
                   }
                   onClick={() => handleBatchReview("APROBADO")}
-                  accessibilityLabel="Aprobar pagos seleccionados"
+                  accessibilityLabel="Aprobar cobros seleccionados"
                 >
                   Aprobar Pago
                 </s-button>
@@ -881,7 +881,7 @@ export default function PaymentHistorial() {
                   icon="delete"
                   disabled={selectedIds.size === 0 || loading || undefined}
                   onClick={() => handleBatchReview("RECHAZADO")}
-                  accessibilityLabel="Rechazar pagos seleccionados"
+                  accessibilityLabel="Rechazar cobros seleccionados"
                 >
                   Rechazar Pago
                 </s-button>
@@ -891,7 +891,7 @@ export default function PaymentHistorial() {
                   icon="delete"
                   disabled={selectedIds.size === 0 || loading || undefined}
                   onClick={handleBatchCancel}
-                  accessibilityLabel="Cancelar pagos seleccionados y revertir monto al crédito"
+                  accessibilityLabel="Cancelar cobros seleccionados y revertir monto al crédito"
                 >
                   Cancelar Pago
                 </s-button>
@@ -901,7 +901,7 @@ export default function PaymentHistorial() {
                   icon="delete"
                   disabled={selectedIds.size === 0 || loading || undefined}
                   onClick={handleBatchDelete}
-                  accessibilityLabel="Eliminar pagos seleccionados"
+                  accessibilityLabel="Eliminar cobros seleccionados"
                 >
                   Eliminar Pago
                 </s-button>
@@ -1066,7 +1066,7 @@ export default function PaymentHistorial() {
                 <s-table-cell>
                   <div style={{ textAlign: "center", gridColumn: "span 11" }}>
                     <s-text color="subdued">
-                      No se encontraron pagos registrados.
+                      No se encontraron cobros registrados.
                     </s-text>
                   </div>
                 </s-table-cell>
@@ -1095,7 +1095,7 @@ export default function PaymentHistorial() {
               undefined
             }
             onClick={() => handleBatchReview("APROBADO")}
-            accessibilityLabel="Aprobar pagos seleccionados"
+            accessibilityLabel="Aprobar cobros seleccionados"
           >
             Aprobar Pago
           </s-button>
@@ -1104,7 +1104,7 @@ export default function PaymentHistorial() {
             icon="delete"
             disabled={selectedIds.size === 0 || loading || undefined}
             onClick={() => handleBatchReview("RECHAZADO")}
-            accessibilityLabel="Rechazar pagos seleccionados"
+            accessibilityLabel="Rechazar cobros seleccionados"
           >
             Rechazar Pago
           </s-button>
@@ -1114,7 +1114,7 @@ export default function PaymentHistorial() {
             icon="delete"
             disabled={selectedIds.size === 0 || loading || undefined}
             onClick={handleBatchCancel}
-            accessibilityLabel="Cancelar pagos seleccionados y revertir monto al crédito"
+            accessibilityLabel="Cancelar cobros seleccionados y revertir monto al crédito"
           >
             Cancelar Pago
           </s-button>
@@ -1124,7 +1124,7 @@ export default function PaymentHistorial() {
             icon="delete"
             disabled={selectedIds.size === 0 || loading || undefined}
             onClick={handleBatchDelete}
-            accessibilityLabel="Eliminar pagos seleccionados"
+            accessibilityLabel="Eliminar cobros seleccionados"
           >
             Eliminar Pago
           </s-button>
