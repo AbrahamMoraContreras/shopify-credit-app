@@ -2,7 +2,7 @@
 from sqlalchemy import func, cast, Date
 from sqlalchemy.orm import Session, joinedload
 from uuid import UUID
-from datetime import datetime
+from datetime import datetime, date
 from decimal import Decimal
 from fastapi import HTTPException
 from models.installment import CreditInstallment
@@ -178,6 +178,8 @@ def create_payment(
             raise e
 
         _apply_payment_distribution(db, payment, credit, payload.apply_to_installments, payload.distribute_excess, customer)
+        db.commit()
+        db.refresh(credit)
         
     else:
         payment = Payment(

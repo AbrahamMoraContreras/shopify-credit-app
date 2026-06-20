@@ -356,7 +356,7 @@ export default function RegistreCredit() {
   const [quantities, setQuantities] = useState<Record<string, number>>({});
 
   const [productSearchQuery, setProductSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("ALL");
 
   const productCategories = useMemo(() => {
     const unique = new Set(products.map((p) => p.productType).filter(Boolean));
@@ -366,7 +366,13 @@ export default function RegistreCredit() {
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
       const matchesSearch = p.title.toLowerCase().includes(productSearchQuery.toLowerCase());
-      const matchesCategory = selectedCategory ? p.productType === selectedCategory : true;
+      const isAllCategories = !selectedCategory || 
+                              selectedCategory === "ALL" || 
+                              selectedCategory === "Todas las categorías" || 
+                              selectedCategory === "Todos los productos" ||
+                              selectedCategory === "Todos" ||
+                              selectedCategory === "Todas";
+      const matchesCategory = isAllCategories ? true : p.productType === selectedCategory;
       return matchesSearch && matchesCategory;
     });
   }, [products, productSearchQuery, selectedCategory]);
@@ -1034,9 +1040,9 @@ export default function RegistreCredit() {
                 <s-select
                   label="Filtrar por categoría"
                   value={selectedCategory}
-                  onChange={(e: any) => setSelectedCategory(e.target?.value || "")}
+                  onChange={(e: any) => setSelectedCategory(e.target?.value || "ALL")}
                 >
-                  <s-option value="">Todas las categorías</s-option>
+                  <s-option value="ALL">Todas las categorías</s-option>
                   {productCategories.map((cat) => (
                     <s-option key={cat} value={cat}>
                       {cat}

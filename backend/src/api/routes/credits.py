@@ -33,7 +33,7 @@ def create_credit_endpoint(
         from models.merchant_payment_settings import MerchantPaymentSetting
         
         customer = db.query(Customer).filter(
-            Customer.id == payload.customer_id,
+            Customer.shopify_customer_id == str(payload.customer_id),
             Customer.merchant_id == merchant_id
         ).first()
         
