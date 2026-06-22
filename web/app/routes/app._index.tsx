@@ -181,7 +181,7 @@ export default function Home() {
             <s-section>
               <s-stack alignItems="center" gap="small-200">
                 <s-text color="subdued">Créditos Finalizados</s-text>
-                <s-heading>{dashboardData?.credits?.total != null ? dashboardData.credits.total - (dashboardData?.credits?.active ?? 0) - (dashboardData?.credits?.morose ?? 0) : 0}</s-heading>
+                <s-heading>{dashboardData?.credits?.paid ?? 0}</s-heading>
               </s-stack>
             </s-section>
           </s-grid-item>

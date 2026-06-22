@@ -22,8 +22,22 @@ def active_credits(db: Session, merchant_id: UUID) -> int:
 def morose_credits(db: Session, merchant_id: UUID) -> int:
     return db.query(Credit).join(Customer, Credit.customer_id == Customer.id).join(CreditInstallment).filter(
         Customer.merchant_id == merchant_id,
-        CreditInstallment.status == InstallmentStatus.VENCIDO
+        CreditInstallment.status == InstallmentStatus.VENCIDO,
+        Credit.status != CreditStatus.PAGADO,
+        Credit.status != CreditStatus.CANCELADO
     ).distinct().count()
+
+def paid_credits(db: Session, merchant_id: UUID) -> int:
+    return db.query(Credit).join(Customer, Credit.customer_id == Customer.id).filter(
+        Customer.merchant_id == merchant_id,
+        Credit.status == CreditStatus.PAGADO
+    ).count()
+
+def cancelled_credits(db: Session, merchant_id: UUID) -> int:
+    return db.query(Credit).join(Customer, Credit.customer_id == Customer.id).filter(
+        Customer.merchant_id == merchant_id,
+        Credit.status == CreditStatus.CANCELADO
+    ).count()
 
 def total_emitted(db: Session, merchant_id: UUID) -> Decimal:
     res = db.query(func.sum(Credit.total_amount)).join(Customer, Credit.customer_id == Customer.id).filter(Customer.merchant_id == merchant_id).scalar()
@@ -71,7 +85,9 @@ def pending_payments(db: Session, merchant_id: UUID) -> int:
         Customer, Customer.id == Credit.customer_id
     ).filter(
         Customer.merchant_id == merchant_id,
-        Payment.status == PaymentStatus.EN_REVISION
+        Payment.status == PaymentStatus.EN_REVISION,
+        Credit.status != CreditStatus.PAGADO,
+        Credit.status != CreditStatus.CANCELADO
     ).count()
 
 def approved_today(db: Session, merchant_id: UUID) -> int:
@@ -155,6 +171,8 @@ def dashboard_snapshot(db: Session, merchant_id: UUID):
             "total": total_credits(db, merchant_id),
             "active": active_credits(db, merchant_id),
             "morose": morose_credits(db, merchant_id),
+            "paid": paid_credits(db, merchant_id),
+            "cancelled": cancelled_credits(db, merchant_id),
         },
         "amounts": {
             "total_emitted": total_emitted(db, merchant_id),

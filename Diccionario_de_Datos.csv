@@ -1,0 +1,84 @@
+﻿Tabla;Nombre Dato;Tipo de dato;Longitud;Clave;Obligatoriedad;Detalle
+Customers;id;Número Entero;;PK;Obligatorio (NOT NULL);Identificador principal. Tabla que almacena la información de los clientes (compradores).
+Customers;merchant_id;Identificador Único (UUID);;FK;Obligatorio (NOT NULL);Referencia a merchants.id. Tabla que almacena la información de los clientes (compradores).
+Customers;full_name;Texto;Variable;-;Obligatorio (NOT NULL);Campo 'full_name' de la tabla que almacena la información de los clientes (compradores).
+Customers;email;Texto;Variable;-;Opcional (NULL);Campo 'email' de la tabla que almacena la información de los clientes (compradores).
+Customers;phone;Texto;Variable;-;Opcional (NULL);Campo 'phone' de la tabla que almacena la información de los clientes (compradores).
+Customers;shopify_customer_id;Número Entero;;-;Opcional (NULL);Campo 'shopify_customer_id' de la tabla que almacena la información de los clientes (compradores).
+Customers;favorable_balance;Número Decimal;12,2;-;Obligatorio (NOT NULL);Campo 'favorable_balance' de la tabla que almacena la información de los clientes (compradores).
+Customers;punctuality_score;Número Decimal;5,2;-;Opcional (NULL);Campo 'punctuality_score' de la tabla que almacena la información de los clientes (compradores).
+Merchants;id;Identificador Único (UUID);;PK;Obligatorio (NOT NULL);Identificador principal. Tabla de comerciantes (tiendas Shopify).
+Merchants;shop_domain;Texto;Variable;-;Obligatorio (NOT NULL);Campo 'shop_domain' de la tabla de comerciantes (tiendas shopify).
+Merchants;access_token;Texto;Variable;-;Opcional (NULL);Campo 'access_token' de la tabla de comerciantes (tiendas shopify).
+Credits;id;Número Entero;;PK;Obligatorio (NOT NULL);Identificador principal. Tabla principal de créditos/préstamos.
+Credits;customer_id;Número Entero;;FK;Obligatorio (NOT NULL);Referencia a customers.id. Tabla principal de créditos/préstamos.
+Credits;concept;Texto;Variable;-;Obligatorio (NOT NULL);Campo 'concept' de la tabla principal de créditos/préstamos.
+Credits;total_amount;Número Decimal;12,2;-;Obligatorio (NOT NULL);Campo 'total_amount' de la tabla principal de créditos/préstamos.
+Credits;balance;Número Decimal;12,2;-;Obligatorio (NOT NULL);Campo 'balance' de la tabla principal de créditos/préstamos.
+Credits;installments_count;Número Entero;;-;Obligatorio (NOT NULL);Campo 'installments_count' de la tabla principal de créditos/préstamos.
+Credits;status;Texto;20;-;Obligatorio (NOT NULL);Campo 'status' de la tabla principal de créditos/préstamos.
+Credits;created_at;Fecha y Hora;;-;Opcional (NULL);Campo 'created_at' de la tabla principal de créditos/préstamos.
+Credit_installments;id;Número Entero;;PK;Obligatorio (NOT NULL);Identificador principal. Tabla de cuotas individuales para cada crédito.
+Credit_installments;credit_id;Número Entero;;FK;Obligatorio (NOT NULL);Referencia a credits.id. Tabla de cuotas individuales para cada crédito.
+Credit_installments;number;Número Entero;;-;Obligatorio (NOT NULL);Campo 'number' de la tabla de cuotas individuales para cada crédito.
+Credit_installments;amount;Número Decimal;12,2;-;Obligatorio (NOT NULL);Campo 'amount' de la tabla de cuotas individuales para cada crédito.
+Credit_installments;due_date;Fecha;;-;Opcional (NULL);Campo 'due_date' de la tabla de cuotas individuales para cada crédito.
+Credit_installments;status;Texto;9;-;Obligatorio (NOT NULL);Campo 'status' de la tabla de cuotas individuales para cada crédito.
+Credit_installments;paid_amount;Número Decimal;12,2;-;Obligatorio (NOT NULL);Campo 'paid_amount' de la tabla de cuotas individuales para cada crédito.
+Credit_installments;paid_at;Fecha y Hora;;-;Opcional (NULL);Campo 'paid_at' de la tabla de cuotas individuales para cada crédito.
+Payment_installments;payment_id;Número Entero;;PK, FK;Obligatorio (NOT NULL);Identificador principal. Tabla asociativa entre pagos y cuotas (muchos a muchos).
+Payment_installments;installment_id;Número Entero;;PK, FK;Obligatorio (NOT NULL);Identificador principal. Tabla asociativa entre pagos y cuotas (muchos a muchos).
+Payments;id;Número Entero;;PK;Obligatorio (NOT NULL);Identificador principal. Tabla de pagos realizados por los clientes.
+Payments;credit_id;Número Entero;;FK;Obligatorio (NOT NULL);Referencia a credits.id. Tabla de pagos realizados por los clientes.
+Payments;installment_id;Número Entero;;FK;Opcional (NULL);Referencia a credit_installments.id. Tabla de pagos realizados por los clientes.
+Payments;amount;Número Decimal;12,2;-;Obligatorio (NOT NULL);Campo 'amount' de la tabla de pagos realizados por los clientes.
+Payments;reference_number;Texto;Variable;-;Obligatorio (NOT NULL);Campo 'reference_number' de la tabla de pagos realizados por los clientes.
+Payments;payment_method;Texto;Variable;-;Opcional (NULL);Campo 'payment_method' de la tabla de pagos realizados por los clientes.
+Payments;bank_name;Texto;Variable;-;Opcional (NULL);Campo 'bank_name' de la tabla de pagos realizados por los clientes.
+Payments;status;Texto;11;-;Obligatorio (NOT NULL);Campo 'status' de la tabla de pagos realizados por los clientes.
+Payments;payment_date;Fecha y Hora;;-;Opcional (NULL);Campo 'payment_date' de la tabla de pagos realizados por los clientes.
+Payments;reviewed_at;Fecha y Hora;;-;Opcional (NULL);Campo 'reviewed_at' de la tabla de pagos realizados por los clientes.
+Payments;reviewed_by;Identificador Único (UUID);;-;Opcional (NULL);Campo 'reviewed_by' de la tabla de pagos realizados por los clientes.
+Payments;notes;Texto;Variable;-;Opcional (NULL);Campo 'notes' de la tabla de pagos realizados por los clientes.
+Payments;punctuality_value;Número Decimal;5,2;-;Opcional (NULL);Campo 'punctuality_value' de la tabla de pagos realizados por los clientes.
+Payments;created_at;Fecha y Hora;;-;Opcional (NULL);Campo 'created_at' de la tabla de pagos realizados por los clientes.
+Payments;updated_at;Fecha y Hora;;-;Opcional (NULL);Campo 'updated_at' de la tabla de pagos realizados por los clientes.
+Merchant_payment_settings;id;Identificador Único (UUID);;PK;Obligatorio (NOT NULL);Identificador principal. Configuraciones de métodos de pago para los comerciantes.
+Merchant_payment_settings;merchant_id;Identificador Único (UUID);;FK;Obligatorio (NOT NULL);Referencia a merchants.id. Configuraciones de métodos de pago para los comerciantes.
+Merchant_payment_settings;method_name;Texto;Variable;-;Obligatorio (NOT NULL);Campo 'method_name' de la configuraciones de métodos de pago para los comerciantes.
+Merchant_payment_settings;settings_data;Objeto JSON;;-;Opcional (NULL);Campo 'settings_data' de la configuraciones de métodos de pago para los comerciantes.
+Credit_history;id;Número Entero;;PK;Obligatorio (NOT NULL);Identificador principal. Historial de cambios y auditoría de los créditos.
+Credit_history;credit_id;Número Entero;;FK;Obligatorio (NOT NULL);Referencia a credits.id. Historial de cambios y auditoría de los créditos.
+Credit_history;event;Texto;Variable;-;Obligatorio (NOT NULL);Campo 'event' de la historial de cambios y auditoría de los créditos.
+Credit_history;description;Texto;Variable;-;Opcional (NULL);Campo 'description' de la historial de cambios y auditoría de los créditos.
+Credit_history;created_at;Fecha y Hora;;-;Opcional (NULL);Campo 'created_at' de la historial de cambios y auditoría de los créditos.
+Credit_items;id;Número Entero;;PK;Obligatorio (NOT NULL);Identificador principal. Artículos (productos) asociados a un crédito.
+Credit_items;credit_id;Número Entero;;FK;Obligatorio (NOT NULL);Referencia a credits.id. Artículos (productos) asociados a un crédito.
+Credit_items;product_id;Texto;Variable;-;Obligatorio (NOT NULL);Shopify Product ID
+Credit_items;product_code;Texto;Variable;-;Opcional (NULL);SKU del producto
+Credit_items;product_name;Texto;Variable;-;Obligatorio (NOT NULL);Campo 'product_name' de la artículos (productos) asociados a un crédito.
+Credit_items;unit_price;Número Decimal;12,2;-;Obligatorio (NOT NULL);Campo 'unit_price' de la artículos (productos) asociados a un crédito.
+Credit_items;quantity;Número Entero;;-;Obligatorio (NOT NULL);Campo 'quantity' de la artículos (productos) asociados a un crédito.
+Payment_tokens;id;Identificador Único (UUID);;PK;Obligatorio (NOT NULL);Identificador principal. Tokens generados para procesar pagos seguros.
+Payment_tokens;token;Texto;Variable;-;Obligatorio (NOT NULL);Campo 'token' de la tokens generados para procesar pagos seguros.
+Payment_tokens;payment_id;Número Entero;;FK;Obligatorio (NOT NULL);Referencia a payments.id. Tokens generados para procesar pagos seguros.
+Payment_tokens;merchant_id;Identificador Único (UUID);;FK;Obligatorio (NOT NULL);Referencia a merchants.id. Tokens generados para procesar pagos seguros.
+Payment_tokens;customer_email;Texto;Variable;-;Obligatorio (NOT NULL);Campo 'customer_email' de la tokens generados para procesar pagos seguros.
+Payment_tokens;expires_at;Fecha y Hora;;-;Obligatorio (NOT NULL);Campo 'expires_at' de la tokens generados para procesar pagos seguros.
+Payment_tokens;used_at;Fecha y Hora;;-;Opcional (NULL);Campo 'used_at' de la tokens generados para procesar pagos seguros.
+Payment_tokens;created_at;Fecha y Hora;;-;Opcional (NULL);Campo 'created_at' de la tokens generados para procesar pagos seguros.
+Payment_proofs;id;Número Entero;;PK;Obligatorio (NOT NULL);Identificador principal. Comprobantes de pago subidos por los clientes.
+Payment_proofs;token_id;Identificador Único (UUID);;FK;Obligatorio (NOT NULL);Referencia a payment_tokens.id. Comprobantes de pago subidos por los clientes.
+Payment_proofs;reference_number;Texto;Variable;-;Obligatorio (NOT NULL);Campo 'reference_number' de la comprobantes de pago subidos por los clientes.
+Payment_proofs;bank_name;Texto;Variable;-;Obligatorio (NOT NULL);Campo 'bank_name' de la comprobantes de pago subidos por los clientes.
+Payment_proofs;amount;Número Decimal;12,2;-;Obligatorio (NOT NULL);Campo 'amount' de la comprobantes de pago subidos por los clientes.
+Payment_proofs;notes;Texto;Variable;-;Opcional (NULL);Campo 'notes' de la comprobantes de pago subidos por los clientes.
+Payment_proofs;submitted_at;Fecha y Hora;;-;Opcional (NULL);Campo 'submitted_at' de la comprobantes de pago subidos por los clientes.
+Payment_proofs;status;Texto;Variable;-;Obligatorio (NOT NULL);Campo 'status' de la comprobantes de pago subidos por los clientes.
+Audit_logs;id;Número Entero;;PK;Obligatorio (NOT NULL);Identificador principal. Registros de auditoría de acciones sensibles en el sistema.
+Audit_logs;merchant_id;Identificador Único (UUID);;-;Opcional (NULL);Campo 'merchant_id' de la registros de auditoría de acciones sensibles en el sistema.
+Audit_logs;entity_name;Texto;Variable;-;Obligatorio (NOT NULL);Campo 'entity_name' de la registros de auditoría de acciones sensibles en el sistema.
+Audit_logs;entity_id;Texto;Variable;-;Obligatorio (NOT NULL);Campo 'entity_id' de la registros de auditoría de acciones sensibles en el sistema.
+Audit_logs;action;Texto;Variable;-;Obligatorio (NOT NULL);Campo 'action' de la registros de auditoría de acciones sensibles en el sistema.
+Audit_logs;timestamp;Fecha y Hora;;-;Obligatorio (NOT NULL);Campo 'timestamp' de la registros de auditoría de acciones sensibles en el sistema.
+Audit_logs;changes;Objeto JSON;;-;Opcional (NULL);Campo 'changes' de la registros de auditoría de acciones sensibles en el sistema.

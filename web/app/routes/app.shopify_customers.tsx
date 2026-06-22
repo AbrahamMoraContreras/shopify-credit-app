@@ -226,35 +226,43 @@ export default function ShopifyCustomers() {
       <s-stack gap="large">
         {/* Summary */}
         <s-grid gridTemplateColumns="repeat(5, 1fr)" gap="small" padding="base">
-          <s-grid-item gridColumn="span 5">
+          <s-grid-item gridColumn="span 1">
             <s-section>
               <s-stack alignItems="center" gap="small-200">
                 <s-text color="subdued">Total de clientes registrados</s-text>
                 <s-heading>{totalRegistrados}</s-heading>
               </s-stack>
             </s-section>
+          </s-grid-item>
 
+          <s-grid-item gridColumn="span 1">
             <s-section>
               <s-stack alignItems="center" gap="small-200">
                 <s-text color="subdued">Clientes con Operaciones Activas</s-text>
                 <s-heading>{operacionesActivas}</s-heading>
               </s-stack>
             </s-section>
+          </s-grid-item>
 
+          <s-grid-item gridColumn="span 1">
             <s-section>
               <s-stack alignItems="center" gap="small-200">
                 <s-text color="subdued">Clientes Morosos</s-text>
                 <s-heading>{clientesMorosos}</s-heading>
               </s-stack>
             </s-section>
+          </s-grid-item>
 
+          <s-grid-item gridColumn="span 1">
             <s-section>
               <s-stack alignItems="center" gap="small-200">
                 <s-text color="subdued">Número de cobros pendientes</s-text>
                 <s-heading>{pagosPendientes}</s-heading>
               </s-stack>
             </s-section>
+          </s-grid-item>
 
+          <s-grid-item gridColumn="span 1">
             <s-section>
               <s-stack alignItems="center" gap="small-200">
                 <s-text color="subdued">Número de cobros completados</s-text>

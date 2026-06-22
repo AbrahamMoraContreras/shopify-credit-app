@@ -322,6 +322,14 @@ def _apply_payment_distribution(db: Session, payment: Payment, credit: Credit, t
     if credit.balance <= Decimal("0.10"):
         credit.balance = Decimal("0.00")
         credit.status = CreditStatus.PAGADO
+        
+        # Al pagarse totalmente, cancelar cualquier intento de pago pendiente que haya sobrado
+        db.query(Payment).filter(
+            Payment.credit_id == credit.id,
+            Payment.id != payment.id,
+            Payment.status.in_([PaymentStatus.REGISTRADO, PaymentStatus.EN_REVISION])
+        ).update({"status": PaymentStatus.CANCELADO}, synchronize_session=False)
+        
     else:
         credit.status = CreditStatus.EN_PROGRESO
 
