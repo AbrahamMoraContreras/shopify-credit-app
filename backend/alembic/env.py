@@ -44,8 +44,8 @@ if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
 if DATABASE_URL and DATABASE_URL.startswith("postgresql://"):
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
 
-# Inject URL into Alembic config
-config.set_main_option("sqlalchemy.url", DATABASE_URL)
+# We pass DATABASE_URL directly to context/engine, bypassing config.set_main_option
+# to avoid configparser interpolation bugs with % characters in URL-encoded passwords.
 
 # Metadata for autogenerate support
 target_metadata = Base.metadata
@@ -53,9 +53,8 @@ target_metadata = Base.metadata
 
 def run_migrations_offline():
     """Run migrations without a live DB connection."""
-    url = config.get_main_option("sqlalchemy.url")
     context.configure(
-        url=url,
+        url=DATABASE_URL,
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
@@ -67,9 +66,9 @@ def run_migrations_offline():
 
 def run_migrations_online():
     """Run migrations with a live DB connection."""
-    connectable = engine_from_config(
-        config.get_section(config.config_ini_section),
-        prefix="sqlalchemy.",
+    from sqlalchemy import create_engine
+    connectable = create_engine(
+        DATABASE_URL,
         poolclass=pool.NullPool,
     )
 
