@@ -12,6 +12,10 @@ class PaymentMethod(str, Enum):
     PAGO_MOVIL = "PAGO_MOVIL"
     CASH = "CASH"
     EFECTIVO = "EFECTIVO"
+    BINANCE = "BINANCE"
+    ZELLE = "ZELLE"
+    ZINLI = "ZINLI"
+    DEBITO = "DEBITO"
 
 class PaymentCreditItem(BaseModel):
     product_id: Optional[str] = None
