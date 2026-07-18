@@ -173,7 +173,7 @@ export default function ShopifyCustomers() {
     useLoaderData<typeof loader>();
   const submit = useSubmit();
   const navigation = useNavigation();
-  const [resetting, setResetting] = useState<Record<number, boolean>>({});
+  const [activeModalCustomerId, setActiveModalCustomerId] = useState<number | null>(null);
 
   const handleResetBalance = (shopifyNumericId: number) => {
     if (
@@ -187,6 +187,7 @@ export default function ShopifyCustomers() {
       { intent: "reset-balance", shopifyNumericId: String(shopifyNumericId) },
       { method: "post" },
     );
+    setActiveModalCustomerId(null);
   };
 
   const reputationBadge = (label: string | null) => {
@@ -403,17 +404,13 @@ export default function ShopifyCustomers() {
                           alignItems="center"
                           justifyContent="center"
                         >
-                          {hasSaldo && (
-                            <s-button
-                              id={`reset-balance-${numericId}`}
-                              tone="critical"
-                              onClick={() => handleResetBalance(numericId)}
-                              disabled={resetting[numericId]}
-                              accessibilityLabel="Vaciar saldo a favor del cliente"
-                            >
-                              Vaciar Saldo
-                            </s-button>
-                          )}
+                          <s-button
+                            id={`manage-balance-${numericId}`}
+                            onClick={() => setActiveModalCustomerId(numericId)}
+                            accessibilityLabel="Gestionar saldo a favor del cliente"
+                          >
+                            Gestionar saldo
+                          </s-button>
                           <s-button
                             href={`/app/customer_detail/${numericId}`}
                             accessibilityLabel="Ver detalles del cliente"
@@ -441,6 +438,57 @@ export default function ShopifyCustomers() {
             .
           </s-text>
         </s-stack>
+
+        {/* Modal Gestionar Saldo */}
+        {activeModalCustomerId !== null && (() => {
+          const c = customers.find((c) => getShopifyNumericId(c.id) === activeModalCustomerId);
+          if (!c) return null;
+          const saldo = favorableBalanceMap[activeModalCustomerId] ?? 0;
+          return (
+            <s-modal
+              open={true}
+              onClose={() => setActiveModalCustomerId(null)}
+              title="Gestionar Saldo a Favor"
+            >
+              <s-box padding="base">
+                <s-stack gap="base" direction="block">
+                  <s-text>
+                    Cliente: <strong>{c.displayName}</strong>
+                  </s-text>
+                  <s-text>
+                    Saldo a favor actual: <strong>${saldo.toFixed(2)}</strong>
+                  </s-text>
+                  
+                  {saldo > 0 ? (
+                    <s-paragraph>
+                      Puedes vaciar el saldo a favor de este cliente si es necesario (por ejemplo, si se hizo un reembolso externo o un ajuste manual).
+                    </s-paragraph>
+                  ) : (
+                    <s-paragraph>
+                      Este cliente no tiene saldo a favor actualmente.
+                    </s-paragraph>
+                  )}
+                  
+                  <s-stack direction="inline" gap="small" justifyContent="end">
+                    <s-button variant="secondary" onClick={() => setActiveModalCustomerId(null)}>
+                      Cerrar
+                    </s-button>
+                    {saldo > 0 && (
+                      <s-button
+                        variant="primary"
+                        tone="critical"
+                        onClick={() => handleResetBalance(activeModalCustomerId)}
+                        disabled={navigation.state !== "idle"}
+                      >
+                        Vaciar Saldo
+                      </s-button>
+                    )}
+                  </s-stack>
+                </s-stack>
+              </s-box>
+            </s-modal>
+          );
+        })()}
       </s-stack>
     </s-page>
   );
