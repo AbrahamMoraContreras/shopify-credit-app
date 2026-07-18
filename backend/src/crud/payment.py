@@ -355,34 +355,66 @@ def review_payment(
 
     # LÓGICA DE REVERSIÓN
     if payment.status == PaymentStatus.APROBADO:
-        # Devolvemos el monto original al balance (y si restamos saldo a favor, lo descontamos).
-        # Hacemos que todas las cuotas marcadas en `installments_covered` vuelvan a 0.
         amount_to_reverse = Decimal(str(payment.amount))
+        max_possible_reversal = credit.total_amount - credit.balance
         
-        covered_installments = payment.covered_installments
-        for inst in covered_installments:
-            inst.status = InstallmentStatus.PENDIENTE
-            inst.paid_amount = Decimal("0.00")
-            inst.paid_at = None
-            
-        # Asume que si sobró plata, fue a Saldo a Favor
+        # Determinar cuánto va al balance del crédito y cuánto al saldo a favor
         distribute_excess = "[DISTRIBUTE_EXCESS]" in (payment.notes or "")
-        target_debt = sum([Decimal(str(i.amount)) for i in covered_installments]) # Original debt
+        target_debt = sum([Decimal(str(i.amount)) for i in payment.covered_installments])
         
-        excess = Decimal("0.00")
-        if not distribute_excess and amount_to_reverse > target_debt:
-            excess = amount_to_reverse - target_debt
-        elif amount_to_reverse > (credit.balance + amount_to_reverse): # Aproximación si se pasó del total general
-             pass
-             
-        credit.balance += (amount_to_reverse - excess)
-        if credit.customer and excess > Decimal("0.00"):
-            credit.customer.favorable_balance -= excess
+        if amount_to_reverse > max_possible_reversal:
+            excess_to_revert = amount_to_reverse - max_possible_reversal
+            amount_to_credit = max_possible_reversal
+        elif not distribute_excess and amount_to_reverse > target_debt:
+            amount_to_credit = target_debt
+            excess_to_revert = amount_to_reverse - target_debt
+        else:
+            amount_to_credit = amount_to_reverse
+            excess_to_revert = Decimal("0.00")
+
+        # 1. Revertir balance del crédito
+        credit.balance += amount_to_credit
+        if credit.status == CreditStatus.PAGADO and credit.balance > Decimal("0.00"):
+            credit.status = CreditStatus.EN_PROGRESO
+
+        # 2. Revertir saldo a favor del cliente
+        if credit.customer and excess_to_revert > Decimal("0.00"):
+            credit.customer.favorable_balance -= excess_to_revert
             if credit.customer.favorable_balance < Decimal("0.00"):
                 credit.customer.favorable_balance = Decimal("0.00")
 
-        if credit.status == CreditStatus.PAGADO and credit.balance > 0:
-            credit.status = CreditStatus.EN_PROGRESO
+        # 3. Restar el monto pagado de las cuotas afectadas (hasta agotar amount_to_credit)
+        remaining_to_unpay = amount_to_credit
+        
+        # Primero intentar restar de las cuotas explícitamente marcadas
+        for inst in reversed(payment.covered_installments):
+            if remaining_to_unpay <= Decimal("0.00"):
+                break
+            take_back = min(Decimal(str(inst.paid_amount)), remaining_to_unpay)
+            inst.paid_amount = Decimal(str(inst.paid_amount)) - take_back
+            remaining_to_unpay -= take_back
+            
+            if inst.paid_amount < Decimal(str(inst.amount)):
+                inst.status = InstallmentStatus.PENDIENTE
+                inst.paid_at = None
+
+        # Si aún queda monto por revertir (ej: porque se distribuyó el exceso a otras cuotas), restar de otras cuotas activas
+        if remaining_to_unpay > Decimal("0.00"):
+            other_insts = db.query(CreditInstallment).filter(
+                CreditInstallment.credit_id == credit.id,
+                CreditInstallment.paid_amount > Decimal("0.00")
+            ).order_by(CreditInstallment.number.desc()).all()
+            
+            for inst in other_insts:
+                if remaining_to_unpay <= Decimal("0.00"):
+                    break
+                take_back = min(Decimal(str(inst.paid_amount)), remaining_to_unpay)
+                inst.paid_amount = Decimal(str(inst.paid_amount)) - take_back
+                remaining_to_unpay -= take_back
+                
+                if inst.paid_amount < Decimal(str(inst.amount)):
+                    inst.status = InstallmentStatus.PENDIENTE
+                    inst.paid_at = None
 
     payment.status = status
     payment.reviewed_at = datetime.utcnow()
