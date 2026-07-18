@@ -227,9 +227,9 @@ export default function RegistrePayment() {
     if (actionData?.error) setActionError(actionData.error);
   }, [actionData]);
 
-  // Borrar el banner de error cuando el usuario navega y vuelve
+  // Borrar el banner de error cuando el usuario intenta enviar el formulario nuevamente
   useEffect(() => {
-    if (navigation.state === "loading") {
+    if (navigation.state === "submitting") {
       setActionError(null);
     }
   }, [navigation.state]);

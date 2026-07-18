@@ -15,6 +15,7 @@ class CreditStatus(str, Enum):
 class InstallmentStatus(str, Enum):
     PENDIENTE = "PENDIENTE"
     PAGADA = "PAGADA"
+    VENCIDA = "VENCIDA"
     VENCIDO = "VENCIDO"
     CANCELADA = "CANCELADA"
     NO_PAGADA = "NO_PAGADA"
