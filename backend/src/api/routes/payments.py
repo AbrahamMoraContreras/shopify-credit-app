@@ -218,6 +218,14 @@ def create_payment_token(
         payment_date=datetime.utcnow(),
         notes="Intención de pago generada vía link de cobro"
     )
+    
+    if payload.installment_id:
+        inst = next((i for i in credit.installments if i.id == payload.installment_id), None)
+        if inst:
+            intent.covered_installments.append(inst)
+    elif credit.installments_count > 0:
+        intent.covered_installments = [i for i in credit.installments if not i.paid]
+
     db.add(intent)
     db.commit()
     db.refresh(intent)

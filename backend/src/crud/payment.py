@@ -425,6 +425,9 @@ def review_payment(
     if status == PaymentStatus.APROBADO:
         distribute_excess = "[DISTRIBUTE_EXCESS]" in (payment.notes or "")
         target_ids = [inst.id for inst in payment.covered_installments]
+        
+        if not target_ids and payment.installment_id:
+            target_ids = [payment.installment_id]
             
         _apply_payment_distribution(db, payment, credit, target_ids, distribute_excess, credit.customer)
     elif status == PaymentStatus.NO_PAGADO:
