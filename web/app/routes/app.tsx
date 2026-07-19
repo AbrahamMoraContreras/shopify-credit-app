@@ -283,6 +283,7 @@ function NotificationsBell() {
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
+                            if (!isRead) markAsRead(n.id);
                             setIsOpen(false);
                             navigate(`/app/payment_detail/${paymentId}`);
                           }}

@@ -330,6 +330,16 @@ def _apply_payment_distribution(db: Session, payment: Payment, credit: Credit, t
             Payment.status.in_([PaymentStatus.REGISTRADO, PaymentStatus.EN_REVISION])
         ).update({"status": PaymentStatus.CANCELADO}, synchronize_session=False)
         
+        # Y asegurarnos de que TODAS las cuotas restantes queden en PAGADA
+        db.query(CreditInstallment).filter(
+            CreditInstallment.credit_id == credit.id,
+            CreditInstallment.status != InstallmentStatus.PAGADA
+        ).update({
+            "status": InstallmentStatus.PAGADA,
+            "paid_amount": CreditInstallment.amount,
+            "paid_at": datetime.utcnow()
+        }, synchronize_session=False)
+        
     else:
         credit.status = CreditStatus.EN_PROGRESO
 

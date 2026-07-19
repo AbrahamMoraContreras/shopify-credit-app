@@ -314,8 +314,7 @@ export default function PaymentDetail() {
             {payment.status === "EN_REVISION" && (
               <s-button-group>
                 <s-button
-                  variant="primary"
-                  tone="success"
+                  tone="auto"
                   onClick={() => {
                     if (confirm("¿Seguro que deseas aprobar este pago?")) {
                       submit({ intent: "approve" }, { method: "post" });
@@ -326,7 +325,7 @@ export default function PaymentDetail() {
                   Aprobar Pago
                 </s-button>
                 <s-button
-                  variant="secondary"
+                  variant="primary"
                   tone="critical"
                   onClick={() => {
                     if (confirm("¿Seguro que deseas rechazar este pago?")) {

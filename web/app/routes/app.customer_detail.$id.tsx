@@ -266,14 +266,39 @@ export default function CustomerDetail() {
         alignItems="center"
         slot="primary-action"
       >
-        <s-select value="" onChange={(e: any) => handleExport(e.target.value)}>
-          <s-option value="" disabled>
-            Exportar Datos...
-          </s-option>
-          <s-option value="csv">Exportar a CSV</s-option>
-          <s-option value="xlsx">Exportar a XLSX</s-option>
-          <s-option value="pdf">Exportar a PDF</s-option>
-        </s-select>
+        <s-button
+          variant="secondary"
+          accessibilityLabel="Opciones de exportación"
+          commandFor="export-popover"
+          command="--toggle"
+        >
+          Exportar Datos...
+        </s-button>
+        <s-popover id="export-popover">
+          <s-stack direction="block" gap="small" padding="base">
+            <s-button
+              accessibilityLabel="Exportar como CSV"
+              variant="tertiary"
+              onClick={() => handleExport("csv")}
+            >
+              Exportar a CSV
+            </s-button>
+            <s-button
+              accessibilityLabel="Exportar como Excel (XLSX)"
+              variant="tertiary"
+              onClick={() => handleExport("xlsx")}
+            >
+              Exportar a Excel (XLSX)
+            </s-button>
+            <s-button
+              accessibilityLabel="Exportar como PDF"
+              variant="tertiary"
+              onClick={() => handleExport("pdf")}
+            >
+              Exportar a PDF
+            </s-button>
+          </s-stack>
+        </s-popover>
         <s-button
           href={`shopify:admin/customers/${shopifyCustomerId}`}
           accessibilityLabel="Ver en Shopify Administrador"
