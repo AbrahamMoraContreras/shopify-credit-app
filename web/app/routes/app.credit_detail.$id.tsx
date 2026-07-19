@@ -15,6 +15,7 @@ import {
   AlertCircleIcon,
   EditIcon,
   CheckCircleIcon,
+  EmailIcon,
 } from "@shopify/polaris-icons";
 import { ClientDate } from "../components/ClientDate";
 import { type LoaderFunctionArgs, type ActionFunctionArgs } from "react-router";
@@ -621,15 +622,21 @@ export default function CreditDetail() {
                                           ? "auto"
                                           : undefined
                                     }
-                                    accessibilityLabel="Enviar recordatorio de cuota"
+                                    accessibilityLabel="Enviar recordatorio por Email"
                                   >
-                                    {submittingKey === keystr
-                                      ? "Enviando..."
-                                      : statusMap[keystr] === "sent"
-                                        ? "✓ Enviado"
-                                        : statusMap[keystr] === "error"
-                                          ? "✕ Error"
-                                          : "Enviar Recordatorio"}
+                                    <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                                      {submittingKey === keystr ? (
+                                        "Enviando..."
+                                      ) : statusMap[keystr] === "sent" ? (
+                                        "✓ Enviado"
+                                      ) : statusMap[keystr] === "error" ? (
+                                        "✕ Error"
+                                      ) : (
+                                        <>
+                                          <EmailIcon width="16" height="16" style={{ verticalAlign: "middle" }} /> Email
+                                        </>
+                                      )}
+                                    </span>
                                   </s-button>
                                   {credit.customer?.phone && (
                                     <s-button
@@ -705,15 +712,21 @@ export default function CreditDetail() {
                                 ? "auto"
                                 : undefined
                           }
-                          accessibilityLabel="Enviar recordatorio de deuda"
+                          accessibilityLabel="Enviar recordatorio por Email"
                         >
-                          {submittingKey === "fiado"
-                            ? "Enviando..."
-                            : statusMap["fiado"] === "sent"
-                              ? "✓ Enviado"
-                              : statusMap["fiado"] === "error"
-                                ? "✕ Error"
-                                : "Enviar Recordatorio"}
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                            {submittingKey === "fiado" ? (
+                              "Enviando..."
+                            ) : statusMap["fiado"] === "sent" ? (
+                              "✓ Enviado"
+                            ) : statusMap["fiado"] === "error" ? (
+                              "✕ Error"
+                            ) : (
+                              <>
+                                <EmailIcon width="16" height="16" style={{ verticalAlign: "middle" }} /> Email
+                              </>
+                            )}
+                          </span>
                         </s-button>
                         {credit.customer?.phone && (
                           <s-button
