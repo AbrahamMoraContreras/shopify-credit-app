@@ -267,6 +267,9 @@ def _apply_payment_distribution(db: Session, payment: Payment, credit: Credit, t
     credit.balance -= amount_to_apply_to_credit
     if customer and excess_for_favorable_balance > Decimal("0.00"):
         customer.favorable_balance += excess_for_favorable_balance
+        if not overpayment_match:
+            current_notes = payment.notes or ""
+            payment.notes = f"{current_notes}\n[OVERPAYMENT: {excess_for_favorable_balance}]".strip()
 
     # Colas de cuotas
     distribution_queue = target_installments
@@ -366,21 +369,15 @@ def review_payment(
     # LÓGICA DE REVERSIÓN
     if payment.status == PaymentStatus.APROBADO:
         amount_to_reverse = Decimal(str(payment.amount))
-        max_possible_reversal = credit.total_amount - credit.balance
         
-        # Determinar cuánto va al balance del crédito y cuánto al saldo a favor
-        distribute_excess = "[DISTRIBUTE_EXCESS]" in (payment.notes or "")
-        target_debt = sum([Decimal(str(i.amount)) for i in payment.covered_installments])
-        
-        if amount_to_reverse > max_possible_reversal:
-            excess_to_revert = amount_to_reverse - max_possible_reversal
-            amount_to_credit = max_possible_reversal
-        elif not distribute_excess and amount_to_reverse > target_debt:
-            amount_to_credit = target_debt
-            excess_to_revert = amount_to_reverse - target_debt
+        import re
+        overpayment_match = re.search(r'\[OVERPAYMENT: ([\d.]+)\]', payment.notes or "")
+        if overpayment_match:
+            excess_to_revert = Decimal(overpayment_match.group(1))
         else:
-            amount_to_credit = amount_to_reverse
             excess_to_revert = Decimal("0.00")
+            
+        amount_to_credit = amount_to_reverse - excess_to_revert
 
         # 1. Revertir balance del crédito
         credit.balance += amount_to_credit
@@ -388,10 +385,14 @@ def review_payment(
             credit.status = CreditStatus.EN_PROGRESO
 
         # 2. Revertir saldo a favor del cliente
-        if credit.customer and excess_to_revert > Decimal("0.00"):
-            credit.customer.favorable_balance -= excess_to_revert
-            if credit.customer.favorable_balance < Decimal("0.00"):
-                credit.customer.favorable_balance = Decimal("0.00")
+        if credit.customer:
+            if excess_to_revert > Decimal("0.00"):
+                credit.customer.favorable_balance -= excess_to_revert
+                if credit.customer.favorable_balance < Decimal("0.00"):
+                    credit.customer.favorable_balance = Decimal("0.00")
+                    
+            if payment.payment_method == "Saldo a Favor" or (payment.notes and "Pago aplicado desde Saldo a Favor" in payment.notes):
+                credit.customer.favorable_balance += amount_to_reverse
 
         # 3. Restar el monto pagado de las cuotas afectadas (hasta agotar amount_to_credit)
         remaining_to_unpay = amount_to_credit
