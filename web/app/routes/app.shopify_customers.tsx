@@ -175,7 +175,21 @@ export default function ShopifyCustomers() {
   const navigation = useNavigation();
   const [activeModalCustomerId, setActiveModalCustomerId] = useState<number | null>(null);
 
-  const handleResetBalance = (shopifyNumericId: number) => {
+  const openBalanceModal = (numericId: number) => {
+    setActiveModalCustomerId(numericId);
+    // Use setTimeout to ensure state is set before showing modal
+    setTimeout(() => {
+      (window as any).shopify?.modal?.show("balance-modal");
+    }, 50);
+  };
+
+  const closeBalanceModal = () => {
+    (window as any).shopify?.modal?.hide("balance-modal");
+    setActiveModalCustomerId(null);
+  };
+
+  const handleResetBalance = () => {
+    if (activeModalCustomerId == null) return;
     if (
       !window.confirm(
         "¿Estás seguro de que deseas vaciar el saldo a favor de este cliente? Esta acción no se puede deshacer.",
@@ -184,10 +198,10 @@ export default function ShopifyCustomers() {
       return;
     }
     submit(
-      { intent: "reset-balance", shopifyNumericId: String(shopifyNumericId) },
+      { intent: "reset-balance", shopifyNumericId: String(activeModalCustomerId) },
       { method: "post" },
     );
-    setActiveModalCustomerId(null);
+    closeBalanceModal();
   };
 
   const reputationBadge = (label: string | null) => {
@@ -406,7 +420,7 @@ export default function ShopifyCustomers() {
                         >
                           <s-button
                             id={`manage-balance-${numericId}`}
-                            onClick={() => setActiveModalCustomerId(numericId)}
+                            onClick={() => openBalanceModal(numericId)}
                             accessibilityLabel="Gestionar saldo a favor del cliente"
                           >
                             Gestionar saldo
@@ -439,26 +453,22 @@ export default function ShopifyCustomers() {
           </s-text>
         </s-stack>
 
-        {/* Modal Gestionar Saldo */}
-        {activeModalCustomerId !== null && (() => {
-          const c = customers.find((c) => getShopifyNumericId(c.id) === activeModalCustomerId);
-          if (!c) return null;
-          const saldo = favorableBalanceMap[activeModalCustomerId] ?? 0;
-          return (
-            <s-modal
-              open={true}
-              onClose={() => setActiveModalCustomerId(null)}
-              title="Gestionar Saldo a Favor"
-            >
-              <s-box padding="base">
+        {/* Modal Gestionar Saldo - always in DOM, controlled via shopify.modal API */}
+        <s-modal id="balance-modal">
+          <s-box padding="base">
+            {activeModalCustomerId !== null ? (() => {
+              const selectedCustomer = customers.find((c) => getShopifyNumericId(c.id) === activeModalCustomerId);
+              const saldo = favorableBalanceMap[activeModalCustomerId] ?? 0;
+              return (
                 <s-stack gap="base" direction="block">
+                  <s-heading>Gestionar Saldo a Favor</s-heading>
                   <s-text>
-                    Cliente: <strong>{c.displayName}</strong>
+                    Cliente: <strong>{selectedCustomer?.displayName ?? "—"}</strong>
                   </s-text>
                   <s-text>
                     Saldo a favor actual: <strong>${saldo.toFixed(2)}</strong>
                   </s-text>
-                  
+
                   {saldo > 0 ? (
                     <s-paragraph>
                       Puedes vaciar el saldo a favor de este cliente si es necesario (por ejemplo, si se hizo un reembolso externo o un ajuste manual).
@@ -468,16 +478,16 @@ export default function ShopifyCustomers() {
                       Este cliente no tiene saldo a favor actualmente.
                     </s-paragraph>
                   )}
-                  
+
                   <s-stack direction="inline" gap="small" justifyContent="end">
-                    <s-button variant="secondary" onClick={() => setActiveModalCustomerId(null)}>
+                    <s-button variant="secondary" onClick={() => closeBalanceModal()}>
                       Cerrar
                     </s-button>
                     {saldo > 0 && (
                       <s-button
                         variant="primary"
                         tone="critical"
-                        onClick={() => handleResetBalance(activeModalCustomerId)}
+                        onClick={() => handleResetBalance()}
                         disabled={navigation.state !== "idle"}
                       >
                         Vaciar Saldo
@@ -485,10 +495,12 @@ export default function ShopifyCustomers() {
                     )}
                   </s-stack>
                 </s-stack>
-              </s-box>
-            </s-modal>
-          );
-        })()}
+              );
+            })() : (
+              <s-text>Cargando...</s-text>
+            )}
+          </s-box>
+        </s-modal>
       </s-stack>
     </s-page>
   );
