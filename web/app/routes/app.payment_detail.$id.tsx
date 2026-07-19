@@ -107,7 +107,39 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
         body: JSON.stringify({ status: "CANCELADO" }),
       });
       if (!res.ok) return { error: "Error al cancelar pago" };
-      return { success: true };
+      return { success: true, message: "Pago cancelado correctamente." };
+    } catch {
+      return { error: "Error de red" };
+    }
+  } else if (intent === "approve") {
+    try {
+      const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
+      const res = await fetch(`${BACKEND_URL}/api/payments/${id}/review`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status: "APROBADO" }),
+      });
+      if (!res.ok) return { error: "Error al aprobar pago" };
+      return { success: true, message: "Pago aprobado correctamente." };
+    } catch {
+      return { error: "Error de red" };
+    }
+  } else if (intent === "reject") {
+    try {
+      const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
+      const res = await fetch(`${BACKEND_URL}/api/payments/${id}/review`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status: "RECHAZADO" }),
+      });
+      if (!res.ok) return { error: "Error al rechazar pago" };
+      return { success: true, message: "Pago rechazado correctamente." };
     } catch {
       return { error: "Error de red" };
     }
@@ -119,11 +151,11 @@ export default function PaymentDetail() {
   const { payment, tasaBcv, tasaFecha } = useLoaderData<typeof loader>();
   const submit = useSubmit();
   const navigation = useNavigation();
-  const actionData = useActionData<{ error?: string; success?: boolean }>();
+  const actionData = useActionData<{ error?: string; success?: boolean; message?: string }>();
 
   useEffect(() => {
     if (actionData?.success) {
-      alert("Pago cancelado correctamente.");
+      alert(actionData.message || "Operación exitosa.");
     } else if (actionData?.error) {
       alert(actionData.error);
     }
@@ -279,9 +311,37 @@ export default function PaymentDetail() {
             >
               Exportar
             </s-button>
+            {payment.status === "EN_REVISION" && (
+              <s-button-group>
+                <s-button
+                  variant="primary"
+                  tone="success"
+                  onClick={() => {
+                    if (confirm("¿Seguro que deseas aprobar este pago?")) {
+                      submit({ intent: "approve" }, { method: "post" });
+                    }
+                  }}
+                  accessibilityLabel="Aprobar pago"
+                >
+                  Aprobar Pago
+                </s-button>
+                <s-button
+                  variant="secondary"
+                  tone="critical"
+                  onClick={() => {
+                    if (confirm("¿Seguro que deseas rechazar este pago?")) {
+                      submit({ intent: "reject" }, { method: "post" });
+                    }
+                  }}
+                  accessibilityLabel="Rechazar pago"
+                >
+                  Rechazar Pago
+                </s-button>
+              </s-button-group>
+            )}
             {payment.status !== "CANCELADO" && payment.status !== "RECHAZADO" && (
               <s-button
-                variant="primary"
+                variant={payment.status === "EN_REVISION" ? "secondary" : "primary"}
                 tone="critical"
                 onClick={handleCancel}
                 accessibilityLabel="Cancelar este pago"
