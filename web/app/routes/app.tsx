@@ -69,10 +69,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 import { useState, useEffect } from "react";
-import { useFetcher } from "react-router";
+import { useFetcher, useNavigate } from "react-router";
 
 function NotificationsBell() {
   const fetcher = useFetcher();
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -272,14 +273,19 @@ function NotificationsBell() {
                       </span>
                       {paymentId && (
                         <a
-                          href={`/app/payment_detail/${paymentId}`}
+                          href="#"
                           style={{
                             fontSize: "11px",
                             color: "#008060",
                             textDecoration: "none",
                             fontWeight: 500,
                           }}
-                          onClick={(e) => e.stopPropagation()}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setIsOpen(false);
+                            navigate(`/app/payment_detail/${paymentId}`);
+                          }}
                         >
                           Ver Cobro →
                         </a>
