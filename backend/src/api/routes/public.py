@@ -124,7 +124,7 @@ def get_payment_info(token: str, db: Session = Depends(get_db)):
         if cuotas_activas:
             cuotas = QuotaInfo(
                 cantidad=len(cuotas_activas),
-                valorCuota=cuotas_activas[0].amount
+                valorCuota=payment.amount
             )
 
     fecha_str = credit.created_at.strftime("%d de %B, %Y") if credit else datetime.utcnow().strftime("%d de %B, %Y")

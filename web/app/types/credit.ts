@@ -34,6 +34,10 @@ export interface Installment {
   amount: number;
   due_date: string;
   status: string;
+  paid?: boolean;
+  paid_amount?: number;
+  paid_at?: string | null;
+  reference_number?: string | null;
 }
 
 export interface CreditItem {

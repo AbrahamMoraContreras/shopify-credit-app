@@ -609,7 +609,7 @@ export default function CreditDetail() {
                                     onClick={() =>
                                       handleSendReminder(
                                         inst.id,
-                                        Number(inst.amount),
+                                        Number(inst.amount) - Number(inst.paid_amount || 0),
                                       )
                                     }
                                     disabled={
@@ -647,7 +647,8 @@ export default function CreditDetail() {
                                           return;
                                         }
                                         const phone = cleanPhoneForWhatsApp(credit.customer!.phone!);
-                                        let msg = `Hola ${credit.customer!.full_name}, le recordamos que tiene un pago pendiente de $${Number(inst.amount).toFixed(2)} correspondiente al Credito #${credit.id} (Cuota #${inst.number}). Por favor, realice su pago a la brevedad posible.`;
+                                        const remainingAmount = (Number(inst.amount) - Number(inst.paid_amount || 0)).toFixed(2);
+                                        let msg = `Hola ${credit.customer!.full_name}, le recordamos que tiene un pago pendiente de $${remainingAmount} correspondiente al Credito #${credit.id} (Cuota #${inst.number}). Por favor, realice su pago a la brevedad posible.`;
                                         
                                         if (urlsMap[keystr]) {
                                           msg += `\n\nPuede confirmar y pagar su deuda directamente en el siguiente enlace: ${urlsMap[keystr]}`;
