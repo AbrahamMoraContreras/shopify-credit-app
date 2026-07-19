@@ -195,6 +195,8 @@ def submit_payment_proof(payload: ProofSubmission, db: Session = Depends(get_db)
         raise HTTPException(status_code=410, detail="El enlace ha expirado.")
     if pt.proof:
         raise HTTPException(status_code=409, detail="Ya se reportó un comprobante para este pago.")
+    if payload.amount <= 0:
+        raise HTTPException(status_code=400, detail="El monto del pago debe ser mayor a cero.")
 
     from models.enums import PaymentStatus
     payment = db.query(Payment).filter(Payment.id == pt.payment_id).first()

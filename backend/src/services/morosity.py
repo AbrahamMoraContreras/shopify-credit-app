@@ -12,7 +12,7 @@ def process_morosity(db: Session) -> int:
         db.query(CreditInstallment)
         .filter(
             CreditInstallment.due_date < today,
-            CreditInstallment.status != InstallmentStatus.PAGADA
+            CreditInstallment.status == InstallmentStatus.PENDIENTE
         )
         .all()
     )

@@ -207,6 +207,9 @@ def create_payment_token(
         
     if credit.merchant_id != merchant_id:
         raise HTTPException(status_code=403, detail="Acceso denegado al crédito.")
+        
+    if payload.amount <= 0:
+        raise HTTPException(status_code=400, detail="El monto del pago debe ser mayor a cero.")
 
     intent = Payment(
         credit_id=payload.credit_id,
