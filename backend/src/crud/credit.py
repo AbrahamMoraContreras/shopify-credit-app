@@ -214,25 +214,19 @@ def update_credit(db: Session, credit: Credit, payload: CreditUpdate):
     db.refresh(credit)
     return credit
 
-def delete_credit(db: Session, credit: Credit):
-    merchant_id = credit.customer.merchant_id
-    credit_id = credit.id
-    db.delete(credit)
-    db.commit()
-    log_audit_action(
-        db=db,
-        merchant_id=merchant_id,
-        entity_name="CREDIT",
-        action="DELETE_CREDIT",
-        entity_id=str(credit_id),
-        changes={"action": "Credit deleted"}
-    )
-
 def cancel_credit(db: Session, credit: Credit):
+    # Revertir financieramente todos los pagos aprobados primero
+    from crud.payment import review_payment
+    from models.enums import PaymentStatus
+    merchant_id = credit.customer.merchant_id
+    for p in credit.payments:
+        if getattr(p.status, "value", p.status) == "APROBADO":
+            review_payment(db, p.id, PaymentStatus.CANCELADO, merchant_id, notes="Reversión automática por cancelación de crédito")
+
     credit.status = CreditStatus.CANCELADO
     # Cancelar cuotas pendientes o vencidas para que no aparezcan en pagos esperados
     for inst in credit.installments:
-        if inst.status in [InstallmentStatus.PENDIENTE, InstallmentStatus.VENCIDO]:
+        if getattr(inst.status, "value", inst.status) in ["PENDIENTE", "VENCIDO"]:
             inst.status = InstallmentStatus.CANCELADA
     
     _log_history(db, credit.id, "CREDITO_CANCELADO", "El crédito fue cancelado manualmente")

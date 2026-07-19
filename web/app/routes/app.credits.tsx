@@ -162,15 +162,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
 
-  if (intent === "delete") {
-    const res = await fetch(`${BACKEND_URL}/api/credits/${id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    if (!res.ok) return { error: "No se pudo eliminar el crédito" };
-    return { success: true };
-  }
-
   if (intent === "cancel") {
     try {
         const res = await fetch(`${BACKEND_URL}/api/credits/${id}/cancel`, {
@@ -258,15 +249,6 @@ export default function CreditHistorial() {
       currency: "USD",
     }).format(Number(amount));
   };
-
-  async function handleDelete(id: number) {
-    const confirmed = window.confirm(
-      "¿Seguro que deseas eliminar este crédito? Esta acción no se puede deshacer.",
-    );
-    if (!confirmed) return;
-
-    submit({ intent: "delete", id: id.toString() }, { method: "post" });
-  }
 
   async function handleCancel(id: number, e: Event) {
     if (e && e.preventDefault) e.preventDefault();
@@ -766,18 +748,6 @@ export default function CreditHistorial() {
                         accessibilityLabel="Cancelar este crédito y anular cuotas pendientes"
                       >
                         Cancelar
-                      </s-button>
-                    </s-button-group>
-                    <s-button-group>
-                      <s-button
-                        slot="secondary-actions"
-                        variant="secondary"
-                        tone="critical"
-                        icon="delete"
-                        onClick={() => handleDelete(credit.id)}
-                        accessibilityLabel="Eliminar permanentemente este registro de crédito"
-                      >
-                        Eliminar
                       </s-button>
                     </s-button-group>
                   </s-stack>

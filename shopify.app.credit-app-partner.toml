@@ -1,7 +1,7 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "d18e2cf79009e12e8b74d3d7ea5a6aba"
-name = "credit-app-partner"
+name = "FÍAME APP"
 application_url = "https://shopify-credit-app-frontend.onrender.com"
 embedded = true
 handle = "opentech-credit-app-test"

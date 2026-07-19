@@ -199,7 +199,8 @@ def api_adjust_favorable_balance(
     merchant_id: str = Depends(get_merchant_id)
 ):
     from decimal import Decimal
-    obj = get_customer(db=db, customer_id=customer_id)
+    from models.customer import Customer as CustomerModel
+    obj = db.query(CustomerModel).with_for_update().filter(CustomerModel.id == customer_id).first()
 
     if not obj:
         raise HTTPException(status_code=404, detail="Customer not found")

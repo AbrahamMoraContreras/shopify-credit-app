@@ -121,7 +121,7 @@ def create_payment(
     merchant_id,
 ):
     credit_id = payload.credit_id
-    credit = db.get(Credit, credit_id)
+    credit = db.query(Credit).with_for_update().filter(Credit.id == credit_id).first()
 
     if not credit: raise ValueError("Credit not found")
     if str(credit.customer.merchant_id) != str(merchant_id):
@@ -143,7 +143,7 @@ def create_payment(
 
     # Logica de saldo a favor
     if payload.use_favorable_balance:
-        customer = credit.customer
+        customer = db.query(Customer).with_for_update().filter(Customer.id == credit.customer_id).first()
         if not customer:
             raise ValueError("No se encontró el cliente asociado al crédito.")
 
@@ -354,7 +354,7 @@ def review_payment(
     reviewer_id,
     notes: str | None = None,
 ):
-    payment = db.query(Payment).filter(Payment.id == payment_id).first()
+    payment = db.query(Payment).with_for_update().filter(Payment.id == payment_id).first()
 
     if not payment:
         raise HTTPException(status_code=400, detail="Pago no encontrado")
@@ -362,7 +362,7 @@ def review_payment(
     if payment.status == status:
         return payment
 
-    credit = db.query(Credit).filter(Credit.id == payment.credit_id).first()
+    credit = db.query(Credit).with_for_update().filter(Credit.id == payment.credit_id).first()
     if not credit:
         raise HTTPException(status_code=400, detail="Crédito no encontrado")
 

@@ -161,23 +161,6 @@ def update_credit_endpoint(
     return update_credit(db, credit, payload)
 
 
-@router.delete("/{credit_id}", tags=["credits"], status_code=status.HTTP_204_NO_CONTENT)
-def delete_credit_endpoint(
-    credit_id: int,
-    db: Session = Depends(get_db),
-    merchant_id: UUID = Depends(get_merchant_id),
-):
-    credit = get_credit(db, credit_id)
-
-    if not credit:
-        raise HTTPException(status_code=404, detail="Credit not found")
-
-    if credit.merchant_id != merchant_id:
-        raise HTTPException(status_code=403, detail="Access denied")
-
-    delete_credit(db, credit)
-    return None
-
 @router.put("/{credit_id}/cancel", response_model=CreditResponse, tags=["credits"])
 def cancel_credit_endpoint(
     credit_id: int,

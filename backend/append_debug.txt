@@ -1,0 +1,10 @@
+
+@router.get("/debug")
+def list_payments_debug(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), merchant_id: UUID = Depends(require_access_token)):
+    from crud.payment import list_payments
+    import traceback
+    try:
+        res = list_payments(db=db, merchant_id=merchant_id, skip=skip, limit=limit)
+        return {"status": "success", "count": len(res)}
+    except Exception as e:
+        return {"status": "error", "error": str(e), "traceback": traceback.format_exc()}

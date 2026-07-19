@@ -1,0 +1,23 @@
+# Reporte de Auditoría: Bugs Críticos Adicionales
+
+Tras realizar una revisión profunda de la arquitectura lógica completa de la aplicación (incluyendo transacciones, transiciones de estado, y concurrencia), he identificado las siguientes vulnerabilidades críticas que comprometen la integridad financiera del sistema:
+
+## 1. Condiciones de Carrera Financieras (Double-Spend & Double-Deduct)
+**Ubicación:** `backend/src/crud/payment.py` (`review_payment` y `registre_payment`)
+**Problema:** 
+El sistema actualmente no implementa bloqueos de fila a nivel de base de datos (`with_for_update()`) durante las transacciones financieras. Esto abre la puerta a dos problemas graves:
+*   **Doble Deducción (Double-Deduct):** Si un administrador presiona el botón de "Aprobar Pago" dos veces rápidamente (o si hay un error de red que envía la petición duplicada), el backend procesa ambas peticiones en paralelo. Ambas leen el estado `EN_REVISION`, ambas ejecutan la distribución del pago, y el balance del crédito se reduce **dos veces** por un solo pago.
+*   **Doble Gasto (Double-Spend):** Si un cliente tiene $100 en "Saldo a Favor" y genera múltiples peticiones de pago simultáneas, todas leerán en memoria que tiene $100 disponibles, permitiéndole pagar múltiples deudas de $100 gastando el mismo saldo, causando pérdidas directas al comercio.
+
+**Solución Recomendada:** Implementar bloqueos pesimistas (`db.query(...).with_for_update()`) en las filas de `Credit`, `Customer` y `Payment` al inicio de cualquier función que modifique balances financieros.
+
+---
+
+## 2. Fuga de Capital por Eliminación de Créditos
+**Ubicación:** `backend/src/crud/credit.py` (`delete_credit`)
+**Problema:**
+Cuando un administrador elimina un crédito por completo (`delete_credit`), la base de datos elimina automáticamente todos los pagos asociados mediante restricciones de cascada (`ON DELETE CASCADE`). Sin embargo, el código **jamás revierte financieramente** esos pagos antes de que sean destruidos. 
+Si uno de esos pagos había generado un excedente hacia el `favorable_balance` del cliente, al eliminar el crédito, los pagos desaparecen de la base de datos, pero el cliente se queda con ese saldo a favor intacto. El sistema literalmente "creó dinero de la nada" porque se eliminó el registro de la deuda, pero el reembolso quedó en la cuenta del cliente.
+
+**Solución Recomendada:**
+Modificar la función `delete_credit` para que itere sobre todos los pagos `APROBADO` del crédito y llame a `review_payment(..., PaymentStatus.RECHAZADO)` antes de proceder con la eliminación física en la base de datos. Esto garantizará que todos los side-effects financieros se deshagan limpiamente.
