@@ -25,35 +25,63 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 
   if (!custRes.ok) throw new Error("Error fetching customer");
   const customers = await custRes.json();
-  const customer = customers.length > 0 ? customers[0] : null;
+  let customer = customers.length > 0 ? customers[0] : null;
 
-  if (!customer)
-    throw new Error("Customer no encontrado en la base de datos interna");
+  if (!customer) {
+    // Si no está en el backend, buscar en Shopify para mostrar perfil vacío
+    const shopifyRes = await admin.graphql(
+      `query { customer(id: "gid://shopify/Customer/${shopifyCustomerId}") { displayName email phone } }`
+    );
+    const shopifyData = await shopifyRes.json();
+    const sc = shopifyData.data?.customer;
+    
+    if (!sc) {
+      throw new Error("Cliente no existe ni en Shopify ni en el sistema.");
+    }
 
-  const creditsRes = await fetch(
-    `${BACKEND_URL}/api/credits?customer_id=${customer.id}`,
-    {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    },
-  );
-  const credits = creditsRes.ok ? await creditsRes.json() : [];
+    customer = {
+      id: null,
+      full_name: sc.displayName,
+      email: sc.email,
+      phone: sc.phone,
+      favorable_balance: 0,
+      punctuality_score: null,
+      reputation: "sin_historial",
+      is_virtual: true
+    };
+  }
 
-  const paymentsPromises = credits.map((c: any) =>
-    fetch(`${BACKEND_URL}/api/credits/payments/by-credit/${c.id}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    }).then((res) => (res.ok ? res.json() : [])),
-  );
+  // Solo cargar créditos y pagos si el cliente existe en el backend
+  let credits = [];
+  let allPayments = [];
+  let balanceHistory = [];
 
-  const paymentsArrays = await Promise.all(paymentsPromises);
-  const allPayments = paymentsArrays.flat();
+  if (customer.id) {
+    const creditsRes = await fetch(
+      `${BACKEND_URL}/api/credits?customer_id=${customer.id}`,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      },
+    );
+    credits = creditsRes.ok ? await creditsRes.json() : [];
 
-  const balanceHistoryRes = await fetch(
-    `${BACKEND_URL}/api/audit/customer/${customer.id}/balance-history`,
-    {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    },
-  );
-  const balanceHistory = balanceHistoryRes.ok ? await balanceHistoryRes.json() : [];
+    const paymentsPromises = credits.map((c: any) =>
+      fetch(`${BACKEND_URL}/api/credits/payments/by-credit/${c.id}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      }).then((res) => (res.ok ? res.json() : [])),
+    );
+
+    const paymentsArrays = await Promise.all(paymentsPromises);
+    allPayments = paymentsArrays.flat();
+
+    const balanceHistoryRes = await fetch(
+      `${BACKEND_URL}/api/audit/customer/${customer.id}/balance-history`,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      },
+    );
+    balanceHistory = balanceHistoryRes.ok ? await balanceHistoryRes.json() : [];
+  }
 
   return { customer, credits, allPayments, shopifyCustomerId, balanceHistory };
 };
@@ -189,7 +217,7 @@ export default function CustomerDetail() {
     const summaryData = [
       ["Nombre", customer.full_name || ""],
       ["Email", customer.email || "Sin correo registrado"],
-      ["ID Interno", customer.id?.toString() || ""],
+      ["ID Interno", customer.id?.toString() || "N/A"],
       ["ID Shopify", shopifyCustomerId?.toString() || ""],
       ["Deuda Total Pendiente", `$${totalDebt.toFixed(2)}`],
       [
@@ -234,9 +262,9 @@ export default function CustomerDetail() {
         const wbCsv = XLSX.utils.book_new();
         const wsCombined = XLSX.utils.aoa_to_sheet(allData);
         XLSX.utils.book_append_sheet(wbCsv, wsCombined, "Export");
-        XLSX.writeFile(wbCsv, `cliente_${customer.id}.csv`);
+        XLSX.writeFile(wbCsv, `cliente_${customer.id ?? shopifyCustomerId}.csv`);
       } else {
-        XLSX.writeFile(wb, `cliente_${customer.id}.xlsx`);
+        XLSX.writeFile(wb, `cliente_${customer.id ?? shopifyCustomerId}.xlsx`);
       }
     } else if (format === "pdf") {
       const doc = new jsPDF();
@@ -254,7 +282,7 @@ export default function CustomerDetail() {
         });
       }
 
-      doc.save(`cliente_${customer.id}.pdf`);
+      doc.save(`cliente_${customer.id ?? shopifyCustomerId}.pdf`);
     }
   };
 
@@ -308,6 +336,11 @@ export default function CustomerDetail() {
       </s-stack>
 
       <s-stack gap="base">
+        {customer.is_virtual && (
+          <s-banner tone="info" heading="Perfil Virtual">
+            <s-text>Este cliente aún no ha solicitado créditos ni realizado pagos. Su perfil está en modo virtual y se registrará formalmente al emitir su primer crédito.</s-text>
+          </s-banner>
+        )}
         <s-grid gridTemplateColumns="fr" alignItems="center" gap="base">
           <s-stack alignItems="center" gap="base" padding="base">
             <s-section accessibilityLabel="Sección de detalles del cliente">
@@ -320,7 +353,7 @@ export default function CustomerDetail() {
                 </s-text>
                 <s-divider />
                 <s-text color="subdued">
-                  ID Interno: {customer.id} | ID Shopify: {shopifyCustomerId}
+                  ID Interno: {customer.id ?? "N/A"} | ID Shopify: {shopifyCustomerId}
                 </s-text>
               </s-stack>
             </s-section>
@@ -346,6 +379,7 @@ export default function CustomerDetail() {
                 variant="secondary" 
                 onClick={() => setIsBalanceModalOpen(true)}
                 accessibilityLabel="Gestionar saldo a favor"
+                disabled={customer.is_virtual}
               >
                 Gestionar Saldo
               </s-button>
