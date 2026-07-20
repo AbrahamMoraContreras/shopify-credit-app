@@ -143,9 +143,22 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   let tasaBcv: number | null = null;
   let tasaFecha: string | null = null;
 
-  try {
-    const csvRes = await fetch(SPREADSHEET_CSV_URL);
-    if (csvRes.ok) {
+  const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
+  const [paymentsRes, proofsRes, csvRes] = await Promise.all([
+    fetch(`${BACKEND_URL}/api/payments?${params.toString()}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }),
+    fetch(`${BACKEND_URL}/api/payments/payment-proofs?status=PENDIENTE`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }),
+    fetch(SPREADSHEET_CSV_URL).catch((e) => {
+      console.error("[payments] Failed to fetch BCV rate:", e);
+      return null;
+    })
+  ]);
+
+  if (csvRes && csvRes.ok) {
+    try {
       const text = await csvRes.text();
       const lines = text.trim().split("\n").filter((l) => l.trim());
       const lastLine = lines[lines.length - 1];
@@ -157,20 +170,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       if (dateMatch) {
         tasaFecha = dateMatch[1];
       }
+    } catch (e) {
+      console.error("[payments] Error parsing BCV rate CSV:", e);
     }
-  } catch (e) {
-    console.error("[payments] Failed to fetch BCV rate:", e);
   }
-
-  const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
-  const [paymentsRes, proofsRes] = await Promise.all([
-    fetch(`${BACKEND_URL}/api/payments?${params.toString()}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    }),
-    fetch(`${BACKEND_URL}/api/payments/payment-proofs?status=PENDIENTE`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    }),
-  ]);
 
   const payments = await paymentsRes.json();
   const proofs = await proofsRes.json();

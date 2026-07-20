@@ -59,3 +59,31 @@ class CreditResponse(BaseModel):
     installments: List[InstallmentResponse] = []
     items: List[CreditItemResponse] = []
     model_config = ConfigDict(from_attributes=True)
+class CustomerSummary(BaseModel):
+    id: int
+    full_name: str
+    email: Optional[str] = None
+    shopify_customer_id: Optional[int] = None
+    
+    class Config:
+        from_attributes = True
+
+class CreditListItemResponse(BaseModel):
+    id: int
+    customer_id: int
+    merchant_id: uuid.UUID
+    concept: str
+    total_amount: Decimal
+    balance: Decimal
+    last_payment_amount: Optional[Decimal] = None
+    last_payment_notes: Optional[str] = None
+    last_payment_date: Optional[datetime] = None
+    last_payment_method: Optional[str] = None
+    last_payment_reference: Optional[str] = None
+    installments_count: int
+    status: CreditStatus
+    created_at: datetime
+    customer: Optional[CustomerSummary] = None
+
+    class Config:
+        from_attributes = True

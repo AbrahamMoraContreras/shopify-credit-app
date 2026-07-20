@@ -6,7 +6,7 @@ from uuid import UUID
 from schemas.payment import PaymentResponse
 from models.payment import Payment
 from core.dependencies import get_db, get_merchant_id
-from schemas.credit import CreditCreate, CreditUpdate, CreditResponse, CreditStatus
+from schemas.credit import CreditCreate, CreditUpdate, CreditResponse, CreditStatus, CreditListItemResponse
 from crud.credit import (
     create_credit,
     list_credits,
@@ -86,7 +86,7 @@ def create_credit_endpoint(
 
 @router.get(
     "",
-    response_model=List[CreditResponse],
+    response_model=List[CreditListItemResponse],
 )
 def list_credits_endpoint(
     status: Optional[List[CreditStatus]] = Query(None),
