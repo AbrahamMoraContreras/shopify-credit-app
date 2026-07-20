@@ -36,7 +36,18 @@ def _generate_installments(total_amount, installments_count, first_due_date, fre
     
     current_due_date = first_due_date
     for i in range(1, installments_count + 1):
-        # Incrementar la fecha de vencimiento antes de agregar la cuota a la lista
+        if i == installments_count:
+            amount = total - accumulated
+        else:
+            amount = base_amount
+            accumulated += base_amount
+        
+        installments.append({
+            "number": i,
+            "amount": float(amount),
+            "due_date": current_due_date,
+            "status": InstallmentStatus.PENDIENTE
+        })
 
         if frequency == "quincenal":
             current_due_date += timedelta(days=15)
@@ -52,19 +63,6 @@ def _generate_installments(total_amount, installments_count, first_due_date, fre
                 import calendar
                 last_day = calendar.monthrange(year, month)[1]
                 current_due_date = date(year, month, last_day)
-
-        if i == installments_count:
-            amount = total - accumulated
-        else:
-            amount = base_amount
-            accumulated += base_amount
-        
-        installments.append({
-            "number": i,
-            "amount": float(amount),
-            "due_date": current_due_date,
-            "status": InstallmentStatus.PENDIENTE
-        })
 
     return installments
 
@@ -111,6 +109,10 @@ def create_credit(db: Session, merchant_id: str, payload: CreditCreate):
 
     # Items del crédito
     if payload.items:
+        calculated_total = sum((Decimal(str(item.unit_price)) * Decimal(str(item.quantity))) for item in payload.items)
+        if abs(calculated_total - Decimal(str(payload.total_amount))) > Decimal("0.05"):
+            raise ValueError(f"La suma de los artículos ({calculated_total}) no coincide con el total_amount ({payload.total_amount}).")
+
         items_to_add = [
             CreditItem(
                 credit_id=credit.id,
@@ -220,13 +222,16 @@ def cancel_credit(db: Session, credit: Credit):
     from models.enums import PaymentStatus
     merchant_id = credit.customer.merchant_id
     for p in credit.payments:
-        if getattr(p.status, "value", p.status) == "APROBADO":
-            review_payment(db, p.id, PaymentStatus.CANCELADO, merchant_id, notes="Reversión automática por cancelación de crédito")
+        p_status = getattr(p.status, "value", p.status)
+        if p_status == "APROBADO":
+            review_payment(db, p.id, PaymentStatus.CANCELADO, merchant_id, notes="Reversión automática por cancelación de crédito", auto_commit=False)
+        elif p_status == "EN_REVISION":
+            review_payment(db, p.id, PaymentStatus.RECHAZADO, merchant_id, notes="Pago rechazado automáticamente por cancelación de crédito", auto_commit=False)
 
     credit.status = CreditStatus.CANCELADO
     # Cancelar cuotas pendientes o vencidas para que no aparezcan en pagos esperados
     for inst in credit.installments:
-        if getattr(inst.status, "value", inst.status) in ["PENDIENTE", "VENCIDO"]:
+        if getattr(inst.status, "value", inst.status) in ["PENDIENTE", "VENCIDA", "NO_PAGADA"]:
             inst.status = InstallmentStatus.CANCELADA
     
     _log_history(db, credit.id, "CREDITO_CANCELADO", "El crédito fue cancelado manualmente")

@@ -12,7 +12,7 @@ import uuid
 class CreditBase(BaseModel):
     customer_id: int
     concept: str
-    total_amount: Decimal
+    total_amount: Decimal = Field(..., gt=0)
 
 
 from schemas.credit_item import CreditItemResponse, CreditItemCreate
@@ -23,8 +23,8 @@ class CreditCreate(BaseModel):
     customer_email: Optional[str] = None
     customer_phone: Optional[str] = None
     concept: str
-    total_amount: Decimal
-    installments_count: int
+    total_amount: Decimal = Field(..., gt=0)
+    installments_count: int = Field(..., ge=0)
     first_due_date: Optional[date] = None
     frequency: Optional[str] = None  # "quincenal" | "mensual"
     status: Optional[CreditStatus] = None

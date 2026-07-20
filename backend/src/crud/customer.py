@@ -24,11 +24,11 @@ def get_customer_by_email(db: Session, email: str) -> Optional[CustomerModel]:
     return db.query(CustomerModel).filter(CustomerModel.email.ilike(email)).first()
 
 def create_customer(db: Session, payload: CustomerCreate) -> CustomerModel:
-    q = db.query(CustomerModel)
+    q = db.query(CustomerModel).filter(CustomerModel.merchant_id == payload.merchant_id)
     if payload.email:
         exists = q.filter(CustomerModel.email == payload.email).first()
         if exists:
-            raise ValueError("Email already registered for another customer.")
+            raise ValueError("Email already registered for another customer in your store.")
 
     db_obj = CustomerModel(
         merchant_id=payload.merchant_id,
@@ -44,9 +44,13 @@ def create_customer(db: Session, payload: CustomerCreate) -> CustomerModel:
 
 def update_customer(db: Session, db_obj: CustomerModel, updates: CustomerUpdate) -> CustomerModel:
     if updates.email and updates.email != db_obj.email:
-        exists = db.query(CustomerModel).filter(CustomerModel.email == updates.email, CustomerModel.id != db_obj.id).first()
+        exists = db.query(CustomerModel).filter(
+            CustomerModel.email == updates.email, 
+            CustomerModel.id != db_obj.id,
+            CustomerModel.merchant_id == db_obj.merchant_id
+        ).first()
         if exists:
-            raise ValueError("Email already used by another customer.")
+            raise ValueError("Email already used by another customer in your store.")
 
     for field, value in updates.model_dump(exclude_unset=True).items():
         setattr(db_obj, field, value)

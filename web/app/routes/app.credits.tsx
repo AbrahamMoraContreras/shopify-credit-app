@@ -164,6 +164,61 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   if (intent === "cancel") {
     try {
+        // Restaurar inventario en Shopify antes de cancelar en backend
+        const creditRes = await fetch(`${BACKEND_URL}/api/credits/${id}`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        
+        if (creditRes.ok) {
+            const creditData = await creditRes.json();
+            const items = creditData.items || [];
+            if (items.length > 0) {
+                const inventoryAdjustments = [];
+                for (const item of items) {
+                    try {
+                        const gqlRes = await admin.graphql(`
+                          query {
+                            productVariant(id: "${item.product_id}") {
+                              inventoryItem {
+                                id
+                              }
+                            }
+                          }
+                        `);
+                        const gqlData = await gqlRes.json();
+                        const invItemId = gqlData.data?.productVariant?.inventoryItem?.id;
+                        if (invItemId) {
+                            inventoryAdjustments.push({
+                                inventoryItemId: invItemId,
+                                delta: item.quantity // Restoring positive delta
+                            });
+                        }
+                    } catch (e) {
+                        console.error("Error fetching inventory item for variant:", item.product_id, e);
+                    }
+                }
+                
+                if (inventoryAdjustments.length > 0) {
+                    const inventoryMutation = `
+                      mutation inventoryAdjustQuantities($input: InventoryAdjustQuantitiesInput!) {
+                        inventoryAdjustQuantities(input: $input) {
+                          userErrors { field message }
+                        }
+                      }
+                    `;
+                    await admin.graphql(inventoryMutation, {
+                      variables: {
+                        input: {
+                          reason: "correction",
+                          name: "available",
+                          changes: inventoryAdjustments
+                        }
+                      }
+                    });
+                }
+            }
+        }
+
         const res = await fetch(`${BACKEND_URL}/api/credits/${id}/cancel`, {
         method: "PUT",
         headers: { 

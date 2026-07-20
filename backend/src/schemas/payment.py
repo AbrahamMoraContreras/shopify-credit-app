@@ -54,7 +54,7 @@ class PaymentCreditSummary(BaseModel):
 
 class PaymentBase(BaseModel):
     credit_id: int
-    amount: Decimal
+    amount: Decimal = Field(..., gt=0)
     bank_name: Optional[str] = None
     bank_sender: Optional[str] = None
     document_id_sender: Optional[str] = None
@@ -79,13 +79,13 @@ class PaymentCreate(BaseModel):
     credit_id: int
     apply_to_installments: List[int] = []
     distribute_excess: bool = False
-    amount: float
+    amount: float = Field(..., gt=0, description="El monto del pago debe ser estrictamente mayor a 0")
     payment_method: PaymentMethod  # BANK | PAYPAL | PAGO_MOVIL
     reference_number: str
     payment_date: datetime
     use_favorable_balance: bool = False
     notes: Optional[str] = None
-    punctuality_feedback: Optional[float] = Field(None, description="100=Puntual, 50=Retrasado, 0=No pago (Para Fiados)")
+    punctuality_feedback: Optional[float] = Field(None, ge=0, le=100, description="100=Puntual, 50=Retrasado, 0=No pago (Para Fiados)")
     model_config = {"from_attributes" : True}
 
 

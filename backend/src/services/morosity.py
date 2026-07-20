@@ -20,7 +20,7 @@ def process_morosity(db: Session) -> int:
     affected_credits = set()
 
     for installment in overdue_installments:
-        installment.status = InstallmentStatus.VENCIDO
+        installment.status = InstallmentStatus.VENCIDA
         affected_credits.add(installment.credit_id)
 
     # 2️⃣ Créditos → MOROSO

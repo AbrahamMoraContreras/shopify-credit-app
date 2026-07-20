@@ -133,7 +133,10 @@ def create_payment(
 
     covered_installments = []
     if payload.apply_to_installments:
-        covered_installments = db.query(CreditInstallment).filter(CreditInstallment.id.in_(payload.apply_to_installments)).all()
+        covered_installments = db.query(CreditInstallment).filter(
+            CreditInstallment.id.in_(payload.apply_to_installments),
+            CreditInstallment.credit_id == credit.id
+        ).all()
     
     notes = payload.notes or ""
     if payload.distribute_excess:
@@ -155,14 +158,16 @@ def create_payment(
 
         customer.favorable_balance -= amount_to_apply
 
+        favorable_note = "Pago aplicado desde Saldo a Favor."
+        final_notes = f"{notes}\n{favorable_note}".strip() if notes else favorable_note
         payment = Payment(
             credit_id=credit.id,
             amount=amount_to_apply,
-            payment_method=payload.payment_method,
+            payment_method="Saldo a Favor",
             reference_number=payload.reference_number,
             status=PaymentStatus.APROBADO,
             payment_date=datetime.utcnow(),
-            notes=notes if notes else "Pago aplicado desde Saldo a Favor.",
+            notes=final_notes,
             punctuality_value=payment_punctuality,
             covered_installments=covered_installments
         )
@@ -344,7 +349,14 @@ def _apply_payment_distribution(db: Session, payment: Payment, credit: Credit, t
         }, synchronize_session=False)
         
     else:
-        credit.status = CreditStatus.EN_PROGRESO
+        has_overdue = db.query(CreditInstallment).filter(
+            CreditInstallment.credit_id == credit.id,
+            CreditInstallment.status.in_([InstallmentStatus.VENCIDA, InstallmentStatus.VENCIDO])
+        ).first()
+        if has_overdue:
+            credit.status = CreditStatus.MOROSO
+        else:
+            credit.status = CreditStatus.EN_PROGRESO
 
 
 def review_payment(
@@ -353,6 +365,7 @@ def review_payment(
     status: PaymentStatus,
     reviewer_id,
     notes: str | None = None,
+    auto_commit: bool = True,
 ):
     payment = db.query(Payment).with_for_update().filter(Payment.id == payment_id).first()
 
@@ -388,8 +401,6 @@ def review_payment(
         if credit.customer:
             if excess_to_revert > Decimal("0.00"):
                 credit.customer.favorable_balance -= excess_to_revert
-                if credit.customer.favorable_balance < Decimal("0.00"):
-                    credit.customer.favorable_balance = Decimal("0.00")
                     
             if payment.payment_method == "Saldo a Favor" or (payment.notes and "Pago aplicado desde Saldo a Favor" in payment.notes):
                 credit.customer.favorable_balance += amount_to_reverse
@@ -444,6 +455,10 @@ def review_payment(
     elif status == PaymentStatus.NO_PAGADO:
         for inst in payment.covered_installments:
             inst.status = InstallmentStatus.NO_PAGADA
+    elif status == PaymentStatus.RECHAZADO:
+        pt = db.query(PaymentToken).filter(PaymentToken.payment_id == payment.id).first()
+        if pt:
+            pt.proof = False
 
     log_audit_action(
         db=db,
@@ -453,14 +468,19 @@ def review_payment(
         entity_id=str(payment.id),
         changes={"status": status}
     )
-
-    db.commit()
-    db.refresh(payment)
+    if auto_commit:
+        db.commit()
+        db.refresh(payment)
+    else:
+        db.flush()
     
     if credit.customer:
         update_customer_punctuality(db, credit.customer)
-        db.commit()
-        db.refresh(credit.customer)
+        if auto_commit:
+            db.commit()
+            db.refresh(credit.customer)
+        else:
+            db.flush()
         
     return payment
 
@@ -496,12 +516,13 @@ def batch_delete_payments(
     )
     
     for p in payments:
-        # Si fue aprobado revierte antes de eliminar
+        # Si fue aprobado revierte antes de cancelar
         if p.status == PaymentStatus.APROBADO:
-            review_payment(db, p.id, PaymentStatus.RECHAZADO, merchant_id, notes="Reversión automática debido a eliminación")
-        
-        db.delete(p)
-    
+            review_payment(db, p.id, PaymentStatus.CANCELADO, merchant_id, notes="Reversión automática debido a eliminación masiva", auto_commit=False)
+        else:
+            p.status = PaymentStatus.CANCELADO
+            p.notes = f"{p.notes or ''} | Cancelado masivamente".strip()
+            
     db.commit()
     return len(payments)
 

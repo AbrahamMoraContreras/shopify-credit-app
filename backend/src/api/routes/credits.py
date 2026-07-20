@@ -37,18 +37,33 @@ def create_credit_endpoint(
             Customer.merchant_id == merchant_id
         ).first()
         
-        if customer and customer.reputation == "mala":
-            # Check settings
+        if customer:
             general_settings = db.query(MerchantPaymentSetting).filter(
                 MerchantPaymentSetting.merchant_id == merchant_id,
                 MerchantPaymentSetting.method_name == "general"
             ).first()
+            
             if general_settings and general_settings.settings_data:
-                if general_settings.settings_data.get("block_bad_reputation", False):
-                    raise HTTPException(
-                        status_code=400,
-                        detail="REPUTATION_BLOCK: El cliente tiene baja reputación (mala) y el bloqueo automático está activo."
-                    )
+                if not payload.bypass_reputation_block and customer.reputation == "mala":
+                    if general_settings.settings_data.get("block_bad_reputation", False):
+                        raise HTTPException(
+                            status_code=400,
+                            detail="REPUTATION_BLOCK: El cliente tiene baja reputación (mala) y el bloqueo automático está activo."
+                        )
+                
+                # 1. Check Max Credits
+                max_credits = general_settings.settings_data.get("max_credits_per_customer")
+                if max_credits is not None and max_credits > 0:
+                    active_credits = len([c for c in customer.credits if getattr(c.status, "value", c.status) in ["EN_PROGRESO", "EMITIDO"]])
+                    if active_credits >= max_credits:
+                        raise HTTPException(status_code=400, detail=f"LIMIT_BLOCK: El cliente ha alcanzado el límite de {max_credits} créditos activos.")
+                
+                # 2. Check Max Debt
+                max_debt = general_settings.settings_data.get("max_total_debt_per_customer")
+                if max_debt is not None and max_debt > 0:
+                    current_debt = sum(float(c.balance) for c in customer.credits if getattr(c.status, "value", c.status) in ["EN_PROGRESO", "EMITIDO"])
+                    if current_debt + float(payload.total_amount) > max_debt:
+                        raise HTTPException(status_code=400, detail=f"LIMIT_BLOCK: El crédito de ${payload.total_amount} excede el límite de deuda de ${max_debt}.")
 
     try:
         credit = create_credit(

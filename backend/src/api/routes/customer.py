@@ -135,6 +135,12 @@ def api_delete_customer(
     if str(obj.merchant_id) != str(merchant_id):
         raise HTTPException(status_code=403, detail="Forbidden: customer does not belong to your store")
 
+    if obj.credits and len(obj.credits) > 0:
+        raise HTTPException(
+            status_code=400, 
+            detail="No se puede eliminar el cliente porque tiene créditos asociados. Utilice el botón Cancelar Crédito en su lugar para mantener el historial."
+        )
+
     delete_customer(db=db, db_obj=obj)
     return None
 
@@ -213,8 +219,6 @@ def api_adjust_favorable_balance(
         raise HTTPException(status_code=400, detail="Amount must be positive")
 
     if payload.action == "SUBTRACT":
-        if obj.favorable_balance < amount:
-            raise HTTPException(status_code=400, detail="Insufficient favorable balance")
         obj.favorable_balance -= amount
     elif payload.action == "ADD":
         obj.favorable_balance += amount
