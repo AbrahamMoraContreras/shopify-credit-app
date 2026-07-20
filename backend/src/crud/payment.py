@@ -17,10 +17,10 @@ from models.payment_token import PaymentToken
 from crud.audit import log_audit_action
 
 def update_customer_punctuality(db: Session, customer: Customer):
-    # Calcula el promedio de la puntualidad de los pagos aprobados
+    # Calcula el promedio de la puntualidad de los pagos aprobados o marcados como NO_PAGADO
     avg_score = db.query(func.avg(Payment.punctuality_value)).join(Credit, Credit.id == Payment.credit_id).filter(
         Credit.customer_id == customer.id,
-        Payment.status == PaymentStatus.APROBADO,
+        Payment.status.in_([PaymentStatus.APROBADO, PaymentStatus.NO_PAGADO]),
         Payment.punctuality_value.isnot(None)
     ).scalar()
     
@@ -166,7 +166,7 @@ def create_payment(
             payment_method="Saldo a Favor",
             reference_number=payload.reference_number,
             status=PaymentStatus.APROBADO,
-            payment_date=datetime.utcnow(),
+            payment_date=payload.payment_date.replace(tzinfo=None),
             notes=final_notes,
             punctuality_value=payment_punctuality,
             covered_installments=covered_installments
@@ -193,7 +193,7 @@ def create_payment(
             payment_method=payload.payment_method,
             reference_number=payload.reference_number,
             status=PaymentStatus.EN_REVISION,
-            payment_date=datetime.utcnow(),
+            payment_date=payload.payment_date.replace(tzinfo=None),
             notes=notes,
             punctuality_value=payment_punctuality,
             covered_installments=covered_installments
@@ -455,6 +455,8 @@ def review_payment(
     elif status == PaymentStatus.NO_PAGADO:
         for inst in payment.covered_installments:
             inst.status = InstallmentStatus.NO_PAGADA
+        if payment.punctuality_value is None:
+            payment.punctuality_value = Decimal("0")
     elif status == PaymentStatus.RECHAZADO:
         pt = db.query(PaymentToken).filter(PaymentToken.payment_id == payment.id).first()
         if pt:

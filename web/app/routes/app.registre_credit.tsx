@@ -345,11 +345,18 @@ export default function RegistreCredit() {
 
   useEffect(() => {
     const now = new Date();
+    
+    if (form.frequency === "quincenal") {
+      now.setDate(now.getDate() + 15);
+    } else if (form.frequency === "mensual") {
+      now.setMonth(now.getMonth() + 1);
+    }
+    
     const y = now.getFullYear();
     const m = String(now.getMonth() + 1).padStart(2, "0");
     const d = String(now.getDate()).padStart(2, "0");
     setForm((prev) => ({ ...prev, first_payment_date: `${y}-${m}-${d}` }));
-  }, []);
+  }, [form.frequency]);
   const [selectedProducts, setSelectedProductsState] = useState<
     Record<string, boolean>
   >({});

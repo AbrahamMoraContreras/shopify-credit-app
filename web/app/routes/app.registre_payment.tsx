@@ -118,7 +118,22 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { data } = await response.json();
   const customers: ShopifyCustomer[] = data?.customers?.nodes ?? [];
 
-  return { customers, tasaBcv, tasaFecha };
+  // Obtener settings de pago
+  const accessToken = await getAccessTokenForShop(session.shop);
+  const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
+  let settings = null;
+  if (accessToken) {
+    try {
+      const sRes = await fetch(`${BACKEND_URL}/api/merchants/settings`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (sRes.ok) settings = await sRes.json();
+    } catch (e) {
+      console.error("[registre_payment] Failed to fetch settings:", e);
+    }
+  }
+
+  return { customers, tasaBcv, tasaFecha, settings };
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -214,7 +229,7 @@ export const headers = () => ({
 });
 
 export default function RegistrePayment() {
-  const { customers = [], tasaBcv, tasaFecha } = useLoaderData<typeof loader>();
+  const { customers = [], tasaBcv, tasaFecha, settings } = useLoaderData<typeof loader>();
   const actionData = useActionData<{ error?: string }>();
   const submit = useSubmit();
   const navigation = useNavigation();
@@ -604,7 +619,38 @@ export default function RegistrePayment() {
                     <s-option value="Zinli">Zinli</s-option>
                     <s-option value="Debito">Débito</s-option>
                   </s-select>
+                </s-grid>
 
+                {(() => {
+                  if (!settings) return null;
+                  const keyMap: Record<string, string> = {
+                    "Pago movil": "pago_movil",
+                    "Transferencia": "transferencia",
+                    "Binance": "binance",
+                    "Zelle": "zelle",
+                    "Zinli": "zinli",
+                    "Debito": "debito",
+                  };
+                  const skey = keyMap[paymentForm.method];
+                  const info = skey ? (settings as any)[skey] : null;
+                  if (!info) return null;
+
+                  return (
+                    <s-banner tone="info" heading={`Información de Pago: ${paymentForm.method}`}>
+                      <s-stack gap="small">
+                        {info.banco && <s-text><strong>Banco:</strong> {info.banco}</s-text>}
+                        {info.telefono && <s-text><strong>Teléfono:</strong> {info.telefono}</s-text>}
+                        {info.numero && <s-text><strong>Cuenta/Número:</strong> {info.numero}</s-text>}
+                        {info.ci && <s-text><strong>Documento:</strong> {info.tipoCi}-{info.ci}</s-text>}
+                        {info.email && <s-text><strong>Email:</strong> {info.email}</s-text>}
+                        {info.id_usuario && <s-text><strong>ID/Usuario:</strong> {info.id_usuario}</s-text>}
+                        {info.notas && <s-text><strong>Notas:</strong> {info.notas}</s-text>}
+                      </s-stack>
+                    </s-banner>
+                  );
+                })()}
+
+                <s-grid gridTemplateColumns="repeat(3, 1fr)" gap="small">
                   <s-stack direction="block" gap="none">
                     <s-number-field
                       label="Monto Pagado (USD)"
