@@ -15,7 +15,7 @@ import {
   AlertCircleIcon,
   EditIcon,
   CheckCircleIcon,
-  EmailIcon,
+  EnvelopeIcon,
 } from "@shopify/polaris-icons";
 import { ClientDate } from "../components/ClientDate";
 import { type LoaderFunctionArgs, type ActionFunctionArgs } from "react-router";
@@ -633,7 +633,7 @@ export default function CreditDetail() {
                                         "✕ Error"
                                       ) : (
                                         <>
-                                          <EmailIcon width="16" height="16" style={{ verticalAlign: "middle" }} /> Email
+                                          <EnvelopeIcon width="16" height="16" style={{ verticalAlign: "middle" }} /> Email
                                         </>
                                       )}
                                     </span>
@@ -724,7 +724,7 @@ export default function CreditDetail() {
                               "✕ Error"
                             ) : (
                               <>
-                                <EmailIcon width="16" height="16" style={{ verticalAlign: "middle" }} /> Email
+                                <EnvelopeIcon width="16" height="16" style={{ verticalAlign: "middle" }} /> Email
                               </>
                             )}
                           </span>
