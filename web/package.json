@@ -43,6 +43,7 @@
     "jspdf-autotable": "^5.0.7",
     "preact": "^10.28.1",
     "prisma": "^6.16.3",
+    "xlsx": "^0.18.5",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router": "^7.11.0",
