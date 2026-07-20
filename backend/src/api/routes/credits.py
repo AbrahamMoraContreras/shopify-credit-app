@@ -12,7 +12,6 @@ from crud.credit import (
     list_credits,
     get_credit,
     update_credit,
-    delete_credit,
 )
 
 
