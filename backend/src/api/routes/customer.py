@@ -188,7 +188,23 @@ def api_reset_favorable_balance(
     if not existing:
         raise HTTPException(status_code=404, detail="Customer not found in local database")
     
+    old_balance = existing.favorable_balance
     existing.favorable_balance = 0
+    
+    audit = AuditLog(
+        merchant_id=merchant_id,
+        entity_name="CUSTOMER_BALANCE",
+        entity_id=str(existing.id),
+        action="ADJUST_BALANCE",
+        changes={
+            "amount_changed": float(old_balance),
+            "action": "RESET",
+            "reason": "Reinicio de saldo a favor vía Shopify",
+            "new_balance": 0.0
+        }
+    )
+    db.add(audit)
+    
     db.commit()
     db.refresh(existing)
     return existing

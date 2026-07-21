@@ -35,6 +35,8 @@ def _generate_installments(total_amount, installments_count, first_due_date, fre
     accumulated = Decimal("0.00")
     
     current_due_date = first_due_date
+    original_day = first_due_date.day if frequency != "quincenal" else None
+    
     for i in range(1, installments_count + 1):
         if i == installments_count:
             amount = total - accumulated
@@ -58,7 +60,8 @@ def _generate_installments(total_amount, installments_count, first_due_date, fre
                 year += 1
                 month = 1
             try:
-                current_due_date = date(year, month, current_due_date.day)
+                # Intenta usar el día original (ej: 31) en el nuevo mes
+                current_due_date = date(year, month, original_day)
             except ValueError:
                 import calendar
                 last_day = calendar.monthrange(year, month)[1]

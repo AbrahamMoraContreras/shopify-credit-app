@@ -157,6 +157,19 @@ def create_payment(
         amount_to_apply = min(favorable, payload_amount)
 
         customer.favorable_balance -= amount_to_apply
+        log_audit_action(
+            db=db,
+            merchant_id=customer.merchant_id,
+            entity_name="CUSTOMER_BALANCE",
+            action="ADJUST_BALANCE",
+            entity_id=str(customer.id),
+            changes={
+                "amount_changed": float(amount_to_apply),
+                "action": "SUBTRACT",
+                "reason": f"Uso de saldo a favor para el crédito #{credit.id}",
+                "new_balance": float(customer.favorable_balance)
+            }
+        )
 
         favorable_note = "Pago aplicado desde Saldo a Favor."
         final_notes = f"{notes}\n{favorable_note}".strip() if notes else favorable_note
@@ -245,16 +258,7 @@ def _apply_payment_distribution(db: Session, payment: Payment, credit: Credit, t
     amount_to_apply_to_credit = payment_amount
     excess_for_favorable_balance = Decimal("0.00")
 
-    import re
-    overpayment_match = re.search(r'\[OVERPAYMENT: ([\d.]+)\]', payment.notes or "")
-    if overpayment_match:
-        excess_for_favorable_balance = Decimal(overpayment_match.group(1))
-        amount_to_apply_to_credit = payment_amount - excess_for_favorable_balance
-
-        if amount_to_apply_to_credit > initial_balance:
-            excess_for_favorable_balance += amount_to_apply_to_credit - initial_balance
-            amount_to_apply_to_credit = initial_balance
-    elif credit.installments_count == 0:
+    if credit.installments_count == 0:
         # Fiado (Sin cuotas): Solo limitar por el saldo inicial
         if initial_balance < payment_amount:
             amount_to_apply_to_credit = initial_balance
@@ -268,13 +272,33 @@ def _apply_payment_distribution(db: Session, payment: Payment, credit: Credit, t
             amount_to_apply_to_credit = initial_balance
             excess_for_favorable_balance = payment_amount - initial_balance
 
+    # Evitar montos negativos
+    if amount_to_apply_to_credit < Decimal("0.00"):
+        amount_to_apply_to_credit = Decimal("0.00")
+
     # Actualizar balances
     credit.balance -= amount_to_apply_to_credit
     if customer and excess_for_favorable_balance > Decimal("0.00"):
         customer.favorable_balance += excess_for_favorable_balance
-        if not overpayment_match:
-            current_notes = payment.notes or ""
-            payment.notes = f"{current_notes}\n[OVERPAYMENT: {excess_for_favorable_balance}]".strip()
+        
+        log_audit_action(
+            db=db,
+            merchant_id=customer.merchant_id,
+            entity_name="CUSTOMER_BALANCE",
+            action="ADJUST_BALANCE",
+            entity_id=str(customer.id),
+            changes={
+                "amount_changed": float(excess_for_favorable_balance),
+                "action": "ADD",
+                "reason": f"Excedente de pago del crédito #{credit.id}",
+                "new_balance": float(customer.favorable_balance)
+            }
+        )
+
+        import re
+        current_notes = payment.notes or ""
+        current_notes = re.sub(r'\[OVERPAYMENT:.*?\]', '', current_notes).strip()
+        payment.notes = f"{current_notes}\n[OVERPAYMENT: {excess_for_favorable_balance}]".strip()
 
     # Colas de cuotas
     distribution_queue = target_installments
@@ -395,15 +419,46 @@ def review_payment(
         # 1. Revertir balance del crédito
         credit.balance += amount_to_credit
         if credit.status == CreditStatus.PAGADO and credit.balance > Decimal("0.00"):
-            credit.status = CreditStatus.EN_PROGRESO
+            has_overdue = db.query(CreditInstallment).filter(
+                CreditInstallment.credit_id == credit.id,
+                CreditInstallment.due_date < datetime.utcnow().date(),
+                CreditInstallment.status != InstallmentStatus.PAGADA
+            ).first()
+            credit.status = CreditStatus.MOROSO if has_overdue else CreditStatus.EN_PROGRESO
 
         # 2. Revertir saldo a favor del cliente
         if credit.customer:
             if excess_to_revert > Decimal("0.00"):
                 credit.customer.favorable_balance -= excess_to_revert
+                log_audit_action(
+                    db=db,
+                    merchant_id=credit.customer.merchant_id,
+                    entity_name="CUSTOMER_BALANCE",
+                    action="ADJUST_BALANCE",
+                    entity_id=str(credit.customer.id),
+                    changes={
+                        "amount_changed": float(excess_to_revert),
+                        "action": "SUBTRACT",
+                        "reason": f"Reversión de excedente del pago #{payment.id} (Crédito #{credit.id})",
+                        "new_balance": float(credit.customer.favorable_balance)
+                    }
+                )
                     
             if payment.payment_method == "Saldo a Favor" or (payment.notes and "Pago aplicado desde Saldo a Favor" in payment.notes):
                 credit.customer.favorable_balance += amount_to_reverse
+                log_audit_action(
+                    db=db,
+                    merchant_id=credit.customer.merchant_id,
+                    entity_name="CUSTOMER_BALANCE",
+                    action="ADJUST_BALANCE",
+                    entity_id=str(credit.customer.id),
+                    changes={
+                        "amount_changed": float(amount_to_reverse),
+                        "action": "ADD",
+                        "reason": f"Reversión de pago hecho con saldo a favor #{payment.id} (Crédito #{credit.id})",
+                        "new_balance": float(credit.customer.favorable_balance)
+                    }
+                )
 
         # 3. Restar el monto pagado de las cuotas afectadas (hasta agotar amount_to_credit)
         remaining_to_unpay = amount_to_credit
@@ -417,7 +472,7 @@ def review_payment(
             remaining_to_unpay -= take_back
             
             if inst.paid_amount < Decimal(str(inst.amount)):
-                inst.status = InstallmentStatus.PENDIENTE
+                inst.status = InstallmentStatus.VENCIDA if (inst.due_date and inst.due_date < datetime.utcnow().date()) else InstallmentStatus.PENDIENTE
                 inst.paid_at = None
 
         # Si aún queda monto por revertir (ej: porque se distribuyó el exceso a otras cuotas), restar de otras cuotas activas
@@ -435,7 +490,7 @@ def review_payment(
                 remaining_to_unpay -= take_back
                 
                 if inst.paid_amount < Decimal(str(inst.amount)):
-                    inst.status = InstallmentStatus.PENDIENTE
+                    inst.status = InstallmentStatus.VENCIDA if (inst.due_date and inst.due_date < datetime.utcnow().date()) else InstallmentStatus.PENDIENTE
                     inst.paid_at = None
 
     payment.status = status
