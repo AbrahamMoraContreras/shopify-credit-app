@@ -73,8 +73,8 @@ def register_merchant(
         value=refresh_token,
         httponly=True,
         max_age=7 * 24 * 60 * 60, # 7 days
-        samesite="lax",
-        secure=False, 
+        samesite="none",
+        secure=True, 
     )
     
     return response

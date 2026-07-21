@@ -674,8 +674,9 @@ def list_payments(
     if credit_id is not None:
         q = q.filter(Payment.credit_id == credit_id)
     if customer_id is not None:
+        from sqlalchemy import cast, String
         q = q.filter(
-            (Customer.id == customer_id) | (Customer.shopify_customer_id == str(customer_id))
+            (Customer.id == customer_id) | (cast(Customer.shopify_customer_id, String) == str(customer_id))
         )
     if customer_name:
         q = q.filter(Customer.full_name.ilike(f"%{customer_name}%"))

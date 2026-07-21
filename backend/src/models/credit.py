@@ -105,3 +105,7 @@ class Credit(Base):
             return None
         last_p = sorted(approved, key=lambda p: p.payment_date, reverse=True)[0]
         return last_p.reference_number
+        
+    @property
+    def merchant_id(self):
+        return self.customer.merchant_id if self.customer else None

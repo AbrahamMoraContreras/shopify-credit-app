@@ -141,7 +141,20 @@ def get_credit_endpoint(
 def get_payments_by_credit_id(
     credit_id: int,
     db: Session = Depends(get_db),
+    merchant_id: UUID = Depends(get_merchant_id),
 ):
+    from models.credit import Credit
+    from models.customer import Customer
+    
+    # Validar primero que el crédito pertenezca al comerciante autenticado
+    credit = db.query(Credit).join(Customer).filter(
+        Credit.id == credit_id,
+        Customer.merchant_id == merchant_id
+    ).first()
+    
+    if not credit:
+        raise HTTPException(status_code=403, detail="Acceso denegado al historial de pagos")
+        
     payments = (
         db.query(Payment)
         .filter(Payment.credit_id == credit_id)
