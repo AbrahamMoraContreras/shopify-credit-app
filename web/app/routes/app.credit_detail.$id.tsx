@@ -605,7 +605,7 @@ export default function CreditDetail() {
                               {inst.status !== "PAGADA" ? (
                                 <s-button-group>
                                   <s-button
-                                    variant="secondary"
+                                    slot="secondary-actions"
                                     onClick={() =>
                                       handleSendReminder(
                                         inst.id,
@@ -640,7 +640,7 @@ export default function CreditDetail() {
                                   </s-button>
                                   {credit.customer?.phone && (
                                     <s-button
-                                      variant="secondary"
+                                      slot="secondary-actions"
                                       onClick={() => {
                                         if (!urlsMap[keystr]) {
                                           alert("Por favor, haga clic primero en 'Enviar Recordatorio' para generar el link de pago único.");
@@ -666,7 +666,7 @@ export default function CreditDetail() {
                                   )}
                                   {statusMap[keystr] === "sent" && (
                                     <s-button
-                                      variant="secondary"
+                                      slot="secondary-actions"
                                       icon="undo"
                                       onClick={() => setStatusMap(prev => ({...prev, [keystr]: "idle"}))}
                                       accessibilityLabel="Restablecer botón"
@@ -703,7 +703,7 @@ export default function CreditDetail() {
                     <s-table-cell>
                       <s-button-group>
                         <s-button
-                          variant="secondary"
+                          slot="secondary-actions"
                           onClick={() => handleSendReminder(null, remainingDebt)}
                           disabled={submittingKey === "fiado" || payments.some((p: any) => p.status === "EN_REVISION") || statusMap["fiado"] === "sent" || undefined}
                           tone={
@@ -731,7 +731,7 @@ export default function CreditDetail() {
                         </s-button>
                         {credit.customer?.phone && (
                           <s-button
-                            variant="secondary"
+                            slot="secondary-actions"
                             onClick={() => {
                               if (!urlsMap["fiado"]) {
                                 alert("Por favor, haga clic primero en 'Enviar Recordatorio' para generar el link de pago único.");
@@ -756,7 +756,7 @@ export default function CreditDetail() {
                         )}
                         {statusMap["fiado"] === "sent" && (
                           <s-button
-                            variant="secondary"
+                            slot="secondary-actions"
                             icon="undo"
                             onClick={() => setStatusMap(prev => ({...prev, "fiado": "idle"}))}
                             accessibilityLabel="Restablecer botón"

@@ -181,7 +181,7 @@ def list_credits(
     customer_name: Optional[str] = None,
     due_date: Optional[date] = None
 ) -> Tuple[List[Credit], int]:
-    query = db.query(Credit).join(Customer, Credit.customer_id == Customer.id).options(joinedload(Credit.customer)).filter(Customer.merchant_id == merchant_id)
+    query = db.query(Credit).join(Customer, Credit.customer_id == Customer.id).options(joinedload(Credit.customer), selectinload(Credit.installments)).filter(Customer.merchant_id == merchant_id)
     if status:
         if isinstance(status, list):
             query = query.filter(Credit.status.in_(status))

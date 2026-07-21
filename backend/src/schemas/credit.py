@@ -84,6 +84,7 @@ class CreditListItemResponse(BaseModel):
     status: CreditStatus
     created_at: datetime
     customer: Optional[CustomerSummary] = None
+    installments: List[InstallmentResponse] = []
 
     class Config:
         from_attributes = True
