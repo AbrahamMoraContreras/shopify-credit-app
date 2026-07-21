@@ -154,7 +154,8 @@ def create_payment(
         if favorable <= Decimal("0.00"):
             raise ValueError("El cliente no tiene Saldo a Favor disponible.")
 
-        amount_to_apply = min(favorable, payload_amount)
+        credit_debt = sum([Decimal(str(i.amount)) - Decimal(str(i.paid_amount)) for i in credit.installments]) if credit.installments_count > 0 else Decimal(str(credit.balance))
+        amount_to_apply = min(favorable, payload_amount, credit_debt)
 
         customer.favorable_balance -= amount_to_apply
         log_audit_action(
@@ -196,6 +197,8 @@ def create_payment(
             raise e
 
         _apply_payment_distribution(db, payment, credit, payload.apply_to_installments, payload.distribute_excess, customer)
+        # BUGFIX: Ensure punctuality score is calculated for Saldo a Favor
+        update_customer_punctuality(db, customer)
         db.commit()
         db.refresh(credit)
         

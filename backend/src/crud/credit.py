@@ -71,7 +71,7 @@ def _generate_installments(total_amount, installments_count, first_due_date, fre
 
 def create_credit(db: Session, merchant_id: str, payload: CreditCreate):
     customer = get_customer_by_shopify_id(db=db, shopify_customer_id=payload.customer_id, merchant_id=merchant_id)
-    desired_name = payload.customer_name or f"Shopify Customer {payload.customer_id}"
+    desired_name = payload.customer_name or "Cliente Shopify"
     if not customer:
         placeholder = CustomerCreate(
             full_name=desired_name,
@@ -184,7 +184,7 @@ def list_credits(
     customer_name: Optional[str] = None,
     due_date: Optional[date] = None
 ) -> Tuple[List[Credit], int]:
-    query = db.query(Credit).join(Customer, Credit.customer_id == Customer.id).options(joinedload(Credit.customer), selectinload(Credit.installments)).filter(Customer.merchant_id == merchant_id)
+    query = db.query(Credit).join(Customer, Credit.customer_id == Customer.id).options(joinedload(Credit.customer), selectinload(Credit.installments), selectinload(Credit.payments)).filter(Customer.merchant_id == merchant_id)
     if status:
         if isinstance(status, list):
             query = query.filter(Credit.status.in_(status))
@@ -193,8 +193,9 @@ def list_credits(
     
     if customer_id or customer_name:
         if customer_id:
+            from sqlalchemy import cast, String
             query = query.filter(
-                (Credit.customer_id == customer_id) | (Customer.shopify_customer_id == str(customer_id))
+                (Credit.customer_id == customer_id) | (cast(Customer.shopify_customer_id, String) == str(customer_id))
             )
         if customer_name:
             query = query.filter(Customer.full_name.ilike(f"%{customer_name}%"))
@@ -220,6 +221,11 @@ def update_credit(db: Session, credit: Credit, payload: CreditUpdate):
     return credit
 
 def cancel_credit(db: Session, credit: Credit):
+    # Lock the credit to prevent concurrent modifications
+    locked_credit = db.query(Credit).with_for_update().filter(Credit.id == credit.id).first()
+    if not locked_credit:
+        raise ValueError("Credit not found for cancellation")
+        
     # Revertir financieramente todos los pagos aprobados primero
     from crud.payment import review_payment
     from models.enums import PaymentStatus

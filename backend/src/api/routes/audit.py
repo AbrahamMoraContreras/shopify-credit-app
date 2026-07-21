@@ -16,6 +16,7 @@ def log_login(
         db=db,
         merchant_id=merchant_id,
         entity_name="USER_SESSION",
+
         action="LOGIN",
         changes={"message": "El usuario ingresó a la app de Shopify."}
     )
@@ -33,7 +34,7 @@ def get_customer_balance_history(
         AuditLog.merchant_id == merchant_id,
         AuditLog.entity_name == "CUSTOMER_BALANCE",
         AuditLog.entity_id == str(customer_id)
-    ).order_by(AuditLog.timestamp.desc()).all()
+    ).order_by(AuditLog.timestamp.desc()).limit(100).all()
     
     return logs
 
