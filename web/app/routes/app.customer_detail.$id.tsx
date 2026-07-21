@@ -9,7 +9,7 @@ import { getAccessTokenForShop } from "../lib/auth.server";
 import { ClientDate } from "../components/ClientDate";
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  const { session, admin } = await authenticate.admin(request);
   const accessToken = await getAccessTokenForShop(session.shop);
   if (!accessToken) throw new Error("Token no disponible");
 
@@ -639,6 +639,27 @@ export default function CustomerDetail() {
           </s-text>
         </s-stack>
       </s-stack>
+    </s-page>
+  );
+}
+
+import { useRouteError, isRouteErrorResponse } from "react-router";
+
+export function ErrorBoundary() {
+  const error = useRouteError();
+  const errorMessage = isRouteErrorResponse(error)
+    ? `${error.status} ${error.statusText}`
+    : error instanceof Error
+      ? error.message
+      : "Ocurrió un error inesperado al conectar con el servidor.";
+
+  return (
+    <s-page heading="Error" inlineSize="large">
+      <s-section padding="base">
+        <s-banner tone="critical" heading="Ha ocurrido un problema al cargar el perfil">
+          <p>{errorMessage}</p>
+        </s-banner>
+      </s-section>
     </s-page>
   );
 }
