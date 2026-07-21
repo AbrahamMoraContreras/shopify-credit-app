@@ -29,7 +29,7 @@ class Customer(Base):
 
     # Relaciones
     merchant = relationship("Merchant", back_populates="customers")
-    credits = relationship("Credit", back_populates="customer")
+    credits = relationship("Credit", back_populates="customer", cascade="all, delete-orphan")
 
     @property
     def reputation(self) -> str:

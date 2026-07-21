@@ -1,5 +1,5 @@
 # app/crud/dashboard.py
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import func, or_, cast, Date
 from uuid import UUID
 from datetime import date, datetime, timedelta
@@ -116,7 +116,7 @@ def morosity_ratio(db: Session, merchant_id: UUID) -> float:
 
 def customers_summary_data(db: Session, merchant_id: UUID):
     # Regresa todos los clientes del merchant
-    customers = db.query(Customer).filter(Customer.merchant_id == merchant_id).all()
+    customers = db.query(Customer).options(selectinload(Customer.credits)).filter(Customer.merchant_id == merchant_id).all()
     
     summary = []
     clients_with_debt = 0

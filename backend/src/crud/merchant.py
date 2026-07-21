@@ -1,5 +1,6 @@
 # app/crud/merchant.py
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from models.merchant import Merchant
 
 
@@ -16,8 +17,12 @@ def get_or_create_merchant(db: Session, shop_domain: str) -> Merchant:
         return merchant
 
     # Registrar nuevo merchant
-    merchant = Merchant(shop_domain=shop_domain)
-    db.add(merchant)
-    db.commit()
-    db.refresh(merchant)
-    return merchant
+    try:
+        merchant = Merchant(shop_domain=shop_domain)
+        db.add(merchant)
+        db.commit()
+        db.refresh(merchant)
+        return merchant
+    except IntegrityError:
+        db.rollback()
+        return db.query(Merchant).filter(Merchant.shop_domain == shop_domain).first()

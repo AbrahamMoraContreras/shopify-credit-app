@@ -33,7 +33,7 @@ app.add_middleware(
         settings.FRONTEND_URL,
         "https://registre-payment-shopify-form.onrender.com",
     ],
-    allow_origin_regex=r"^https://.*\.(trycloudflare\.com|loca\.lt|ngrok\.io|ngrok-free\.app|myshopify\.com)$",
+    allow_origin_regex=r"^https://([a-zA-Z0-9-]+\.)?(admin\.shopify\.com|myshopify\.com|trycloudflare\.com|loca\.lt|ngrok\.io|ngrok-free\.app)$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

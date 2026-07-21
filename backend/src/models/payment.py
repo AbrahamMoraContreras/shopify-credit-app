@@ -32,7 +32,7 @@ class Payment(Base):
 
     amount = Column(Numeric(12, 2), nullable=False)
 
-    reference_number = Column(String, nullable=False, unique=True) # Hacemos referencia única por sí sola si no hay merchant_id
+    reference_number = Column(String, nullable=False) # Eliminamos unique=True para permitir multitenancy
     payment_method = Column(String, nullable=True)
     bank_name = Column(String, nullable=True)
 

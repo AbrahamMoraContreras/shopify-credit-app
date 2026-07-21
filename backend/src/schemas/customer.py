@@ -26,6 +26,9 @@ class CustomerCreate(CustomerBase):
 # ------------------------------------------
 class CustomerUpdate(BaseModel):
     full_name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    shopify_customer_id: Optional[int] = None
 
 # ------------------------------------------
 # Response schema

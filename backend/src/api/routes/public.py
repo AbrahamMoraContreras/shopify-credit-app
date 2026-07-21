@@ -2,7 +2,7 @@
 # These endpoints are PUBLIC — no X-Merchant-ID required.
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from decimal import Decimal
 from datetime import datetime
 from typing import Optional
@@ -63,7 +63,7 @@ class ProofSubmission(BaseModel):
     document_number: Optional[str] = None
     phone_number: Optional[str] = None
     account_number: Optional[str] = None
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(None, max_length=2000)
 
 
 @router.get("/payment-info")
@@ -98,7 +98,9 @@ def get_payment_info(token: str, db: Session = Depends(get_db)):
         for item in credit.items:
             # Intentar obtener el nombre del producto, si no, usar el concepto
             prod_name = getattr(item, "product_name", getattr(item, "name", "Producto"))
-            if prod_name and prod_name.startswith("gid://"):
+            if not isinstance(prod_name, str):
+                prod_name = "Producto"
+            elif prod_name.startswith("gid://"):
                 prod_name = "Producto"
             productos.append(ProductInfo(
                 nombre=prod_name,
@@ -312,3 +314,22 @@ def submit_payment_proof(payload: ProofSubmission, db: Session = Depends(get_db)
     db.refresh(proof)
     return {"ok": True, "mensaje": "Comprobante recibido exitosamente. El equipo lo revisará en breve."}
 
+# ==========================================
+# Shopify GDPR Webhooks (Mandatory for App Store)
+# ==========================================
+from fastapi import Request
+
+@router.post("/webhooks/customers/data_request")
+async def customers_data_request(request: Request):
+    # Payload indicates customer requesting their data.
+    return {"status": "ok"}
+
+@router.post("/webhooks/customers/redact")
+async def customers_redact(request: Request):
+    # Payload indicates customer requesting data deletion.
+    return {"status": "ok"}
+
+@router.post("/webhooks/shop/redact")
+async def shop_redact(request: Request):
+    # Payload indicates store uninstalling and requesting data deletion.
+    return {"status": "ok"}
