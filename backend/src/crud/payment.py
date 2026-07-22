@@ -1,5 +1,5 @@
 # app/crud/payment.py
-from sqlalchemy import func, cast, Date
+from sqlalchemy import func, cast, Date, String
 from sqlalchemy.orm import Session, joinedload
 from uuid import UUID
 from datetime import datetime, date
@@ -627,7 +627,6 @@ def list_payments(
     products_cte = credit_items_agg_cte(db)
     
     from models.payment import payment_installments
-    from sqlalchemy import String
     installments_sq = (
         db.query(
             payment_installments.c.payment_id,
@@ -677,7 +676,6 @@ def list_payments(
     if credit_id is not None:
         q = q.filter(Payment.credit_id == credit_id)
     if customer_id is not None:
-        from sqlalchemy import cast, String
         q = q.filter(
             (Customer.id == customer_id) | (cast(Customer.shopify_customer_id, String) == str(customer_id))
         )
