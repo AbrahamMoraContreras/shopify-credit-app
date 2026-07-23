@@ -459,9 +459,6 @@ export default function PaymentDetail() {
                 <s-text>
                   <strong>Detalles:</strong> {payment.notes.replace(/\[DISTRIBUTE_EXCESS\]\s*/g, '')}
                 </s-text>
-                <s-text>
-                  <strong>Puntualidad:</strong> {payment.notes.replace(/\[DISTRIBUTE_EXCESS\]\s*/g, '')}
-                </s-text>
               )}
             </s-stack>
           </s-section>
