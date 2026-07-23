@@ -686,6 +686,6 @@ def list_payments(
     if status is not None:
         q = q.filter(Payment.status == status)
         
-    q = q.order_by(Payment.payment_date.desc(), Payment.created_at.desc()).limit(limit).offset(offset)
+    q = q.order_by(Payment.payment_date.desc(), Payment.id.desc()).limit(limit).offset(offset)
 
     return q.all()
