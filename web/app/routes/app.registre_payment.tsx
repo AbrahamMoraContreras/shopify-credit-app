@@ -1055,6 +1055,7 @@ export default function RegistrePayment() {
           gap="base"
         >
           <s-button
+            tone="secondary-action"
             onClick={handleReset}
             disabled={isSubmitting}
             accessibilityLabel="Limpiar formulario de pago"
@@ -1062,7 +1063,7 @@ export default function RegistrePayment() {
             Limpiar Campos
           </s-button>
           <s-button
-            tone="critical"
+            tone="primary-action"
             onClick={handleConfirmPayment}
             loading={isSubmitting || undefined}
             disabled={
