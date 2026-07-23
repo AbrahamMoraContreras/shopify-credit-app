@@ -237,8 +237,7 @@ export default function ShopifyCustomers() {
   const pagosCompletados = Object.values(statsMap).reduce((acc, curr) => acc + curr.payments_on_time, 0);
 
   return (
-    <s-page heading="Clientes de Shopify">
-      <s-stack gap="large">
+    <s-page heading="Clientes de Shopify" inlineSize="large">
         {/* Summary */}
         <s-grid gridTemplateColumns="repeat(5, 1fr)" gap="small" padding="base">
           <s-grid-item gridColumn="span 1">
@@ -343,8 +342,8 @@ export default function ShopifyCustomers() {
                       <s-table-cell>
                         <s-text>{customer.phone ?? "—"}</s-text>
                       </s-table-cell>
-                      <s-table-cell>{customer.numberOfOrders}</s-table-cell>
-                      <s-table-cell>
+                      <s-table-cell format="numeric">{customer.numberOfOrders}</s-table-cell>
+                      <s-table-cell format="numeric">
                         {hasSaldo ? (
                           <s-badge tone="success">${saldo.toFixed(2)}</s-badge>
                         ) : (
@@ -356,7 +355,7 @@ export default function ShopifyCustomers() {
                           reputationMap[numericId]?.label ?? null,
                         )}
                       </s-table-cell>
-                      <s-table-cell>
+                      <s-table-cell format="numeric">
                         {stats ? (
                           stats.credits_completed > 0 ? (
                             <s-badge tone="success">{stats.credits_completed}</s-badge>
@@ -367,7 +366,7 @@ export default function ShopifyCustomers() {
                           <s-text color="subdued">—</s-text>
                         )}
                       </s-table-cell>
-                      <s-table-cell>
+                      <s-table-cell format="numeric">
                         {stats ? (
                           stats.credits_incomplete > 0 ? (
                             <s-badge tone="warning">{stats.credits_incomplete}</s-badge>
@@ -378,7 +377,7 @@ export default function ShopifyCustomers() {
                           <s-text color="subdued">—</s-text>
                         )}
                       </s-table-cell>
-                      <s-table-cell>
+                      <s-table-cell format="numeric">
                         {stats ? (
                           stats.payments_on_time > 0 ? (
                             <s-badge tone="success">{stats.payments_on_time}</s-badge>
@@ -389,7 +388,7 @@ export default function ShopifyCustomers() {
                           <s-text color="subdued">—</s-text>
                         )}
                       </s-table-cell>
-                      <s-table-cell>
+                      <s-table-cell format="numeric">
                         {stats ? (
                           stats.payments_late > 0 ? (
                             <s-badge tone="critical">{stats.payments_late}</s-badge>
@@ -400,7 +399,7 @@ export default function ShopifyCustomers() {
                           <s-text color="subdued">—</s-text>
                         )}
                       </s-table-cell>
-                      <s-table-cell>
+                      <s-table-cell format="numeric">
                         {stats ? (
                           stats.payments_incomplete > 0 ? (
                             <s-badge tone="warning">{stats.payments_incomplete}</s-badge>
@@ -501,7 +500,6 @@ export default function ShopifyCustomers() {
             )}
           </s-box>
         </s-modal>
-      </s-stack>
     </s-page>
   );
 }

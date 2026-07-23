@@ -626,10 +626,10 @@ export default function RegistrePayment() {
                   const keyMap: Record<string, string> = {
                     "Pago movil": "pago_movil",
                     "Transferencia": "transferencia",
-                    "Binance": "binance",
                     "Zelle": "zelle",
                     "Zinli": "zinli",
                     "Debito": "debito",
+                    "Binance": "binance",
                   };
                   const skey = keyMap[paymentForm.method];
                   const info = skey ? (settings as any)[skey] : null;
@@ -645,6 +645,7 @@ export default function RegistrePayment() {
                         {info.email && <s-text><strong>Email:</strong> {info.email}</s-text>}
                         {info.id_usuario && <s-text><strong>ID/Usuario:</strong> {info.id_usuario}</s-text>}
                         {info.notas && <s-text><strong>Notas:</strong> {info.notas}</s-text>}
+                        {info.details && <s-text><strong>Detalles:</strong> {info.details}</s-text>}
                       </s-stack>
                     </s-banner>
                   );
@@ -801,7 +802,7 @@ export default function RegistrePayment() {
                         <s-text tone="info">
                           $
                           {Number(
-                            backendCustomerInfo.favorable_balance,
+                            backendCustomerInfo.favorable_balance || 0,
                           ).toFixed(2)}
                         </s-text>
                         {Number(backendCustomerInfo.favorable_balance) > 0 && (
@@ -922,11 +923,16 @@ export default function RegistrePayment() {
                   const count = credit?.installments_count ?? 0;
                   let periodicity = "Fiado";
                   if (!hasFiado && count > 0) {
-                    // Determinar periodicidad según el número de cuotas por año
-                    // 12 → Mensual, 24 or 26 → Quincenal
-                    if (count % 24 === 0 || count % 26 === 0)
-                      periodicity = "Quincenal";
-                    else periodicity = "Mensual";
+                    if (credit.installments && credit.installments.length > 1) {
+                      const d1 = new Date(credit.installments[0].due_date);
+                      const d2 = new Date(credit.installments[1].due_date);
+                      const diffTime = Math.abs(d2.getTime() - d1.getTime());
+                      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                      if (diffDays <= 16) periodicity = "Quincenal";
+                      else periodicity = "Mensual";
+                    } else {
+                      periodicity = "Mensual";
+                    }
                   }
                   return (
                     <s-stack direction="inline" justifyContent="space-between">

@@ -389,6 +389,17 @@ export default function CustomerDetail() {
             <s-heading>Reputación Crediticia</s-heading>
             <s-box>{reputationBadge(customer.reputation)}</s-box>
           </s-section>
+          <s-section padding="base">
+            <s-heading>Total Pagado (Histórico)</s-heading>
+            <s-box>
+              <s-text type="strong" tone="success">
+                ${allPayments
+                  .filter((p: any) => p.status === "APROBADO")
+                  .reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0)
+                  .toFixed(2)}
+              </s-text>
+            </s-box>
+          </s-section>
         </s-grid>
 
         <s-grid gridTemplateColumns="repeat(4, 1fr)" gap="base">

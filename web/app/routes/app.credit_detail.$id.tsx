@@ -464,6 +464,13 @@ export default function CreditDetail() {
                   <s-text color="subdued">
                     ID: {credit.invoice_code || credit.id}
                   </s-text>
+                  {credit.concept && (
+                    <s-box paddingBlockStart="small">
+                      <s-text color="subdued">
+                        <strong>Nota:</strong> {credit.concept}
+                      </s-text>
+                    </s-box>
+                  )}
                 </s-stack>
               </s-section>
               <s-badge

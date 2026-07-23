@@ -338,16 +338,7 @@ export default function PaymentDetail() {
                 </s-button>
               </s-button-group>
             )}
-            {payment.status !== "CANCELADO" && payment.status !== "RECHAZADO" && (
-              <s-button
-                variant={payment.status === "EN_REVISION" ? "secondary" : "primary"}
-                tone="critical"
-                onClick={handleCancel}
-                accessibilityLabel="Cancelar este pago"
-              >
-                Cancelar Pago
-              </s-button>
-            )}
+
 
             <s-popover id="export-popover">
               <s-stack direction="block" gap="small" padding="base">
@@ -429,6 +420,16 @@ export default function PaymentDetail() {
                   format="datetime"
                 />
               </s-text>
+              {payment.punctuality_value !== null && payment.punctuality_value !== undefined && (
+                <s-stack direction="inline" gap="extra-tight" alignItems="end">
+                  <s-text>
+                    <strong>Puntualidad:</strong>
+                  </s-text>
+                  <s-badge tone={payment.punctuality_value >= 100 ? "success" : "critical"}>
+                    {payment.punctuality_value >= 100 ? "A tiempo" : "Tardío"}
+                  </s-badge>
+                </s-stack>
+              )}
               <s-stack direction="inline" gap="extra-tight" alignItems="end">
                 <s-text>
                   <strong>Método de Pago:</strong>
@@ -456,7 +457,7 @@ export default function PaymentDetail() {
               </s-text>
               {payment.notes && (
                 <s-text>
-                  <strong>Detalles:</strong> {payment.notes}
+                  <strong>Detalles:</strong> {payment.notes.replace(/\[DISTRIBUTE_EXCESS\]\s*/g, '')}
                 </s-text>
               )}
             </s-stack>
