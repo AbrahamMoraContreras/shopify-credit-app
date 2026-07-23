@@ -369,6 +369,19 @@ def get_payment_detail(
                 proof = pt.proof
                 break
 
+    punctuality_val = payment.punctuality_value
+    if punctuality_val is None and payment.covered_installments:
+        from datetime import date
+        sorted_insts = sorted(payment.covered_installments, key=lambda x: x.due_date if x.due_date else date.max)
+        if sorted_insts:
+            first_due_date = sorted_insts[0].due_date
+            if first_due_date and payment.payment_date:
+                from decimal import Decimal
+                if payment.payment_date.date() <= first_due_date:
+                    punctuality_val = Decimal("100.0")
+                else:
+                    punctuality_val = Decimal("0.0")
+
     return {
         "id": payment.id,
         "merchant_id": payment.merchant_id,
@@ -382,7 +395,7 @@ def get_payment_detail(
         "reviewed_at": payment.reviewed_at,
         "reviewed_by": payment.reviewed_by,
         "notes": payment.notes,
-        "punctuality_value": payment.punctuality_value,
+        "punctuality_value": punctuality_val,
         "installments_covered": payment.installments_covered,
         "created_at": payment.created_at,
         "updated_at": payment.updated_at,
