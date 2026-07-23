@@ -382,6 +382,7 @@ def get_payment_detail(
         "reviewed_at": payment.reviewed_at,
         "reviewed_by": payment.reviewed_by,
         "notes": payment.notes,
+        "punctuality_value": payment.punctuality_value,
         "installments_covered": payment.installments_covered,
         "created_at": payment.created_at,
         "updated_at": payment.updated_at,
