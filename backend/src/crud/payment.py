@@ -143,65 +143,60 @@ def create_payment(
     payload_amount = Decimal(str(payload.amount))
 
     # Logica de saldo a favor
+    favorable_payment = None
     if payload.use_favorable_balance:
         customer = db.query(Customer).with_for_update().filter(Customer.id == credit.customer_id).first()
         if not customer:
             raise ValueError("No se encontró el cliente asociado al crédito.")
 
         favorable = Decimal(str(customer.favorable_balance))
-        if favorable <= Decimal("0.00"):
-            raise ValueError("El cliente no tiene Saldo a Favor disponible.")
+        if favorable > Decimal("0.00"):
+            credit_debt = sum([Decimal(str(i.amount)) - Decimal(str(i.paid_amount)) for i in credit.installments]) if credit.installments_count > 0 else Decimal(str(credit.balance))
+            
+            # Usar saldo a favor hasta cubrir la deuda o agotar el saldo
+            favorable_to_use = min(favorable, credit_debt)
+            if favorable_to_use > Decimal("0.00"):
+                customer.favorable_balance -= favorable_to_use
+                log_audit_action(
+                    db=db,
+                    merchant_id=customer.merchant_id,
+                    entity_name="CUSTOMER_BALANCE",
+                    action="ADJUST_BALANCE",
+                    entity_id=str(customer.id),
+                    changes={
+                        "amount_changed": float(favorable_to_use),
+                        "action": "SUBTRACT",
+                        "reason": f"Uso de saldo a favor para el crédito #{credit.id}",
+                        "new_balance": float(customer.favorable_balance)
+                    }
+                )
 
-        credit_debt = sum([Decimal(str(i.amount)) - Decimal(str(i.paid_amount)) for i in credit.installments]) if credit.installments_count > 0 else Decimal(str(credit.balance))
-        amount_to_apply = min(favorable, payload_amount, credit_debt)
+                favorable_note = "Pago aplicado desde Saldo a Favor."
+                final_notes = f"{notes}\n{favorable_note}".strip() if notes else favorable_note
+                favorable_payment = Payment(
+                    credit_id=credit.id,
+                    amount=favorable_to_use,
+                    payment_method="Saldo a Favor",
+                    reference_number=f"FAVORABLE-{int(payload.payment_date.timestamp())}-{credit.id}",
+                    status=PaymentStatus.APROBADO,
+                    payment_date=payload.payment_date.replace(tzinfo=None),
+                    notes=final_notes,
+                    punctuality_value=payment_punctuality,
+                    covered_installments=covered_installments
+                )
+                
+                db.add(favorable_payment)
+                db.flush()
+                _apply_payment_distribution(db, favorable_payment, credit, payload.apply_to_installments, payload.distribute_excess, customer)
+                # BUGFIX: Ensure punctuality score is calculated for Saldo a Favor
+                update_customer_punctuality(db, customer)
+                db.commit()
+                db.refresh(credit)
 
-        customer.favorable_balance -= amount_to_apply
-        log_audit_action(
-            db=db,
-            merchant_id=customer.merchant_id,
-            entity_name="CUSTOMER_BALANCE",
-            action="ADJUST_BALANCE",
-            entity_id=str(customer.id),
-            changes={
-                "amount_changed": float(amount_to_apply),
-                "action": "SUBTRACT",
-                "reason": f"Uso de saldo a favor para el crédito #{credit.id}",
-                "new_balance": float(customer.favorable_balance)
-            }
-        )
-
-        favorable_note = "Pago aplicado desde Saldo a Favor."
-        final_notes = f"{notes}\n{favorable_note}".strip() if notes else favorable_note
-        payment = Payment(
-            credit_id=credit.id,
-            amount=amount_to_apply,
-            payment_method="Saldo a Favor",
-            reference_number=payload.reference_number,
-            status=PaymentStatus.APROBADO,
-            payment_date=payload.payment_date.replace(tzinfo=None),
-            notes=final_notes,
-            punctuality_value=payment_punctuality,
-            covered_installments=covered_installments
-        )
-        
-        try:
-            db.add(payment)
-            db.commit()
-            db.refresh(payment)
-        except Exception as e:
-            db.rollback()
-            if "uq_payment_reference" in str(e) or "reference_number" in str(e).lower():
-                raise ValueError("El número de referencia ya ha sido utilizado para este comercio.")
-            raise e
-
-        _apply_payment_distribution(db, payment, credit, payload.apply_to_installments, payload.distribute_excess, customer)
-        # BUGFIX: Ensure punctuality score is calculated for Saldo a Favor
-        update_customer_punctuality(db, customer)
-        db.commit()
-        db.refresh(credit)
-        
-    else:
-        payment = Payment(
+    # Lógica de dinero nuevo
+    new_money_payment = None
+    if payload_amount > Decimal("0.00"):
+        new_money_payment = Payment(
             credit_id=credit.id,
             amount=payload_amount,
             payment_method=payload.payment_method,
@@ -213,25 +208,28 @@ def create_payment(
             covered_installments=covered_installments
         )
         try:
-            db.add(payment)
+            db.add(new_money_payment)
             db.flush()
             log_audit_action(
                 db=db,
                 merchant_id=merchant_id,
                 entity_name="PAYMENT",
                 action="REGISTER_PAYMENT",
-                entity_id=str(payment.id),
-                changes={"amount": float(payment.amount), "credit_id": credit.id, "status": payment.status}
+                entity_id=str(new_money_payment.id),
+                changes={"amount": float(new_money_payment.amount), "credit_id": credit.id, "status": new_money_payment.status}
             )
             db.commit()
-            db.refresh(payment)
+            db.refresh(new_money_payment)
         except Exception as e:
             db.rollback()
             if "uq_payment_reference" in str(e) or "reference_number" in str(e).lower():
                 raise ValueError("El número de referencia ya ha sido utilizado para este comercio.")
             raise e
 
-    return payment
+    if not favorable_payment and not new_money_payment:
+        raise ValueError("El monto del pago debe ser mayor a 0 o debe haber saldo a favor disponible.")
+
+    return new_money_payment or favorable_payment
 
 
 def _apply_payment_distribution(db: Session, payment: Payment, credit: Credit, target_installment_ids: list[int], distribute_excess: bool, customer: Customer):

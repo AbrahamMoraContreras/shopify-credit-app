@@ -79,7 +79,7 @@ class PaymentCreate(BaseModel):
     credit_id: int
     apply_to_installments: List[int] = []
     distribute_excess: bool = False
-    amount: Decimal = Field(..., gt=0, description="El monto del pago debe ser estrictamente mayor a 0")
+    amount: Decimal = Field(..., ge=0, description="El monto del pago debe ser mayor o igual a 0")
     payment_method: PaymentMethod  # BANK | PAYPAL | PAGO_MOVIL
     reference_number: str
     payment_date: datetime

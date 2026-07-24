@@ -684,13 +684,18 @@ export default function RegistrePayment() {
                           variant="tertiary"
                           accessibilityLabel="Completar deuda"
                           onClick={() => {
-                            setPaymentForm((p: any) => ({
+                            let total = selectedTotalDebt;
+                            if (useFavorableBalance && backendCustomerInfo) {
+                               const fav = Number(backendCustomerInfo.favorable_balance) || 0;
+                               total = Math.max(0, total - fav);
+                            }
+                            setPaymentForm((p) => ({
                               ...p,
-                              amount: String(selectedTotalDebt),
+                              amount: String(total.toFixed(2)),
                             }));
                           }}
                         >
-                          LLenar Deuda Exacta (${selectedTotalDebt.toFixed(2)})
+                          LLenar Deuda Exacta (${(useFavorableBalance && backendCustomerInfo ? Math.max(0, selectedTotalDebt - (Number(backendCustomerInfo.favorable_balance) || 0)) : selectedTotalDebt).toFixed(2)})
                         </s-button>
                       </div>
                     )}
