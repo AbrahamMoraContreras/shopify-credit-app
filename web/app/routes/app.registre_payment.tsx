@@ -834,9 +834,10 @@ export default function RegistrePayment() {
                           <s-checkbox
                             label="Usar Saldo a Favor para este pago"
                             checked={useFavorableBalance || undefined}
-                            onChange={(e: any) =>
-                              setUseFavorableBalance(!!e.target?.checked)
-                            }
+                            onChange={(e: any) => {
+                              const checked = e?.target?.checked ?? e?.currentTarget?.checked ?? e;
+                              setUseFavorableBalance(!!checked);
+                            }}
                           />
                         )}
                         {(() => {

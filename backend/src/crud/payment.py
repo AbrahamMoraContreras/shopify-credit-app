@@ -227,7 +227,13 @@ def create_payment(
             raise e
 
     if not favorable_payment and not new_money_payment:
-        raise ValueError("El monto del pago debe ser mayor a 0 o debe haber saldo a favor disponible.")
+        raise ValueError(
+            f"DEBUG: use_favorable={payload.use_favorable_balance}, "
+            f"favorable_db={getattr(customer, 'favorable_balance', 'no-customer') if payload.use_favorable_balance else 'N/A'}, "
+            f"credit_debt={credit_debt if 'credit_debt' in locals() else 'N/A'}, "
+            f"payload_amount={payload_amount}. "
+            "El monto del pago debe ser mayor a 0 o debe haber saldo a favor disponible."
+        )
 
     return new_money_payment or favorable_payment
 
