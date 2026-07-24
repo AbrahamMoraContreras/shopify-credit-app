@@ -139,8 +139,6 @@ def create_payment(
         ).all()
     
     notes = payload.notes or ""
-    if payload.distribute_excess:
-        notes = f"[DISTRIBUTE_EXCESS] {notes}".strip()
 
     payload_amount = Decimal(str(payload.amount))
 

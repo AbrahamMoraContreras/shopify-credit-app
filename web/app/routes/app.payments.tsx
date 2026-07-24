@@ -898,16 +898,6 @@ export default function PaymentHistorial() {
                 >
                   Cancelar Pago
                 </s-button>
-                <s-button
-                  tone="critical"
-                  variant="secondary"
-                  icon="delete"
-                  disabled={selectedIds.size === 0 || loading || undefined}
-                  onClick={handleBatchDelete}
-                  accessibilityLabel="Eliminar cobros seleccionados"
-                >
-                  Eliminar Pago
-                </s-button>
             </s-stack>
           </s-stack>
         </s-stack>
@@ -1120,16 +1110,6 @@ export default function PaymentHistorial() {
             accessibilityLabel="Cancelar cobros seleccionados y revertir monto al crédito"
           >
             Cancelar Pago
-          </s-button>
-          <s-button
-            tone="critical"
-            variant="secondary"
-            icon="delete"
-            disabled={selectedIds.size === 0 || loading || undefined}
-            onClick={handleBatchDelete}
-            accessibilityLabel="Eliminar cobros seleccionados"
-          >
-            Eliminar Pago
           </s-button>
         </s-stack>
       </s-section>

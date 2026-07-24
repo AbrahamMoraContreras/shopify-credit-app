@@ -399,7 +399,22 @@ export default function RegistrePayment() {
   }, [paymentForm.amount, paymentForm.autoSelect, activeInstallments]);
 
   const handleToggleInstallment = (id: number, checked: boolean) => {
-    setSelectedInstallments((prev) => ({ ...prev, [id]: checked }));
+    setSelectedInstallments((prev) => {
+      const newSelected = { ...prev, [id]: checked };
+      const currentlySelected = Object.keys(newSelected).filter(k => newSelected[Number(k)]);
+      if (currentlySelected.length > 0) {
+        const firstSelectedId = Number(currentlySelected[0]);
+        const firstInst = activeInstallments.find(i => i.id === firstSelectedId);
+        if (firstInst) {
+          activeInstallments.forEach(i => {
+            if (i.credit_id !== firstInst.credit_id && newSelected[i.id]) {
+               newSelected[i.id] = false;
+            }
+          });
+        }
+      }
+      return newSelected;
+    });
   };
 
   const selectedTotalDebt = useMemo(() => {
@@ -747,12 +762,16 @@ export default function RegistrePayment() {
                   <s-select
                     label="¿El cliente pagó a tiempo? (Fiado)"
                     value={paymentForm.fiadoFeedback}
-                    onChange={(e: any) =>
+                    onChange={(e: any) => {
+                      const val = e.target?.value || "";
                       setPaymentForm((p) => ({
                         ...p,
-                        fiadoFeedback: e.target?.value || "",
-                      }))
-                    }
+                        fiadoFeedback: val,
+                      }));
+                      if (val === "0") {
+                        setApprovalStatus("NO_PAGADO");
+                      }
+                    }}
                   >
                     <s-option value="">-- Sin evaluar --</s-option>
                     <s-option value="100">✅ Sí, puntualmente</s-option>
@@ -765,6 +784,7 @@ export default function RegistrePayment() {
                   label="Estado de revisión del pago"
                   value={approvalStatus}
                   onChange={(e: any) => setApprovalStatus(e.target?.value || "EN_REVISION")}
+                  disabled={paymentForm.fiadoFeedback === "0"}
                 >
                   <s-option value="EN_REVISION">
                     🕐 El pago está pendiente por revisar
@@ -983,8 +1003,13 @@ export default function RegistrePayment() {
                     onChange={(e: any) => {
                       const checked = e.target.checked ?? e.currentTarget.checked;
                       const newSelected = { ...selectedInstallments };
+                      const firstInst = activeInstallments.length > 0 ? activeInstallments[0] : null;
                       activeInstallments.forEach((i) => {
-                        newSelected[i.id] = checked;
+                        if (firstInst && i.credit_id === firstInst.credit_id) {
+                          newSelected[i.id] = checked;
+                        } else {
+                          newSelected[i.id] = false;
+                        }
                       });
                       setSelectedInstallments(newSelected);
                     }}

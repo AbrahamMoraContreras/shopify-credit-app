@@ -64,6 +64,8 @@ class CustomerSummary(BaseModel):
     full_name: str
     email: Optional[str] = None
     shopify_customer_id: Optional[int] = None
+    favorable_balance: Decimal = Decimal("0.00")
+    reputation: Optional[str] = None
     
     class Config:
         from_attributes = True
