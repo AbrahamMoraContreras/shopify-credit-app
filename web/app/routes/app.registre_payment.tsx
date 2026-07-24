@@ -418,12 +418,13 @@ export default function RegistrePayment() {
   };
 
   const selectedTotalDebt = useMemo(() => {
-    return activeInstallments.reduce((sum, inst) => {
-      if (selectedInstallments[inst.id]) {
-        return sum + inst.amount;
-      }
-      return sum;
-    }, 0);
+    return activeInstallments
+      .filter((inst) => selectedInstallments[inst.id])
+      .reduce((sum, inst) => {
+        const original = inst.original_amount ?? inst.amount;
+        const paid = inst.paid_amount ?? 0;
+        return sum + Math.max(0, original - paid);
+      }, 0);
   }, [activeInstallments, selectedInstallments]);
 
   const overdueInstallments = useMemo(() => {
