@@ -67,8 +67,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       const val = mf.value || "";
       const key = mf.key.toLowerCase();
 
-      if (!docTypeVal && (key.includes("tipo") || key.includes("doc"))) {
-        // Para tipos de documento, extraer la "V" si viene como ["V"]
+      // Matches "tipo_de_documento", "tipo_doc", etc.
+      if (key.includes("tipo")) {
         try {
           const parsed = JSON.parse(val);
           if (Array.isArray(parsed) && parsed.length > 0) docTypeVal = parsed[0];
@@ -76,10 +76,21 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         } catch {
           docTypeVal = val;
         }
-      }
-
-      if (!docNumVal && (key === "n" || key.includes("num") || key.includes("n_") || key.includes("doc") && !key.includes("tipo"))) {
+      } 
+      // Matches "numero_documento", "num_doc", "n_de_documento", etc.
+      else if (key === "n" || key.includes("num") || key.includes("n_")) {
         docNumVal = val;
+      }
+      // Fallback for generic "documento" or "doc"
+      else if (key.includes("doc")) {
+        // If the value looks like a document type (V, E, J, G, P, etc)
+        if (!docTypeVal && /^[A-Z]$/i.test(val.trim())) {
+          docTypeVal = val.trim().toUpperCase();
+        } 
+        // Otherwise assume it's a number, or a full string like "V-123456"
+        else if (!docNumVal) {
+          docNumVal = val;
+        }
       }
     }
 
