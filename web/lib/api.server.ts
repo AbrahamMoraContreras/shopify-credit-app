@@ -51,7 +51,7 @@ export interface CreditInstallment {
   installmentNumber: number
   amount: number
   dueDate: string
-  status: "PENDIENTE" | "PAGADA" | "VENCIDO"
+  status: "PENDIENTE" | "PAGADA" | "VENCIDA" | "CANCELADA" | "NO_PAGADA"
 }
 
 export interface Payment {

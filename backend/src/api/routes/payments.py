@@ -129,7 +129,7 @@ def get_expected_payments(
         .join(Customer, Credit.customer_id == Customer.id)
         .filter(
             Customer.merchant_id == merchant_id,
-            CreditInstallment.status.in_([InstallmentStatus.PENDIENTE, InstallmentStatus.VENCIDO])
+            CreditInstallment.status.in_([InstallmentStatus.PENDIENTE, InstallmentStatus.VENCIDA])
         )
         .order_by(CreditInstallment.due_date.asc())
         .all()

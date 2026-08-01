@@ -192,7 +192,7 @@ export default function ExpectedPayments() {
     switch (status) {
       case "PENDIENTE":
         return "info";
-      case "VENCIDO":
+      case "VENCIDA":
         return "critical";
       case "EN_REVISION":
         return "warning";

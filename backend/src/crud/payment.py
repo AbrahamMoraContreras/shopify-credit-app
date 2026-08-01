@@ -377,7 +377,7 @@ def _apply_payment_distribution(db: Session, payment: Payment, credit: Credit, t
     else:
         has_overdue = db.query(CreditInstallment).filter(
             CreditInstallment.credit_id == credit.id,
-            CreditInstallment.status.in_([InstallmentStatus.VENCIDA, InstallmentStatus.VENCIDO])
+            CreditInstallment.status == InstallmentStatus.VENCIDA
         ).first()
         if has_overdue:
             credit.status = CreditStatus.MOROSO
@@ -515,9 +515,11 @@ def review_payment(
         if payment.punctuality_value is None:
             payment.punctuality_value = Decimal("0")
     elif status == PaymentStatus.RECHAZADO:
+        # `proof` es una relación SQLAlchemy (PaymentProof), no un booleano.
+        # Al rechazar, marcar el comprobante como revisado para sacarlo de pendientes.
         pt = db.query(PaymentToken).filter(PaymentToken.payment_id == payment.id).first()
-        if pt:
-            pt.proof = False
+        if pt and pt.proof is not None:
+            pt.proof.status = "REVISADO"
 
     log_audit_action(
         db=db,

@@ -22,7 +22,7 @@ def active_credits(db: Session, merchant_id: UUID) -> int:
 def morose_credits(db: Session, merchant_id: UUID) -> int:
     return db.query(Credit).join(Customer, Credit.customer_id == Customer.id).join(CreditInstallment).filter(
         Customer.merchant_id == merchant_id,
-        CreditInstallment.status == InstallmentStatus.VENCIDO,
+        CreditInstallment.status == InstallmentStatus.VENCIDA,
         Credit.status != CreditStatus.PAGADO,
         Credit.status != CreditStatus.CANCELADO
     ).distinct().count()
@@ -65,7 +65,7 @@ def overdue_amount(db: Session, merchant_id: UUID) -> Decimal:
         Customer, Customer.id == Credit.customer_id
     ).filter(
         Customer.merchant_id == merchant_id,
-        CreditInstallment.status == InstallmentStatus.VENCIDO
+        CreditInstallment.status == InstallmentStatus.VENCIDA
     ).scalar()
     return Decimal(str(res or 0))
 
@@ -75,7 +75,7 @@ def total_customers(db: Session, merchant_id: UUID) -> int:
 def customers_in_mora(db: Session, merchant_id: UUID) -> int:
     return db.query(Customer).join(Credit).join(CreditInstallment).filter(
         Customer.merchant_id == merchant_id,
-        CreditInstallment.status == InstallmentStatus.VENCIDO
+        CreditInstallment.status == InstallmentStatus.VENCIDA
     ).distinct().count()
 
 def pending_payments(db: Session, merchant_id: UUID) -> int:

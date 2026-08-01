@@ -600,7 +600,7 @@ export default function CreditDetail() {
                                 tone={
                                   inst.status === "PENDIENTE"
                                     ? "info"
-                                    : inst.status === "VENCIDO"
+                                    : inst.status === "VENCIDA"
                                       ? "critical"
                                       : "success"
                                 }

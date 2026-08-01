@@ -88,6 +88,12 @@ export interface PaymentResponse {
 }
 
 
-export type PaymentStatus = "REGISTRADO" | "APROBADO" | "RECHAZADO" | "EN_REVISION" | "CANCELADO";
+export type PaymentStatus =
+  | "REGISTRADO"
+  | "EN_REVISION"
+  | "APROBADO"
+  | "RECHAZADO"
+  | "CANCELADO"
+  | "NO_PAGADO";
 
 export type PaymentMethod = "BANK" | "PAYPAL" | "PAGO_MOVIL" | "CASH" | "EFECTIVO";
