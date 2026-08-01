@@ -221,10 +221,6 @@ Endpoints públicos (`/api/public/*`) **no** usan JWT de merchant; se autentican
 | `merchant` | `/merchants` | `POST /register`, `POST /refresh`, `GET|PUT /settings` |
 | `public` | `/public` | `GET /payment-info`, `POST /payment-proof`, stubs GDPR webhooks |
 | `audit` | `/audit` | login, notifications, balance-history |
-| `admin` | `/morosity` | `POST /run` (interno / cron) |
-
-### No montado (gap conocido)
-* ~~`backend/src/api/routes/admin.py` → morosidad~~ **Resuelto:** montado como `POST /api/morosity/run` (header `X-Internal-Secret`) y cron diario en Render.
 
 ### Rutas admin Shopify relevantes (`web/app/routes/`)
 
@@ -308,10 +304,15 @@ Si un pago previamente `APROBADO` pasa a `RECHAZADO`:
 5. Si el crédito estaba `PAGADO` → `EN_PROGRESO`.
 6. Recalcula `punctuality_score` excluyendo la transacción.
 
-### C. Morosidad (`services/morosity.py`)
-* Cuotas `PENDIENTE` con `due_date < today` → `VENCIDA`.
-* Créditos afectados → `MOROSO`.
-* **Operativo vía:** `POST /api/morosity/run` (protegido) y cron Render `shopify-credit-app-morosity` → `backend/scripts/run_morosity.py`.
+### C. Morosidad (`services/morosity.py`) — basada en `payment_date`
+La mora **no** se calcula contra “hoy” ni con un cron. Se evalúa al **aprobar/registrar un pago** usando la fecha de registro del pago:
+
+* **Admin:** el merchant elige `payment_date` en la UI al registrar el pago.
+* **Formulario público (`page/`):** al enviar el comprobante se asigna `payment.payment_date = timestamp` del reporte.
+* `due_date < payment_date` en cuotas aún no pagadas → `VENCIDA`; crédito → `MOROSO` si queda balance.
+* `due_date >= payment_date` → cuota `PENDIENTE`; crédito → `EN_PROGRESO` (si no está `PAGADO`).
+* Puntualidad del pago: `payment_date <= due_date` más temprana cubierta → `100`; si no → `0`.
+* Al **revertir** (rechazar un pago previamente aprobado), `refresh_credit_morosity` recalcula con el `payment_date` del último pago `APROBADO` restante.
 
 ---
 
@@ -341,7 +342,7 @@ El backend **ya está en 3NF**. El contrato HTTP hacia React **debe** seguir sie
 | Área | Estado |
 |------|--------|
 | Webhooks Shopify (`app/uninstalled`, `app/scopes_update`) | Handlers en `web/app/routes/webhooks.app.*.tsx` (borran/actualizan `Session`) |
-| Job de morosidad | `POST /api/morosity/run` (secret interno) + cron Render `shopify-credit-app-morosity` (`scripts/run_morosity.py`) · enum canónico `VENCIDA` |
+| Morosidad | Event-driven en aprobación de pago vía `payment_date` vs `due_date` (`services/morosity.py`); sin cron |
 | Formulario público duplicado | `page/` (canónico Render) vs `web/.../pago.tsx` |
 | Secret interno | `INTERNAL_AUTH_SECRET` debe venir de env; hay fallback hardcodeado en `auth.server.ts` (evitar en prod) |
 | Workers | Dependencias Celery/Redis/Twilio presentes; `tasks/worker.py` vacío |

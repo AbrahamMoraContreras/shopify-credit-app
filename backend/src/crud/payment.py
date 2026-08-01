@@ -339,9 +339,10 @@ def _apply_payment_distribution(db: Session, payment: Payment, credit: Credit, t
 
     # Calcular la puntualidad para créditos basados en cuotas (mensuales/quincenales).
     # Solo se ejecuta cuando el crédito tiene cuotas y punctuality_value no se estableció manualmente (ej: feedback de Fiado).
+    # Regla: payment_date (fecha de registro del pago) vs due_date más temprana cubierta.
+    payment_date_only = payment.payment_date.date() if payment.payment_date else datetime.utcnow().date()
+
     if credit.installments_count > 0 and payment.punctuality_value is None:
-        payment_date_only = payment.payment_date.date() if payment.payment_date else datetime.utcnow().date()
-        # Obtenemos las cuotas a las que apuntaba el pago originalmente y aquellas pagadas en su totalidad
         covered_due_dates = []
         for inst in distribution_queue:
             if inst.id in target_installment_ids or inst in fully_paid_installments:
@@ -375,14 +376,9 @@ def _apply_payment_distribution(db: Session, payment: Payment, credit: Credit, t
         }, synchronize_session=False)
         
     else:
-        has_overdue = db.query(CreditInstallment).filter(
-            CreditInstallment.credit_id == credit.id,
-            CreditInstallment.status == InstallmentStatus.VENCIDA
-        ).first()
-        if has_overdue:
-            credit.status = CreditStatus.MOROSO
-        else:
-            credit.status = CreditStatus.EN_PROGRESO
+        # Morosidad relativa a la fecha de registro del pago (no a "hoy").
+        from services.morosity import apply_morosity_from_payment_date
+        apply_morosity_from_payment_date(db, credit, payment_date_only)
 
 
 def review_payment(
@@ -420,13 +416,6 @@ def review_payment(
 
         # 1. Revertir balance del crédito
         credit.balance += amount_to_credit
-        if credit.status == CreditStatus.PAGADO and credit.balance > Decimal("0.00"):
-            has_overdue = db.query(CreditInstallment).filter(
-                CreditInstallment.credit_id == credit.id,
-                CreditInstallment.due_date < datetime.utcnow().date(),
-                CreditInstallment.status != InstallmentStatus.PAGADA
-            ).first()
-            credit.status = CreditStatus.MOROSO if has_overdue else CreditStatus.EN_PROGRESO
 
         # 2. Revertir saldo a favor del cliente
         if credit.customer:
@@ -474,7 +463,8 @@ def review_payment(
             remaining_to_unpay -= take_back
             
             if inst.paid_amount < Decimal(str(inst.amount)):
-                inst.status = InstallmentStatus.VENCIDA if (inst.due_date and inst.due_date < datetime.utcnow().date()) else InstallmentStatus.PENDIENTE
+                # Provisional; refresh_credit_morosity ajusta VENCIDA vs PENDIENTE con payment_date
+                inst.status = InstallmentStatus.PENDIENTE
                 inst.paid_at = None
 
         # Si aún queda monto por revertir (ej: porque se distribuyó el exceso a otras cuotas), restar de otras cuotas activas
@@ -492,8 +482,12 @@ def review_payment(
                 remaining_to_unpay -= take_back
                 
                 if inst.paid_amount < Decimal(str(inst.amount)):
-                    inst.status = InstallmentStatus.VENCIDA if (inst.due_date and inst.due_date < datetime.utcnow().date()) else InstallmentStatus.PENDIENTE
+                    inst.status = InstallmentStatus.PENDIENTE
                     inst.paid_at = None
+
+        was_approved_before = True
+    else:
+        was_approved_before = False
 
     payment.status = status
     payment.reviewed_at = datetime.utcnow()
@@ -520,6 +514,12 @@ def review_payment(
         pt = db.query(PaymentToken).filter(PaymentToken.payment_id == payment.id).first()
         if pt and pt.proof is not None:
             pt.proof.status = "REVISADO"
+
+    # Tras revertir un pago aprobado, recalcular mora con payment_date de los APROBADOS restantes
+    if was_approved_before and status != PaymentStatus.APROBADO:
+        from services.morosity import refresh_credit_morosity
+        db.flush()
+        refresh_credit_morosity(db, credit)
 
     log_audit_action(
         db=db,

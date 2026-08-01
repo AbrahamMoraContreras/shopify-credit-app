@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from api.routes import customer, credits, payments, dashboard, merchant, public, audit, admin
+from api.routes import customer, credits, payments, dashboard, merchant, public, audit
 from core.config import settings
 from fastapi.middleware.cors import CORSMiddleware
 import db.events  # Register SQLAlchemy events
@@ -18,7 +18,6 @@ app.include_router(dashboard.router, prefix="/api")
 app.include_router(merchant.router, prefix="/api")
 app.include_router(public.router, prefix="/api")
 app.include_router(audit.router, prefix="/api")
-app.include_router(admin.router, prefix="/api")
 
 
 app.add_middleware(

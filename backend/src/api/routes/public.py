@@ -248,6 +248,8 @@ def submit_payment_proof(payload: ProofSubmission, db: Session = Depends(get_db)
         payment.payment_method = "PAGO_MOVIL" if payload.phone_number else "BANK"
         payment.bank_name = payload.bank_name
         
+        # Fecha de registro del pago = timestamp del reporte público (base de puntualidad/mora)
+        payment.payment_date = datetime.utcnow()
         payment.notes = " | ".join(notes_parts)
         payment.updated_at = datetime.utcnow()
         db.add(payment)
