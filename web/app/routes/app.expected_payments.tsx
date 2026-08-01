@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { type LoaderFunctionArgs, type ActionFunctionArgs } from "react-router";
 import { useRouteError, isRouteErrorResponse } from "react-router";
 import {
@@ -6,6 +6,7 @@ import {
   useSubmit,
   useNavigation,
   useActionData,
+  useFetcher,
 } from "react-router";
 import { ClientDate } from "../components/ClientDate";
 import { getAccessTokenForShop } from "../lib/auth.server";
@@ -120,6 +121,20 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
     return { success: true, key, url: data.url };
   }
+
+  if (intent === "sync-morosity") {
+    const res = await fetch(`${BACKEND_URL}/api/payments/morosity/sync`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    if (!res.ok) {
+      return { error: "No se pudo sincronizar mora" };
+    }
+    return { success: true, morositySync: await res.json() };
+  }
   return null;
 };
 
@@ -137,9 +152,22 @@ export default function ExpectedPayments() {
     key?: string;
     url?: string;
   }>();
+  const morosityFetcher = useFetcher();
+  const morositySyncStarted = useRef(false);
 
   const [statusMap, setStatusMap] = useState<Record<string, string>>({});
   const [urlsMap, setUrlsMap] = useState<Record<string, string>>({});
+
+  // Lista primero; sync de mora en background (luego revalida y muestra VENCIDA).
+  useEffect(() => {
+    if (morositySyncStarted.current) return;
+    if (morosityFetcher.state !== "idle") return;
+    morositySyncStarted.current = true;
+    morosityFetcher.submit(
+      { intent: "sync-morosity" },
+      { method: "post" },
+    );
+  }, [morosityFetcher]);
 
   useEffect(() => {
     if (actionData?.key) {

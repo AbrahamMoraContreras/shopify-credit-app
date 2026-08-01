@@ -21,6 +21,7 @@ from crud.payment import (
     batch_review_payments,
     batch_delete_payments
 )
+from services.morosity import sync_calendar_morosity
 from schemas.payment_list import PaymentListItem
 from schemas.batch_payment import BatchReviewRequest, BatchDeleteRequest
 from models.credit import Credit
@@ -32,6 +33,18 @@ from models.payment import Payment
 from services.email import send_payment_reminder
 
 router = APIRouter(prefix="/payments", tags=["Payments"])
+
+
+@router.post("/morosity/sync", summary="Sincronizar mora por calendario (due_date < hoy)")
+def sync_morosity_endpoint(
+    db: Session = Depends(get_db),
+    merchant_id: UUID = Depends(get_merchant_id),
+):
+    """
+    Marca cuotas PENDIENTE con due_date < hoy como VENCIDA y créditos abiertos como MOROSO.
+    Pensado para ejecutarse en segundo plano tras cargar la UI (no bloquea el listado).
+    """
+    return sync_calendar_morosity(db, merchant_id)
 
 @router.post("", response_model=PaymentResponse, status_code=status.HTTP_201_CREATED)
 def create_payment_endpoint(

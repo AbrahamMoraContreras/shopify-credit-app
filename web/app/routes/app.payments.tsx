@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { type LoaderFunctionArgs, type ActionFunctionArgs } from "react-router";
-import { useLoaderData, useSubmit, useNavigation } from "react-router";
+import { useLoaderData, useSubmit, useNavigation, useFetcher } from "react-router";
 import { getAccessTokenForShop } from "../lib/auth.server";
 import { authenticate } from "../shopify.server";
 import { ClientDate } from "../components/ClientDate";
@@ -265,6 +265,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         method: "DELETE",
         headers: { Authorization: `Bearer ${accessToken}` },
       });
+    } else if (intent === "sync-morosity") {
+      const res = await fetch(`${BACKEND_URL}/api/payments/morosity/sync`, {
+        method: "POST",
+        headers: authHeaders,
+      });
+      if (!res.ok) {
+        const detail = await res.text();
+        return { error: "Error sincronizando mora", detail };
+      }
+      const data = await res.json();
+      return { success: true, morositySync: data };
     }
     return { success: true };
   } catch (e) {
@@ -294,6 +305,19 @@ export default function PaymentHistorial() {
   };
   const submit = useSubmit();
   const navigation = useNavigation();
+  const morosityFetcher = useFetcher();
+  const morositySyncStarted = useRef(false);
+
+  // Tabla primero (loader); mora por calendario en segundo plano (no bloquea el paint).
+  useEffect(() => {
+    if (morositySyncStarted.current) return;
+    if (morosityFetcher.state !== "idle") return;
+    morositySyncStarted.current = true;
+    morosityFetcher.submit(
+      { intent: "sync-morosity" },
+      { method: "post" },
+    );
+  }, [morosityFetcher]);
 
   const loading =
     navigation.state === "loading" || navigation.state === "submitting";

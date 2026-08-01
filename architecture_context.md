@@ -304,15 +304,15 @@ Si un pago previamente `APROBADO` pasa a `RECHAZADO`:
 5. Si el crédito estaba `PAGADO` → `EN_PROGRESO`.
 6. Recalcula `punctuality_score` excluyendo la transacción.
 
-### C. Morosidad (`services/morosity.py`) — basada en `payment_date`
-La mora **no** se calcula contra “hoy” ni con un cron. Se evalúa al **aprobar/registrar un pago** usando la fecha de registro del pago:
-
-* **Admin:** el merchant elige `payment_date` en la UI al registrar el pago.
-* **Formulario público (`page/`):** al enviar el comprobante se asigna `payment.payment_date = timestamp` del reporte.
-* `due_date < payment_date` en cuotas aún no pagadas → `VENCIDA`; crédito → `MOROSO` si queda balance.
-* `due_date >= payment_date` → cuota `PENDIENTE`; crédito → `EN_PROGRESO` (si no está `PAGADO`).
-* Puntualidad del pago: `payment_date <= due_date` más temprana cubierta → `100`; si no → `0`.
-* Al **revertir** (rechazar un pago previamente aprobado), `refresh_credit_morosity` recalcula con el `payment_date` del último pago `APROBADO` restante.
+### C. Morosidad — dos capas compatibles
+1. **Por `payment_date` (al aprobar/revertir pago)** — `apply_morosity_from_payment_date` / `refresh_credit_morosity`:
+   * Admin elige `payment_date`; en `page/` se usa timestamp del comprobante.
+   * `due_date < payment_date` **o** `due_date < hoy` → `VENCIDA` (la comparación con hoy evita borrar mora calendario).
+   * Sin pagos aprobados, el refresh cae a reglas de calendario.
+2. **Por calendario bajo demanda (sin cron)** — `POST /api/payments/morosity/sync` → `sync_calendar_morosity`:
+   * `PENDIENTE` + `due_date < hoy` → `VENCIDA`; créditos abiertos → `MOROSO`.
+   * Solo **promueve** (idempotente); no demota cuotas futuras.
+   * UI: al entrar a **Pagos** o **Cobros esperados**, la tabla carga primero y luego un `fetcher` dispara el sync en segundo plano (revalida al terminar).
 
 ---
 
@@ -342,7 +342,7 @@ El backend **ya está en 3NF**. El contrato HTTP hacia React **debe** seguir sie
 | Área | Estado |
 |------|--------|
 | Webhooks Shopify (`app/uninstalled`, `app/scopes_update`) | Handlers en `web/app/routes/webhooks.app.*.tsx` (borran/actualizan `Session`) |
-| Morosidad | Event-driven en aprobación de pago vía `payment_date` vs `due_date` (`services/morosity.py`); sin cron |
+| Morosidad | (1) `payment_date` al aprobar · (2) sync calendario on-demand `POST /api/payments/morosity/sync` en background tras cargar Pagos / Cobros esperados |
 | Formulario público duplicado | `page/` (canónico Render) vs `web/.../pago.tsx` |
 | Secret interno | `INTERNAL_AUTH_SECRET` debe venir de env; hay fallback hardcodeado en `auth.server.ts` (evitar en prod) |
 | Workers | Dependencias Celery/Redis/Twilio presentes; `tasks/worker.py` vacío |
