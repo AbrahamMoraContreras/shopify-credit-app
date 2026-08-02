@@ -95,12 +95,22 @@ def batch_review_endpoint(
     db: Session = Depends(get_db),
     merchant_id: UUID = Depends(get_merchant_id),
 ):
-    return batch_review_payments(
+    result = batch_review_payments(
         db=db,
         payment_ids=payload.payment_ids,
         status=payload.status,
-        reviewer_id=merchant_id
+        reviewer_id=merchant_id,
     )
+    # Si ninguno se pudo revisar, falla de forma explícita (no 200 vacío).
+    if payload.payment_ids and result["reviewed_count"] == 0 and result["failed_count"] > 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "message": "No se pudo revisar ningún pago",
+                **result,
+            },
+        )
+    return result
 
 @router.post("/batch-delete")
 def batch_delete_endpoint(
@@ -424,12 +434,18 @@ def review_payment_endpoint(
     merchant_id: UUID = Depends(get_merchant_id),
 ):
     try:
-        return review_payment(
+        payment = review_payment(
             db=db,
             payment_id=payment_id,
             status=payload.status,
             notes=payload.notes,
-            reviewer_id=merchant_id
+            reviewer_id=merchant_id,
         )
+        # Touch derived fields so PaymentResponse serialization is stable
+        _ = payment.merchant_id
+        _ = payment.installments_covered
+        return payment
+    except HTTPException:
+        raise
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

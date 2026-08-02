@@ -207,14 +207,24 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     // Aprobar o marcar como no pagado automáticamente según la selección del usuario
     if ((approvalStatus === "APROBADO" || approvalStatus === "NO_PAGADO") && created?.id) {
-      await fetch(`${BACKEND_URL}/api/payments/batch-review`, {
+      const reviewRes = await fetch(`${BACKEND_URL}/api/payments/${created.id}/review`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${accessToken}`,
         },
-        body: JSON.stringify({ payment_ids: [created.id], status: approvalStatus }),
+        body: JSON.stringify({ status: approvalStatus }),
       });
+      if (!reviewRes.ok) {
+        const body = await reviewRes.json().catch(() => ({}));
+        const detailStr =
+          typeof body.detail === "object"
+            ? JSON.stringify(body.detail)
+            : body.detail || reviewRes.statusText;
+        return {
+          error: `Pago creado (#${created.id}) pero no se pudo marcar como ${approvalStatus}: ${detailStr}`,
+        };
+      }
     }
   } catch (error) {
     console.error("Action error:", error);

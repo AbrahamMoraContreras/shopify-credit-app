@@ -103,11 +103,11 @@ class PaymentReview(BaseModel):
 
 class PaymentResponse(BaseModel):
     id: int
-    merchant_id: UUID
+    merchant_id: Optional[UUID] = None
     credit_id: int
     installment_id: Optional[int]
     amount: Decimal
-    payment_method: str
+    payment_method: Optional[str] = None
     bank_name: Optional[str] = None
     reference_number: str
     status: PaymentStatus
@@ -119,8 +119,8 @@ class PaymentResponse(BaseModel):
     installments_covered: Optional[str] = None
     punctuality_value: Optional[Decimal] = None
 
-    created_at: datetime
-    updated_at: datetime
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
 class PaymentProofResponse(BaseModel):

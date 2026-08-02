@@ -3,7 +3,13 @@ import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { type LoaderFunctionArgs, type ActionFunctionArgs } from "react-router";
-import { useLoaderData, useSubmit, useNavigation, useFetcher } from "react-router";
+import {
+  useLoaderData,
+  useSubmit,
+  useNavigation,
+  useFetcher,
+  useActionData,
+} from "react-router";
 import { getAccessTokenForShop } from "../lib/auth.server";
 import { authenticate } from "../shopify.server";
 import { ClientDate } from "../components/ClientDate";
@@ -215,11 +221,26 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     if (intent === "batch-review") {
       const payment_ids = JSON.parse(formData.get("payment_ids") as string);
       const status = formData.get("status");
-      await fetch(`${BACKEND_URL}/api/payments/batch-review`, {
+      const res = await fetch(`${BACKEND_URL}/api/payments/batch-review`, {
         method: "PATCH",
         headers: authHeaders,
         body: JSON.stringify({ payment_ids, status }),
       });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        return {
+          error: data?.detail?.message || data?.detail || "Error en revisión masiva",
+          batchResult: data?.detail ?? data,
+        };
+      }
+      if (data.failed_count > 0) {
+        return {
+          success: true,
+          warning: `Revisados ${data.reviewed_count}, fallaron ${data.failed_count}`,
+          batchResult: data,
+        };
+      }
+      return { success: true, batchResult: data };
     } else if (intent === "batch-delete") {
       const payment_ids = JSON.parse(formData.get("payment_ids") as string);
       await fetch(`${BACKEND_URL}/api/payments/batch-delete`, {
@@ -229,37 +250,65 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       });
     } else if (intent === "batch-cancel") {
       const payment_ids = JSON.parse(formData.get("payment_ids") as string);
-      await fetch(`${BACKEND_URL}/api/payments/batch-review`, {
+      const res = await fetch(`${BACKEND_URL}/api/payments/batch-review`, {
         method: "PATCH",
         headers: authHeaders,
         body: JSON.stringify({ payment_ids, status: "CANCELADO" }),
       });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        return {
+          error: data?.detail?.message || data?.detail || "Error al cancelar pagos",
+          batchResult: data?.detail ?? data,
+        };
+      }
+      return { success: true, batchResult: data };
     } else if (intent === "revert") {
       const id = formData.get("id");
-      await fetch(`${BACKEND_URL}/api/payments/${id}/review`, {
+      const res = await fetch(`${BACKEND_URL}/api/payments/${id}/review`, {
         method: "PATCH",
         headers: authHeaders,
         body: JSON.stringify({ status: "EN_REVISION" }),
       });
-    } else if (intent === "approve-proof" || intent === "reject-proof") {
-      const payment_id = Number(formData.get("payment_id"));
-      const proof_id = formData.get("proof_id");
-      const status = intent === "approve-proof" ? "APROBADO" : "RECHAZADO";
-
-      const res = await fetch(`${BACKEND_URL}/api/payments/batch-review`, {
-        method: "PATCH",
-        headers: authHeaders,
-        body: JSON.stringify({ payment_ids: [payment_id], status }),
-      });
-      if (res.ok) {
-        await fetch(
-          `${BACKEND_URL}/api/payments/payment-proofs/${proof_id}/mark-reviewed`,
-          {
-            method: "PATCH",
-            headers: { Authorization: `Bearer ${accessToken}` },
-          },
-        );
+      if (!res.ok) {
+        const detail = await res.text();
+        return { error: "No se pudo revertir el pago", detail };
       }
+    } else if (intent === "approve-proof" || intent === "reject-proof") {
+      // Un solo review endpoint: el backend marca el proof REVISADO en APROBADO y RECHAZADO.
+      const payment_id = Number(formData.get("payment_id"));
+      const status = intent === "approve-proof" ? "APROBADO" : "RECHAZADO";
+      const actionLabel = intent === "approve-proof" ? "aprobar" : "rechazar";
+
+      const res = await fetch(
+        `${BACKEND_URL}/api/payments/${payment_id}/review`,
+        {
+          method: "PATCH",
+          headers: authHeaders,
+          body: JSON.stringify({ status }),
+        },
+      );
+      if (!res.ok) {
+        let detail = await res.text();
+        try {
+          const parsed = JSON.parse(detail);
+          detail = parsed.detail ?? detail;
+        } catch {
+          /* keep text */
+        }
+        return {
+          error: `No se pudo ${actionLabel} el comprobante (pago #${payment_id})`,
+          detail: String(detail),
+        };
+      }
+      const payment = await res.json();
+      if (payment?.status !== status) {
+        return {
+          error: `El pago #${payment_id} no quedó en estado ${status}`,
+          detail: JSON.stringify(payment),
+        };
+      }
+      return { success: true, proofAction: intent, payment_id };
     } else if (intent === "clear-proofs") {
       await fetch(`${BACKEND_URL}/api/payments/payment-proofs`, {
         method: "DELETE",
@@ -305,6 +354,12 @@ export default function PaymentHistorial() {
   };
   const submit = useSubmit();
   const navigation = useNavigation();
+  const actionData = useActionData<{
+    success?: boolean;
+    error?: string;
+    warning?: string;
+    detail?: string;
+  }>();
   const morosityFetcher = useFetcher();
   const morositySyncStarted = useRef(false);
 
@@ -330,6 +385,12 @@ export default function PaymentHistorial() {
   useEffect(() => {
     setSelectedIds(new Set());
   }, [payments]);
+
+  useEffect(() => {
+    if (actionData?.error) {
+      console.error("[payments]", actionData.error, actionData.detail);
+    }
+  }, [actionData]);
 
   const toggleSelect = (id: number) => {
     setSelectedIds((prev) => {
@@ -574,6 +635,21 @@ export default function PaymentHistorial() {
             La tasa de cambio actual es de <strong>Bs. {tasaBcv.toFixed(2)}</strong> por USD.
             {tasaFecha && ` Actualizada el: ${tasaFecha}.`}
           </s-text>
+        </s-banner>
+      )}
+
+      {actionData?.error && (
+        <s-banner tone="critical" heading="No se completó la acción">
+          <s-text>{actionData.error}</s-text>
+          {actionData.detail && (
+            <s-text color="subdued">{String(actionData.detail)}</s-text>
+          )}
+        </s-banner>
+      )}
+
+      {actionData?.warning && !actionData?.error && (
+        <s-banner tone="warning" heading="Revisión parcial">
+          <s-text>{actionData.warning}</s-text>
         </s-banner>
       )}
 

@@ -139,6 +139,9 @@ def create_payment(
         ).all()
     
     notes = payload.notes or ""
+    # Persistir flag para que review_payment(APROBADO) lo respete en dinero nuevo
+    if payload.distribute_excess and "[DISTRIBUTE_EXCESS]" not in notes:
+        notes = f"{notes}\n[DISTRIBUTE_EXCESS]".strip() if notes else "[DISTRIBUTE_EXCESS]"
 
     payload_amount = Decimal(str(payload.amount))
 
@@ -394,7 +397,15 @@ def review_payment(
     if not payment:
         raise HTTPException(status_code=400, detail="Pago no encontrado")
 
+    # Ya en el estado pedido: idempotente, pero sanear proof colgado (deploys previos).
     if payment.status == status:
+        if status in (PaymentStatus.APROBADO, PaymentStatus.RECHAZADO, PaymentStatus.CANCELADO):
+            _mark_linked_proof_reviewed(db, payment.id)
+            if auto_commit:
+                db.commit()
+                db.refresh(payment)
+            else:
+                db.flush()
         return payment
 
     credit = db.query(Credit).with_for_update().filter(Credit.id == payment.credit_id).first()
@@ -503,17 +514,17 @@ def review_payment(
             target_ids = [payment.installment_id]
             
         _apply_payment_distribution(db, payment, credit, target_ids, distribute_excess, credit.customer)
+        _mark_linked_proof_reviewed(db, payment.id)
     elif status == PaymentStatus.NO_PAGADO:
         for inst in payment.covered_installments:
             inst.status = InstallmentStatus.NO_PAGADA
         if payment.punctuality_value is None:
             payment.punctuality_value = Decimal("0")
     elif status == PaymentStatus.RECHAZADO:
-        # `proof` es una relación SQLAlchemy (PaymentProof), no un booleano.
-        # Al rechazar, marcar el comprobante como revisado para sacarlo de pendientes.
-        pt = db.query(PaymentToken).filter(PaymentToken.payment_id == payment.id).first()
-        if pt and pt.proof is not None:
-            pt.proof.status = "REVISADO"
+        _mark_linked_proof_reviewed(db, payment.id)
+    elif status == PaymentStatus.CANCELADO:
+        # Cancelar un cobro en revisión también debe sacarlo de "Comprobantes por revisar"
+        _mark_linked_proof_reviewed(db, payment.id)
 
     # Tras revertir un pago aprobado, recalcular mora con payment_date de los APROBADOS restantes
     if was_approved_before and status != PaymentStatus.APROBADO:
@@ -545,21 +556,49 @@ def review_payment(
         
     return payment
 
+
+def _mark_linked_proof_reviewed(db: Session, payment_id: int) -> None:
+    """Marca el PaymentProof ligado al token del pago como REVISADO (sale de 'por revisar')."""
+    pt = (
+        db.query(PaymentToken)
+        .filter(PaymentToken.payment_id == payment_id)
+        .first()
+    )
+    if pt is not None and pt.proof is not None:
+        pt.proof.status = "REVISADO"
+
+
 def batch_review_payments(
     db: Session,
     payment_ids: list[int],
     status: PaymentStatus,
     reviewer_id: UUID
 ):
-    results = []
+    """
+    Revisa varios pagos. No traga fallos en silencio: devuelve reviewed/failed.
+    """
+    reviewed: list[int] = []
+    failed: list[dict] = []
     for pid in payment_ids:
         try:
             p = review_payment(db, pid, status, reviewer_id)
-            results.append(p)
+            reviewed.append(p.id)
+        except HTTPException as e:
+            detail = e.detail
+            if not isinstance(detail, str):
+                detail = str(detail)
+            print(f"Error reviewing payment {pid}: {detail}")
+            failed.append({"payment_id": pid, "error": detail})
         except Exception as e:
             print(f"Error reviewing payment {pid}: {e}")
-            continue
-    return results
+            failed.append({"payment_id": pid, "error": str(e)})
+    return {
+        "reviewed": reviewed,
+        "failed": failed,
+        "reviewed_count": len(reviewed),
+        "failed_count": len(failed),
+        "status": status.value if hasattr(status, "value") else str(status),
+    }
 
 def batch_delete_payments(
     db: Session,
@@ -583,6 +622,8 @@ def batch_delete_payments(
         else:
             p.status = PaymentStatus.CANCELADO
             p.notes = f"{p.notes or ''} | Cancelado masivamente".strip()
+            # Misma salida de "Comprobantes por revisar" que review_payment(CANCELADO)
+            _mark_linked_proof_reviewed(db, p.id)
             
     db.commit()
     return len(payments)
