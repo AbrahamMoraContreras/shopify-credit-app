@@ -62,6 +62,8 @@ interface PaymentInfo {
   cuotas?: { cantidad: number; valorCuota: number } | null;
   metodosAceptados: string[];
   cuentaDestino: { banco?: string; rif?: string; telefono?: string; cuenta?: string; };
+  pagoMovilDestino?: { banco?: string; rif?: string; telefono?: string; cuenta?: string; } | null;
+  transferenciaDestino?: { banco?: string; rif?: string; telefono?: string; cuenta?: string; } | null;
   binanceDestino?: Record<string, string> | null;
   zelleDestino?: Record<string, string> | null;
   zinliDestino?: Record<string, string> | null;
@@ -238,12 +240,12 @@ export default function PagoPublico() {
         )}
 
         {/* Payment method details */}
-        {selectedMethod === "Pago Móvil" && info?.cuentaDestino?.telefono && (
+        {selectedMethod === "Pago Móvil" && (info?.pagoMovilDestino?.telefono || info?.cuentaDestino?.telefono) && (
           <div style={styles.methodBox}>
             <h3 style={styles.methodTitle}>📱 Pago Móvil</h3>
-            <p style={styles.methodLine}><strong>Banco:</strong> {info.cuentaDestino.banco}</p>
-            <p style={styles.methodLine}><strong>Teléfono:</strong> {info.cuentaDestino.telefono}</p>
-            <p style={styles.methodLine}><strong>Documento:</strong> {info.cuentaDestino.rif}</p>
+            <p style={styles.methodLine}><strong>Banco:</strong> {info.pagoMovilDestino?.banco || info.cuentaDestino?.banco}</p>
+            <p style={styles.methodLine}><strong>Teléfono:</strong> {info.pagoMovilDestino?.telefono || info.cuentaDestino?.telefono}</p>
+            <p style={styles.methodLine}><strong>Documento:</strong> {info.pagoMovilDestino?.rif || info.cuentaDestino?.rif}</p>
             {effectiveTasa && montoVes && (
               <p style={{ ...styles.methodLine, marginTop: 8, fontWeight: 600, color: "#2B6CB0" }}>
                 Monto a enviar: Bs. {montoVes.toFixed(2)}
@@ -251,12 +253,12 @@ export default function PagoPublico() {
             )}
           </div>
         )}
-        {selectedMethod === "Transferencia Bancaria" && info?.cuentaDestino?.cuenta && (
+        {selectedMethod === "Transferencia Bancaria" && (info?.transferenciaDestino?.cuenta || info?.cuentaDestino?.cuenta) && (
           <div style={styles.methodBox}>
             <h3 style={styles.methodTitle}>🏦 Transferencia Bancaria</h3>
-            <p style={styles.methodLine}><strong>Banco:</strong> {info.cuentaDestino.banco}</p>
-            <p style={styles.methodLine}><strong>Cuenta:</strong> {info.cuentaDestino.cuenta}</p>
-            <p style={styles.methodLine}><strong>Documento:</strong> {info.cuentaDestino.rif}</p>
+            <p style={styles.methodLine}><strong>Banco:</strong> {info.transferenciaDestino?.banco || info.cuentaDestino?.banco}</p>
+            <p style={styles.methodLine}><strong>Cuenta:</strong> {info.transferenciaDestino?.cuenta || info.cuentaDestino?.cuenta}</p>
+            <p style={styles.methodLine}><strong>Documento:</strong> {info.transferenciaDestino?.rif || info.cuentaDestino?.rif}</p>
             {effectiveTasa && montoVes && (
               <p style={{ ...styles.methodLine, marginTop: 8, fontWeight: 600, color: "#2B6CB0" }}>
                 Monto a transferir: Bs. {montoVes.toFixed(2)}
@@ -267,6 +269,7 @@ export default function PagoPublico() {
         {selectedMethod === "Binance" && info?.binanceDestino && (
           <div style={styles.methodBox}>
             <h3 style={styles.methodTitle}>🔶 Binance Pay</h3>
+            {info.binanceDestino.details && <p style={styles.methodLine}><strong>Email / Pay ID:</strong> {info.binanceDestino.details}</p>}
             {info.binanceDestino.payId && <p style={styles.methodLine}><strong>Pay ID:</strong> {info.binanceDestino.payId}</p>}
             {info.binanceDestino.email && <p style={styles.methodLine}><strong>Email:</strong> {info.binanceDestino.email}</p>}
           </div>
@@ -274,20 +277,24 @@ export default function PagoPublico() {
         {selectedMethod === "Zelle" && info?.zelleDestino && (
           <div style={styles.methodBox}>
             <h3 style={styles.methodTitle}>🟣 Zelle</h3>
-            <p style={styles.methodLine}><strong>Nombre:</strong> {info.zelleDestino.nombre}</p>
-            <p style={styles.methodLine}><strong>Email:</strong> {info.zelleDestino.email}</p>
+            {info.zelleDestino.details && <p style={styles.methodLine}><strong>Email / Teléfono:</strong> {info.zelleDestino.details}</p>}
+            {info.zelleDestino.nombre && <p style={styles.methodLine}><strong>Nombre:</strong> {info.zelleDestino.nombre}</p>}
+            {info.zelleDestino.email && <p style={styles.methodLine}><strong>Email:</strong> {info.zelleDestino.email}</p>}
           </div>
         )}
         {selectedMethod === "Zinli" && info?.zinliDestino && (
           <div style={styles.methodBox}>
             <h3 style={styles.methodTitle}>💳 Zinli</h3>
-            <p style={styles.methodLine}><strong>Email:</strong> {info.zinliDestino.email}</p>
+            {info.zinliDestino.details && <p style={styles.methodLine}><strong>Email:</strong> {info.zinliDestino.details}</p>}
+            {info.zinliDestino.email && <p style={styles.methodLine}><strong>Email:</strong> {info.zinliDestino.email}</p>}
           </div>
         )}
         {selectedMethod === "Débito" && info?.debitoDestino && (
           <div style={styles.methodBox}>
             <h3 style={styles.methodTitle}>🏦 Tarjeta de Débito</h3>
-            <p style={styles.methodLine}>Por favor, realice el pago con tarjeta de débito y guarde el número de recibo.</p>
+            {info.debitoDestino.details
+              ? <p style={styles.methodLine}>{info.debitoDestino.details}</p>
+              : <p style={styles.methodLine}>Por favor, realice el pago con tarjeta de débito y guarde el número de recibo.</p>}
           </div>
         )}
 

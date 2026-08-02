@@ -44,7 +44,10 @@ class PaymentInfoResponse(BaseModel):
     total: Decimal
     cuotas: Optional[QuotaInfo] = None
     metodosAceptados: List[str]
+    # Legacy (fusionado). Preferir pagoMovilDestino / transferenciaDestino.
     cuentaDestino: DestinoInfo
+    pagoMovilDestino: Optional[DestinoInfo] = None
+    transferenciaDestino: Optional[DestinoInfo] = None
     binanceDestino: Optional[dict] = None
     zelleDestino: Optional[dict] = None
     zinliDestino: Optional[dict] = None
@@ -52,6 +55,24 @@ class PaymentInfoResponse(BaseModel):
     customer_name: str
     customer_email: str
     saldo_a_favor: Decimal = Decimal("0.00")
+
+
+def _format_rif(settings: dict) -> str:
+    tipo = (settings or {}).get("tipoCi", "") or ""
+    ci = (settings or {}).get("ci", "") or ""
+    if tipo and ci:
+        return f"{tipo}-{ci}"
+    return tipo or ci or ""
+
+
+@router.get("/bcv-rate", summary="Tasa oficial Bs/USD (proxy servidor)")
+def get_bcv_rate():
+    """
+    Expone la tasa BCV al formulario público sin que el browser hable con Google Sheets.
+    """
+    from services.bcv_rate import fetch_bcv_rate
+
+    return fetch_bcv_rate()
 
 
 class ProofSubmission(BaseModel):
@@ -144,27 +165,42 @@ def get_payment_info(token: str, db: Session = Depends(get_db)):
     debito_settings = settings_dict.get("debito", {})
     
     metodos = []
-    if pm_settings and pm_settings.get("banco"): metodos.append("Pago Móvil")
-    if tr_settings and tr_settings.get("banco"): metodos.append("Transferencia Bancaria")
+    # Requiere dato útil (no solo banco default) para listar el método
+    if pm_settings and (pm_settings.get("telefono") or "").strip():
+        metodos.append("Pago Móvil")
+    if tr_settings and (tr_settings.get("numero") or "").strip():
+        metodos.append("Transferencia Bancaria")
     if binance_settings and binance_settings.get("enabled"): metodos.append("Binance")
     if zelle_settings and zelle_settings.get("enabled"): metodos.append("Zelle")
     if zinli_settings and zinli_settings.get("enabled"): metodos.append("Zinli")
     if debito_settings and debito_settings.get("enabled"): metodos.append("Débito")
 
-    destino = DestinoInfo()
+    pago_movil_destino = None
     if pm_settings:
-        destino.banco = pm_settings.get("banco", "")
-        tipo = pm_settings.get("tipoCi", "")
-        ci = pm_settings.get("ci", "")
-        destino.rif = f"{tipo}-{ci}" if tipo and ci else (tipo or ci or "")
-        destino.telefono = pm_settings.get("telefono", "")
+        pago_movil_destino = DestinoInfo(
+            banco=pm_settings.get("banco") or None,
+            rif=_format_rif(pm_settings) or None,
+            telefono=pm_settings.get("telefono") or None,
+        )
+
+    transferencia_destino = None
     if tr_settings:
-        if not destino.banco: destino.banco = tr_settings.get("banco", "")
-        if not destino.rif:
-            tipo = tr_settings.get("tipoCi", "")
-            ci = tr_settings.get("ci", "")
-            destino.rif = f"{tipo}-{ci}" if tipo and ci else (tipo or ci or "")
-        destino.cuenta = tr_settings.get("numero", "")
+        transferencia_destino = DestinoInfo(
+            banco=tr_settings.get("banco") or None,
+            rif=_format_rif(tr_settings) or None,
+            cuenta=tr_settings.get("numero") or None,
+        )
+
+    # Compat: un solo objeto con ambos datos, sin que un método pise el banco/RIF del otro.
+    # Los clientes nuevos deben usar pagoMovilDestino / transferenciaDestino.
+    destino = DestinoInfo(
+        banco=(pago_movil_destino.banco if pago_movil_destino else None)
+            or (transferencia_destino.banco if transferencia_destino else None),
+        rif=(pago_movil_destino.rif if pago_movil_destino else None)
+            or (transferencia_destino.rif if transferencia_destino else None),
+        telefono=pago_movil_destino.telefono if pago_movil_destino else None,
+        cuenta=transferencia_destino.cuenta if transferencia_destino else None,
+    )
 
     return PaymentInfoResponse(
         numeroOrden=str(credit.id) if credit else str(payment.id),
@@ -175,9 +211,10 @@ def get_payment_info(token: str, db: Session = Depends(get_db)):
         iva=Decimal("0.00"),
         total=total,
         cuotas=cuotas,
-        estado="Pendiente de Pago",
         metodosAceptados=metodos,
         cuentaDestino=destino,
+        pagoMovilDestino=pago_movil_destino,
+        transferenciaDestino=transferencia_destino,
         binanceDestino=binance_settings if binance_settings else None,
         zelleDestino=zelle_settings if zelle_settings else None,
         zinliDestino=zinli_settings if zinli_settings else None,
