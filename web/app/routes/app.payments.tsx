@@ -252,7 +252,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         headers: authHeaders,
         body: JSON.stringify({ payment_ids }),
       });
-    else if (intent === "batch-cancel") {
+    } else if (intent === "batch-cancel") {
       // Solo anula cobros no aprobados (los aprobados requieren motivo uno a uno).
       const payment_ids = JSON.parse(formData.get("payment_ids") as string);
       const res = await fetch(`${BACKEND_URL}/api/payments/batch-review`, {
