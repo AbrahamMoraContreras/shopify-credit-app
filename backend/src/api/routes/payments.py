@@ -100,6 +100,7 @@ def batch_review_endpoint(
         payment_ids=payload.payment_ids,
         status=payload.status,
         reviewer_id=merchant_id,
+        notes=payload.notes,
     )
     # Si ninguno se pudo revisar, falla de forma explícita (no 200 vacío).
     if payload.payment_ids and result["reviewed_count"] == 0 and result["failed_count"] > 0:

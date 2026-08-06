@@ -73,6 +73,7 @@ export interface PaymentResponse {
   installment_id: number;
   amount: number;
   payment_method: string;
+  bank_name?: string;
   reference_number: string;
   status: PaymentStatus;
   installment_number: number;

@@ -391,6 +391,7 @@ def review_payment(
     reviewer_id,
     notes: str | None = None,
     auto_commit: bool = True,
+    require_cancel_reason: bool = True,
 ):
     payment = db.query(Payment).with_for_update().filter(Payment.id == payment_id).first()
 
@@ -407,6 +408,15 @@ def review_payment(
             else:
                 db.flush()
         return payment
+
+    # Anular cobro aprobado = cierre terminal: exige motivo (Revertir es para revalidar).
+    if status == PaymentStatus.CANCELADO and payment.status == PaymentStatus.APROBADO:
+        if require_cancel_reason and not (notes and str(notes).strip()):
+            raise HTTPException(
+                status_code=400,
+                detail="Para anular un cobro aprobado debe indicar un motivo. "
+                "Si desea corregirlo y revalidarlo, use Revertir (EN_REVISION).",
+            )
 
     credit = db.query(Credit).with_for_update().filter(Credit.id == payment.credit_id).first()
     if not credit:
@@ -504,7 +514,12 @@ def review_payment(
     payment.reviewed_at = datetime.utcnow()
     payment.reviewed_by = reviewer_id
     if notes:
-        payment.notes = notes
+        if status == PaymentStatus.CANCELADO:
+            stamp = f"[ANULADO] {str(notes).strip()}"
+            existing = (payment.notes or "").strip()
+            payment.notes = f"{existing}\n{stamp}".strip() if existing else stamp
+        else:
+            payment.notes = notes
 
     if status == PaymentStatus.APROBADO:
         distribute_excess = "[DISTRIBUTE_EXCESS]" in (payment.notes or "")
@@ -572,7 +587,8 @@ def batch_review_payments(
     db: Session,
     payment_ids: list[int],
     status: PaymentStatus,
-    reviewer_id: UUID
+    reviewer_id: UUID,
+    notes: str | None = None,
 ):
     """
     Revisa varios pagos. No traga fallos en silencio: devuelve reviewed/failed.
@@ -581,7 +597,7 @@ def batch_review_payments(
     failed: list[dict] = []
     for pid in payment_ids:
         try:
-            p = review_payment(db, pid, status, reviewer_id)
+            p = review_payment(db, pid, status, reviewer_id, notes=notes)
             reviewed.append(p.id)
         except HTTPException as e:
             detail = e.detail

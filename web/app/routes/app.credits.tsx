@@ -10,6 +10,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { getAccessTokenForShop } from "../lib/auth.server";
 import { authenticate } from "../shopify.server";
+import { formatPaymentMethodLabel } from "../lib/paymentLabels";
 
 function isDocumentRequest(request: Request) {
   const accept = request.headers.get("Accept") || "";
@@ -337,6 +338,7 @@ export default function CreditHistorial() {
       "Monto Crédito": formatCurrency(c.total_amount),
       Balance: formatCurrency(c.balance),
       "Último Abono": formatCurrency(c.last_payment_amount),
+      "Último Método": formatPaymentMethodLabel(c.last_payment_method),
       Estatus: c.status,
     }));
 
@@ -362,6 +364,7 @@ export default function CreditHistorial() {
             "Monto Crédito",
             "Balance",
             "Último Abono",
+            "Último Método",
             "Estatus",
           ],
         ],
@@ -372,8 +375,10 @@ export default function CreditHistorial() {
           d["Monto Crédito"],
           d.Balance,
           d["Último Abono"],
+          d["Último Método"],
           d.Estatus,
         ]),
+        styles: { fontSize: 8 },
       });
       doc.save("creditos.pdf");
     }
@@ -706,17 +711,7 @@ export default function CreditHistorial() {
                     )}
                     {credit.last_payment_method && (
                       <s-text color="subdued" alignment="center">
-                        {credit.last_payment_method === "BANK"
-                          ? "Transf. Bancaria"
-                          : credit.last_payment_method === "PAGO_MOVIL"
-                            ? "Pago Móvil"
-                            : credit.last_payment_method === "PAYPAL"
-                              ? "PayPal"
-                              : credit.last_payment_method === "CASH"
-                                ? "Efectivo USD"
-                                : credit.last_payment_method === "EFECTIVO"
-                                  ? "Efectivo VEF"
-                                  : credit.last_payment_method}
+                        {formatPaymentMethodLabel(credit.last_payment_method)}
                       </s-text>
                     )}
                     {!credit.last_payment_date &&

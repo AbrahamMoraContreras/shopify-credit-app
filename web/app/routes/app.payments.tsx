@@ -13,6 +13,10 @@ import {
 import { getAccessTokenForShop } from "../lib/auth.server";
 import { authenticate } from "../shopify.server";
 import { ClientDate } from "../components/ClientDate";
+import {
+  formatBankEntityLabel,
+  formatPaymentMethodLabel,
+} from "../lib/paymentLabels";
 
 interface PaymentListItem {
   id: number;
@@ -248,21 +252,52 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         headers: authHeaders,
         body: JSON.stringify({ payment_ids }),
       });
-    } else if (intent === "batch-cancel") {
+    else if (intent === "batch-cancel") {
+      // Solo anula cobros no aprobados (los aprobados requieren motivo uno a uno).
       const payment_ids = JSON.parse(formData.get("payment_ids") as string);
       const res = await fetch(`${BACKEND_URL}/api/payments/batch-review`, {
         method: "PATCH",
         headers: authHeaders,
-        body: JSON.stringify({ payment_ids, status: "CANCELADO" }),
+        body: JSON.stringify({
+          payment_ids,
+          status: "CANCELADO",
+          notes: "Anulación masiva de cobros no aprobados",
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         return {
-          error: data?.detail?.message || data?.detail || "Error al cancelar pagos",
+          error: data?.detail?.message || data?.detail || "Error al anular cobros",
           batchResult: data?.detail ?? data,
         };
       }
+      if (data.failed_count > 0) {
+        return {
+          success: true,
+          warning: `Anulados ${data.reviewed_count}, fallaron ${data.failed_count}`,
+          batchResult: data,
+        };
+      }
       return { success: true, batchResult: data };
+    } else if (intent === "annul") {
+      const id = formData.get("id");
+      const notes = (formData.get("notes") as string) || undefined;
+      const res = await fetch(`${BACKEND_URL}/api/payments/${id}/review`, {
+        method: "PATCH",
+        headers: authHeaders,
+        body: JSON.stringify({ status: "CANCELADO", notes }),
+      });
+      if (!res.ok) {
+        let detail = await res.text();
+        try {
+          const parsed = JSON.parse(detail);
+          detail = parsed.detail ?? detail;
+        } catch {
+          /* keep */
+        }
+        return { error: "No se pudo anular el cobro", detail: String(detail) };
+      }
+      return { success: true };
     } else if (intent === "revert") {
       const id = formData.get("id");
       const res = await fetch(`${BACKEND_URL}/api/payments/${id}/review`, {
@@ -457,25 +492,85 @@ export default function PaymentHistorial() {
 
   const handleBatchCancel = () => {
     if (selectedIds.size === 0) return;
+    const selectedPayments = payments.filter((p: any) => selectedIds.has(p.id));
+    const annulable = selectedPayments.filter(
+      (p: any) =>
+        p.status !== "APROBADO" &&
+        p.status !== "CANCELADO",
+    );
+    const skippedApproved = selectedPayments.filter(
+      (p: any) => p.status === "APROBADO",
+    ).length;
+
+    if (annulable.length === 0) {
+      alert(
+        skippedApproved > 0
+          ? "Los cobros aprobados no se pueden anular en lote. Ábralos uno a uno, indique un motivo y use «Anular cobro». Para corregir y revalidar, use «Revertir»."
+          : "No hay cobros anulables en la selección (ya cancelados o no válidos).",
+      );
+      return;
+    }
+
+    const extra =
+      skippedApproved > 0
+        ? `\n\nNota: ${skippedApproved} cobro(s) aprobado(s) se omitirán; anúlelos individualmente con motivo.`
+        : "";
     if (
       !confirm(
-        "¿Seguro que deseas cancelar los cobros seleccionados? Se revertirá en resuelto en el crédito asociado.",
+        `¿Anular ${annulable.length} cobro(s) no aprobado(s)? Quedarán en CANCELADO y no volverán a En revisión.${extra}`,
       )
     )
       return;
+
     submit(
       {
         intent: "batch-cancel",
-        payment_ids: JSON.stringify(Array.from(selectedIds)),
+        payment_ids: JSON.stringify(annulable.map((p: any) => p.id)),
       },
       { method: "post" },
     );
   };
 
   const handleRevertPayment = (id: number) => {
-    if (!confirm("¿Seguro que deseas revertir este pago a EN_REVISION?"))
+    if (
+      !confirm(
+        "¿Revertir este cobro a EN_REVISION?\nSe deshará el efecto en el crédito y podrá corregirlo/revalidarlo.",
+      )
+    )
       return;
     submit({ intent: "revert", id: id.toString() }, { method: "post" });
+  };
+
+  const handleAnnulPayment = (payment: { id: number; status: string }) => {
+    if (payment.status === "CANCELADO") return;
+
+    let notes = "";
+    if (payment.status === "APROBADO") {
+      const reason = window.prompt(
+        "Motivo de anulación (obligatorio).\nEj: duplicado, error de carga, fraude.\n\nSi desea corregir y revalidar el mismo cobro, cancele y use Revertir.",
+      );
+      if (!reason || !reason.trim()) return;
+      const typed = window.prompt(
+        'Escriba ANULAR para confirmar.\nEste cobro NO volverá a En revisión.',
+      );
+      if (!typed || typed.trim().toUpperCase() !== "ANULAR") return;
+      notes = reason.trim();
+    } else if (
+      !confirm(
+        "¿Anular este cobro? Quedará CANCELADO y no volverá a En revisión.",
+      )
+    ) {
+      return;
+    }
+
+    submit(
+      {
+        intent: "annul",
+        id: payment.id.toString(),
+        notes,
+      },
+      { method: "post" },
+    );
   };
 
   const handleApproveProof = (proof: PaymentProof) => {
@@ -569,6 +664,8 @@ export default function PaymentHistorial() {
         Cliente: p.customer_name,
         "Total Crédito": `$${creditTotal.toFixed(2)}`,
         "Cuotas Pagadas": cuotasCubiertas,
+        "Método de Pago": formatPaymentMethodLabel(p.payment_method),
+        "Entidad Bancaria": formatBankEntityLabel(p.bank_name),
         Abono: `$${abono.toFixed(2)}`,
         "Balance Cliente": `$${saldoAFavor.toFixed(2)}`,
         "Balance Restante": `$${saldoRestante.toFixed(2)}`,
@@ -597,9 +694,9 @@ export default function PaymentHistorial() {
             "ID Crédito",
             "Fecha",
             "Cliente",
-            "Total Crédito",
+            "Método",
+            "Banco",
             "Abono",
-            "Balance Restante",
             "Estado",
           ],
         ],
@@ -608,11 +705,12 @@ export default function PaymentHistorial() {
           d["ID Crédito"],
           d["Fecha"],
           d.Cliente,
-          d["Total Crédito"],
+          d["Método de Pago"],
+          d["Entidad Bancaria"],
           d.Abono,
-          d["Balance Restante"],
           d.Estado,
         ]),
+        styles: { fontSize: 8 },
       });
       doc.save("cobros.pdf");
     }
@@ -994,9 +1092,9 @@ export default function PaymentHistorial() {
                   icon="delete"
                   disabled={selectedIds.size === 0 || loading || undefined}
                   onClick={handleBatchCancel}
-                  accessibilityLabel="Cancelar cobros seleccionados y revertir monto al crédito"
+                  accessibilityLabel="Anular cobros no aprobados seleccionados"
                 >
-                  Cancelar Pago
+                  Anular cobros
                 </s-button>
             </s-stack>
           </s-stack>
@@ -1087,17 +1185,7 @@ export default function PaymentHistorial() {
                   <s-table-cell>
                     <s-stack direction="block" gap="none">
                       <s-text type="strong">
-                        {payment.payment_method
-                          ? payment.payment_method === "CASH"
-                            ? "Efectivo USD"
-                            : payment.payment_method === "EFECTIVO"
-                              ? "Efectivo VEF"
-                              : payment.payment_method === "BANK"
-                                ? "Transferencia Bancaria"
-                                : payment.payment_method === "PAGO_MOVIL"
-                                  ? "Pago Móvil"
-                                  : payment.payment_method
-                          : "N/A"}
+                        {formatPaymentMethodLabel(payment.payment_method)}
                       </s-text>
                       {payment.bank_name ? (
                         <s-text color="subdued">{payment.bank_name}</s-text>
@@ -1137,15 +1225,27 @@ export default function PaymentHistorial() {
                         >
                           Ver Crédito
                         </s-button>
-                        {payment.status !== "EN_REVISION" && (
+                        {payment.status === "APROBADO" && (
                           <s-button
                             slot="secondary-actions"
                             variant="secondary"
                             icon="undo"
                             onClick={() => handleRevertPayment(payment.id)}
-                            accessibilityLabel="Revertir el estado de este pago a revisión"
+                            accessibilityLabel="Revertir cobro aprobado a En revisión"
                           >
                             Revertir
+                          </s-button>
+                        )}
+                        {payment.status !== "CANCELADO" && (
+                          <s-button
+                            slot="secondary-actions"
+                            variant="secondary"
+                            tone="critical"
+                            icon="delete"
+                            onClick={() => handleAnnulPayment(payment)}
+                            accessibilityLabel="Anular cobro de forma definitiva"
+                          >
+                            Anular cobro
                           </s-button>
                         )}
                       </s-button-group>
@@ -1207,9 +1307,9 @@ export default function PaymentHistorial() {
             icon="delete"
             disabled={selectedIds.size === 0 || loading || undefined}
             onClick={handleBatchCancel}
-            accessibilityLabel="Cancelar cobros seleccionados y revertir monto al crédito"
+            accessibilityLabel="Anular cobros no aprobados seleccionados"
           >
-            Cancelar Pago
+            Anular cobros
           </s-button>
         </s-stack>
       </s-section>

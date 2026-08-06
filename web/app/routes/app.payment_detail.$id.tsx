@@ -14,6 +14,10 @@ import { type LoaderFunctionArgs, type ActionFunctionArgs } from "react-router";
 import { ClientDate } from "../components/ClientDate";
 import { getAccessTokenForShop } from "../lib/auth.server";
 import { authenticate } from "../shopify.server";
+import {
+  formatBankEntityLabel,
+  formatPaymentMethodLabel,
+} from "../lib/paymentLabels";
 
 interface PaymentDetailData {
   id: number;
@@ -95,7 +99,33 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
   const formData = await request.formData();
   const intent = formData.get("intent");
 
-  if (intent === "cancel") {
+  if (intent === "cancel" || intent === "annul") {
+    try {
+      const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
+      const notes = (formData.get("notes") as string) || undefined;
+      const res = await fetch(`${BACKEND_URL}/api/payments/${id}/review`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status: "CANCELADO", notes }),
+      });
+      if (!res.ok) {
+        let detail = await res.text();
+        try {
+          const parsed = JSON.parse(detail);
+          detail = parsed.detail ?? detail;
+        } catch {
+          /* keep */
+        }
+        return { error: typeof detail === "string" ? detail : "Error al anular cobro" };
+      }
+      return { success: true, message: "Cobro anulado correctamente." };
+    } catch {
+      return { error: "Error de red" };
+    }
+  } else if (intent === "revert") {
     try {
       const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
       const res = await fetch(`${BACKEND_URL}/api/payments/${id}/review`, {
@@ -104,10 +134,10 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
           Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ status: "CANCELADO" }),
+        body: JSON.stringify({ status: "EN_REVISION" }),
       });
-      if (!res.ok) return { error: "Error al cancelar pago" };
-      return { success: true, message: "Pago cancelado correctamente." };
+      if (!res.ok) return { error: "Error al revertir cobro" };
+      return { success: true, message: "Cobro revertido a En revisión." };
     } catch {
       return { error: "Error de red" };
     }
@@ -161,14 +191,39 @@ export default function PaymentDetail() {
     }
   }, [actionData]);
 
-  const handleCancel = () => {
+  const handleAnnul = () => {
+    if (payment.status === "CANCELADO") return;
+
+    let notes = "";
+    if (payment.status === "APROBADO") {
+      const reason = window.prompt(
+        "Motivo de anulación (obligatorio).\nEj: duplicado, error de carga, fraude.\n\nSi desea corregir y revalidar, cancele y use Revertir.",
+      );
+      if (!reason || !reason.trim()) return;
+      const typed = window.prompt(
+        "Escriba ANULAR para confirmar.\nEste cobro NO volverá a En revisión.",
+      );
+      if (!typed || typed.trim().toUpperCase() !== "ANULAR") return;
+      notes = reason.trim();
+    } else if (
+      !confirm(
+        "¿Anular este cobro? Quedará CANCELADO y no volverá a En revisión.",
+      )
+    ) {
+      return;
+    }
+
+    submit({ intent: "annul", notes }, { method: "post" });
+  };
+
+  const handleRevert = () => {
     if (
       !confirm(
-        '¿Seguro que deseas cancelar este pago? El saldo volverá a la deuda del crédito y las cuotas volverán al estado "Pendiente".',
+        "¿Revertir este cobro a EN_REVISION?\nSe deshará el efecto en el crédito y podrá corregirlo/revalidarlo.",
       )
     )
       return;
-    submit({ intent: "cancel" }, { method: "post" });
+    submit({ intent: "revert" }, { method: "post" });
   };
 
   const handleExport = (format: string) => {
@@ -180,8 +235,8 @@ export default function PaymentDetail() {
       ["Cliente", payment.credit?.customer?.full_name || ""],
       ["Monto Abonado", `$${Number(payment.amount).toFixed(2)}`],
       ["Fecha", new Date(payment.payment_date).toLocaleDateString()],
-      ["Método", payment.payment_method],
-      ["Banco", payment.bank_name || payment.proof?.bank_name || "N/A"],
+      ["Método", formatPaymentMethodLabel(payment.payment_method)],
+      ["Banco", formatBankEntityLabel(payment.bank_name, payment.proof?.bank_name)],
       ["Referencia", payment.reference_number || "N/A"],
       ["Estado", payment.status?.replace(/_/g, " ") || ""],
     ];
@@ -338,6 +393,26 @@ export default function PaymentDetail() {
                 </s-button>
               </s-button-group>
             )}
+            {payment.status === "APROBADO" && (
+              <s-button
+                variant="secondary"
+                icon="undo"
+                onClick={handleRevert}
+                accessibilityLabel="Revertir cobro a En revisión"
+              >
+                Revertir
+              </s-button>
+            )}
+            {payment.status !== "CANCELADO" && (
+              <s-button
+                variant="secondary"
+                tone="critical"
+                onClick={handleAnnul}
+                accessibilityLabel="Anular cobro de forma definitiva"
+              >
+                Anular cobro
+              </s-button>
+            )}
 
 
             <s-popover id="export-popover">
@@ -435,15 +510,7 @@ export default function PaymentDetail() {
                   <strong>Método de Pago:</strong>
                 </s-text>
                 <s-badge tone="info">
-                  {payment.payment_method === "CASH"
-                    ? "Efectivo USD"
-                    : payment.payment_method === "EFECTIVO"
-                      ? "Efectivo VEF"
-                      : payment.payment_method === "BANK"
-                        ? "Transferencia Bancaria"
-                        : payment.payment_method === "PAGO_MOVIL"
-                          ? "Pago Móvil"
-                          : payment.payment_method}
+                  {formatPaymentMethodLabel(payment.payment_method)}
                 </s-badge>
                 {(payment.bank_name || payment.proof?.bank_name) && (
                   <s-badge tone="neutral">{payment.bank_name || payment.proof?.bank_name}</s-badge>

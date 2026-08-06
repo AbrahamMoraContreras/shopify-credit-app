@@ -10,7 +10,8 @@ import {
 import { authenticate } from "../shopify.server";
 import { getAccessTokenForShop } from "../lib/auth.server";
 import { useMemo, useState, useEffect, useRef } from "react";
-import { generateInstallmentSchedule } from "./components/utils/date";
+import { generateInstallmentSchedule, formatScheduleDate } from "./components/utils/date";
+import { formatCreditFrequencyLabel } from "../lib/paymentLabels";
 
 interface ShopifyCustomer {
   id: string;
@@ -1010,7 +1011,7 @@ export default function RegistreCredit() {
                       ) : (
                         schedule.map((date, index) => (
                           <s-text key={`${date}-${index}`}>
-                            Cuota {index + 1}: {date}
+                            Cuota {index + 1}: {formatScheduleDate(date)}
                             {index < schedule.length - 1 && <br />}
                           </s-text>
                         ))
@@ -1178,7 +1179,7 @@ export default function RegistreCredit() {
                     <s-table-header format="numeric">Cantidad</s-table-header>
                     <s-table-header format="numeric">Subtotal</s-table-header>
                     <s-table-header listSlot="primary">
-                      Método de Pago
+                      Periodicidad
                     </s-table-header>
                     {form.frequency !== "fiado" && (
                       <s-table-header listSlot="primary">Cuotas</s-table-header>
@@ -1230,14 +1231,20 @@ export default function RegistreCredit() {
                               </s-text>
                             </s-table-cell>
 
-                            <s-table-cell>{form.payMethod || "—"}</s-table-cell>
+                            <s-table-cell>
+                              {formatCreditFrequencyLabel(form.frequency)}
+                            </s-table-cell>
                             {form.frequency !== "fiado" && (
                               <s-table-cell>
                                 {form.installment_number || "—"}
                               </s-table-cell>
                             )}
                             {form.frequency !== "fiado" && (
-                              <s-table-cell>{schedule[0] ?? "—"}</s-table-cell>
+                              <s-table-cell>
+                                {schedule[0]
+                                  ? formatScheduleDate(schedule[0])
+                                  : "—"}
+                              </s-table-cell>
                             )}
                           </s-table-row>
                         );

@@ -98,7 +98,8 @@ class PaymentReview(BaseModel):
     notes: Optional[str] = Field(
         None,
         max_length=2000,
-        example="Validado contra estado bancario"
+        example="Duplicado / error de carga",
+        description="Motivo obligatorio al anular (CANCELADO) un cobro APROBADO",
     )
 
 class PaymentResponse(BaseModel):

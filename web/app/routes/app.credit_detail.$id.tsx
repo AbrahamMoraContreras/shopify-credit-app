@@ -32,6 +32,10 @@ const WhatsAppIcon = () => (
 import type { Credit, PaymentResponse } from "web/app/types/credit";
 import { getAccessTokenForShop } from "../lib/auth.server";
 import { authenticate } from "../shopify.server";
+import {
+  formatBankEntityLabel,
+  formatPaymentMethodLabel,
+} from "../lib/paymentLabels";
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
@@ -266,6 +270,8 @@ export default function CreditDetail() {
     const paymentsData = payments.map((p) => ({
       Fecha: new Date(p.payment_date).toLocaleDateString(),
       Referencia: p.reference_number || "N/A",
+      "Método de Pago": formatPaymentMethodLabel(p.payment_method),
+      "Entidad Bancaria": formatBankEntityLabel(p.bank_name),
       "Monto Abonado": `$${Number(p.amount).toFixed(2)}`,
       Estatus: p.status?.replace(/_/g, " "),
     }));
@@ -796,6 +802,10 @@ export default function CreditDetail() {
                 <s-table-header listSlot="primary">
                   Numero de referencia
                 </s-table-header>
+                <s-table-header listSlot="primary">Método</s-table-header>
+                <s-table-header listSlot="primary">
+                  Entidad Bancaria
+                </s-table-header>
                 <s-table-header format="numeric">Monto Abonado</s-table-header>
                 <s-table-header listSlot="primary">Estatus</s-table-header>
                 <s-table-header listSlot="primary">
@@ -823,6 +833,12 @@ export default function CreditDetail() {
                         </s-table-cell>
                         <s-table-cell>
                           {p.reference_number || "N/A"}
+                        </s-table-cell>
+                        <s-table-cell>
+                          {formatPaymentMethodLabel(p.payment_method)}
+                        </s-table-cell>
+                        <s-table-cell>
+                          {formatBankEntityLabel(p.bank_name)}
                         </s-table-cell>
                         <s-table-cell>
                           ${Number(p.amount).toFixed(2)}
@@ -863,48 +879,48 @@ export default function CreditDetail() {
                 <s-table-header listSlot="primary">Fecha</s-table-header>
                 <s-table-header listSlot="primary">Productos</s-table-header>
                 <s-table-header format="numeric">Monto</s-table-header>
-                <s-table-header listSlot="primary">
-                  Metodo de Pago
-                </s-table-header>
-              </s-table-header-row>
-              <s-table-body>
-                {!credit.items || credit.items.length === 0 ? (
-                  <s-table-row>
-                    <s-table-cell>
-                      <div style={{ textAlign: "center" }}>
-                        <s-text color="subdued">
-                          No hay productos vinculados
-                        </s-text>
-                      </div>
-                    </s-table-cell>
-                  </s-table-row>
-                ) : (
-                  credit.items.map((item, idx) => (
-                    <s-table-row key={idx}>
-                      <s-table-cell>
-                        {item.product_code ||
-                          item.product_id?.split("/").pop() ||
-                          "N/A"}
-                      </s-table-cell>
-                      <s-table-cell>
-                        <ClientDate dateString={credit.created_at} />
-                      </s-table-cell>
-                      <s-table-cell>{item.product_name}</s-table-cell>
-                      <s-table-cell>
-                        ${Number(item.total_price).toFixed(2)}
-                      </s-table-cell>
-                      <s-table-cell>
-                        <s-badge
-                          tone={
-                            credit.status === "PAGADO" ? "success" : "warning"
-                          }
-                        >
-                          {credit.status === "PAGADO" ? "Realizado" : "Crédito"}
-                        </s-badge>
-                      </s-table-cell>
-                    </s-table-row>
-                  ))
-                )}
+                    <s-table-header listSlot="primary">
+                      Tipo de Cobro
+                    </s-table-header>
+                  </s-table-header-row>
+                  <s-table-body>
+                    {!credit.items || credit.items.length === 0 ? (
+                      <s-table-row>
+                        <s-table-cell>
+                          <div style={{ textAlign: "center" }}>
+                            <s-text color="subdued">
+                              No hay productos vinculados
+                            </s-text>
+                          </div>
+                        </s-table-cell>
+                      </s-table-row>
+                    ) : (
+                      credit.items.map((item, idx) => (
+                        <s-table-row key={idx}>
+                          <s-table-cell>
+                            {item.product_code ||
+                              item.product_id?.split("/").pop() ||
+                              "N/A"}
+                          </s-table-cell>
+                          <s-table-cell>
+                            <ClientDate dateString={credit.created_at} />
+                          </s-table-cell>
+                          <s-table-cell>{item.product_name}</s-table-cell>
+                          <s-table-cell>
+                            ${Number(item.total_price).toFixed(2)}
+                          </s-table-cell>
+                          <s-table-cell>
+                            <s-badge
+                              tone={
+                                credit.status === "PAGADO" ? "success" : "warning"
+                              }
+                            >
+                              {credit.status === "PAGADO" ? "Realizado" : "Crédito"}
+                            </s-badge>
+                          </s-table-cell>
+                        </s-table-row>
+                      ))
+                    )}
               </s-table-body>
             </s-table>
           </s-section>

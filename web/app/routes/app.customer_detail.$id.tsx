@@ -7,6 +7,10 @@ import autoTable from "jspdf-autotable";
 import { authenticate } from "../shopify.server";
 import { getAccessTokenForShop } from "../lib/auth.server";
 import { ClientDate } from "../components/ClientDate";
+import {
+  formatBankEntityLabel,
+  formatPaymentMethodLabel,
+} from "../lib/paymentLabels";
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
@@ -158,6 +162,8 @@ export default function CustomerDetail() {
       label: "Abono Registrado",
       link: `/app/payment_detail/${p.id}`,
       punctuality_value: p.punctuality_value,
+      payment_method: p.payment_method,
+      bank_name: p.bank_name,
     });
   });
 
@@ -231,6 +237,14 @@ export default function CustomerDetail() {
       Fecha: new Date(op.date).toLocaleDateString(),
       "Tipo Operación": op.label,
       Referencia: op.reference,
+      "Método de Pago":
+        op.type === "payment"
+          ? formatPaymentMethodLabel((op as any).payment_method)
+          : "—",
+      "Entidad Bancaria":
+        op.type === "payment"
+          ? formatBankEntityLabel((op as any).bank_name)
+          : "—",
       Monto: `$${Number(op.amount).toFixed(2)}`,
       Estatus: op.status?.replace(/_/g, " "),
     }));
@@ -454,6 +468,10 @@ export default function CustomerDetail() {
                 Tipo de Operación
               </s-table-header>
               <s-table-header>Referencia</s-table-header>
+              <s-table-header listSlot="primary">Método</s-table-header>
+              <s-table-header listSlot="primary">
+                Entidad Bancaria
+              </s-table-header>
               <s-table-header format="numeric">Monto</s-table-header>
               <s-table-header>Puntualidad</s-table-header>
               <s-table-header listSlot="secondary">Estatus</s-table-header>
@@ -483,6 +501,16 @@ export default function CustomerDetail() {
                       </s-badge>
                     </s-table-cell>
                     <s-table-cell>{op.reference}</s-table-cell>
+                    <s-table-cell>
+                      {op.type === "payment"
+                        ? formatPaymentMethodLabel((op as any).payment_method)
+                        : "—"}
+                    </s-table-cell>
+                    <s-table-cell>
+                      {op.type === "payment"
+                        ? formatBankEntityLabel((op as any).bank_name)
+                        : "—"}
+                    </s-table-cell>
                     <s-table-cell>${Number(op.amount).toFixed(2)}</s-table-cell>
                     <s-table-cell>
                       {op.type === "payment" ? (
