@@ -52,7 +52,7 @@ class Payment(Base):
     punctuality_value = Column(Numeric(5, 2), nullable=True, default=None)
 
     created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relaciones
     credit = relationship("Credit", back_populates="payments")

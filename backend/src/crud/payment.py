@@ -511,7 +511,9 @@ def review_payment(
         was_approved_before = False
 
     payment.status = status
-    payment.reviewed_at = datetime.utcnow()
+    now = datetime.utcnow()
+    payment.reviewed_at = now
+    payment.updated_at = now
     payment.reviewed_by = reviewer_id
     if notes:
         if status == PaymentStatus.CANCELADO:
@@ -636,7 +638,10 @@ def batch_delete_payments(
         if p.status == PaymentStatus.APROBADO:
             review_payment(db, p.id, PaymentStatus.CANCELADO, merchant_id, notes="Reversión automática debido a eliminación masiva", auto_commit=False)
         else:
+            now = datetime.utcnow()
             p.status = PaymentStatus.CANCELADO
+            p.reviewed_at = now
+            p.updated_at = now
             p.notes = f"{p.notes or ''} | Cancelado masivamente".strip()
             # Misma salida de "Comprobantes por revisar" que review_payment(CANCELADO)
             _mark_linked_proof_reviewed(db, p.id)
@@ -744,6 +749,10 @@ def list_payments(
     if status is not None:
         q = q.filter(Payment.status == status)
         
-    q = q.order_by(Payment.payment_date.desc(), Payment.id.desc()).limit(limit).offset(offset)
+    # Cola por última operación: revisión/anulación/aprobación > update > alta
+    q = q.order_by(
+        func.coalesce(Payment.reviewed_at, Payment.updated_at, Payment.created_at).desc(),
+        Payment.id.desc(),
+    ).limit(limit).offset(offset)
 
     return q.all()
