@@ -362,11 +362,28 @@ def _apply_payment_distribution(db: Session, payment: Payment, credit: Credit, t
         credit.status = CreditStatus.PAGADO
         
         # Al pagarse totalmente, cancelar cualquier intento de pago pendiente que haya sobrado
-        db.query(Payment).filter(
-            Payment.credit_id == credit.id,
-            Payment.id != payment.id,
-            Payment.status.in_([PaymentStatus.REGISTRADO, PaymentStatus.EN_REVISION])
-        ).update({"status": PaymentStatus.CANCELADO}, synchronize_session=False)
+        now = datetime.utcnow()
+        pending_ids = [
+            pid
+            for (pid,) in db.query(Payment.id)
+            .filter(
+                Payment.credit_id == credit.id,
+                Payment.id != payment.id,
+                Payment.status.in_([PaymentStatus.REGISTRADO, PaymentStatus.EN_REVISION]),
+            )
+            .all()
+        ]
+        if pending_ids:
+            db.query(Payment).filter(Payment.id.in_(pending_ids)).update(
+                {
+                    "status": PaymentStatus.CANCELADO,
+                    "reviewed_at": now,
+                    "updated_at": now,
+                },
+                synchronize_session=False,
+            )
+            for pid in pending_ids:
+                _mark_linked_proof_reviewed(db, pid)
         
         # Y asegurarnos de que TODAS las cuotas restantes queden en PAGADA
         db.query(CreditInstallment).filter(
