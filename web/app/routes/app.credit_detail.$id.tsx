@@ -492,7 +492,7 @@ export default function CreditDetail() {
                           : "info"
                 }
               >
-                {credit.status}
+                {credit.status?.replace(/_/g, " ")}
               </s-badge>
             </s-stack>
             <s-stack alignItems="end">

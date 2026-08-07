@@ -573,7 +573,7 @@ export default function RegistrePayment() {
             </s-text>
           </s-banner>
         )}
-        <s-grid gridTemplateColumns="2.5fr 1fr" gap="base">
+        <s-grid gridTemplateColumns="2.5fr 1.05fr" gap="base">
           <s-stack gap="base">
             <s-section padding="base">
               <s-heading>Criterios de Búsqueda</s-heading>

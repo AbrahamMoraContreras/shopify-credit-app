@@ -512,7 +512,7 @@ export default function CreditHistorial() {
                   <s-option value="">Todos</s-option>
                   <s-option value="PENDIENTE_ACTIVACION">Pendiente</s-option>
                   <s-option value="EMITIDO">Emitido</s-option>
-                  <s-option value="EN_PROGRESO">En Progresso</s-option>
+                  <s-option value="EN_PROGRESO">En Progreso</s-option>
                   <s-option value="MOROSO">Moroso</s-option>
                   <s-option value="PAGADO">Pagado</s-option>
                   <s-option value="CANCELADO">Cancelado</s-option>
@@ -754,7 +754,7 @@ export default function CreditHistorial() {
                                   : "info"
                       }
                     >
-                      {credit.status}
+                      {credit.status?.replace(/_/g, " ")}
                     </s-badge>
                   </s-stack>
                 </s-table-cell>
