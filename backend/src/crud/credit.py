@@ -1,4 +1,4 @@
-from sqlalchemy import func, cast, Date
+from sqlalchemy import func, cast, Date, String
 from sqlalchemy.orm import Session, joinedload, selectinload
 from typing import Optional, List, Tuple, Union
 from datetime import date, timedelta, datetime
@@ -193,7 +193,6 @@ def list_credits(
     
     if customer_id or customer_name:
         if customer_id:
-            from sqlalchemy import cast, String
             query = query.filter(
                 (Credit.customer_id == customer_id) | (cast(Customer.shopify_customer_id, String) == str(customer_id))
             )
