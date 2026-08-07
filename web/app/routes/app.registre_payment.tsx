@@ -915,7 +915,7 @@ export default function RegistrePayment() {
                       </s-text>
                     </s-stack>
                     <s-checkbox
-                      label="Aplicar excedente a la siguiente cuota pendiente automáticamente"
+                      label="Aplicar excedente a las cuotas pendientes siguientes (por vencimiento); lo que sobre va a saldo a favor"
                       checked={distributeExcess || undefined}
                       onChange={(e: any) =>
                         setDistributeExcess(!!e.target?.checked)

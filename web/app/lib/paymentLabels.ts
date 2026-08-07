@@ -56,3 +56,25 @@ export function formatCreditFrequencyLabel(
   const key = String(frequency).trim().toLowerCase();
   return map[key] || frequency;
 }
+
+/**
+ * Notas de cobro legibles: tags internos → texto para el merchant.
+ */
+export function formatPaymentNotes(
+  notes: string | null | undefined,
+): string {
+  if (!notes) return "—";
+  let cleaned = notes.replace(
+    /\[DISTRIBUTE_EXCESS\]/gi,
+    "Distribución de Excedente",
+  );
+  cleaned = cleaned.replace(
+    /\[OVERPAYMENT:\s*([\d.]+)\]/gi,
+    (_m, amount: string) => `Excedente a saldo a favor: $${amount}`,
+  );
+  cleaned = cleaned.replace(
+    /Doc:\s*[^\|]+\|\s*Teléf:\s*[^\|]+\|\s*Extra:\s*.*/gi,
+    "",
+  );
+  return cleaned.trim() || "—";
+}

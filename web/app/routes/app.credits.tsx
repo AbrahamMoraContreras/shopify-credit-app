@@ -10,7 +10,10 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { getAccessTokenForShop } from "../lib/auth.server";
 import { authenticate } from "../shopify.server";
-import { formatPaymentMethodLabel } from "../lib/paymentLabels";
+import {
+  formatPaymentMethodLabel,
+  formatPaymentNotes,
+} from "../lib/paymentLabels";
 
 function isDocumentRequest(request: Request) {
   const accept = request.headers.get("Accept") || "";
@@ -314,19 +317,6 @@ export default function CreditHistorial() {
 
     submit({ intent: "cancel", id: id.toString() }, { method: "post" });
   }
-
-  const formatNotes = (notes: string | null | undefined) => {
-    if (!notes) return "—";
-    let cleaned = notes.replace(
-      /\[DISTRIBUTE_EXCESS\]/g,
-      "Distribución de Excedente",
-    );
-    cleaned = cleaned.replace(
-      /Doc:\s*[^\|]+\|\s*Teléf:\s*[^\|]+\|\s*Extra:\s*.*/gi,
-      "",
-    );
-    return cleaned.trim() || "—";
-  };
 
   const handleExport = (format: string) => {
     if (!format || !credits.length) return;
@@ -725,7 +715,9 @@ export default function CreditHistorial() {
 
                 <s-table-cell>
                   <s-stack direction="inline" justifyContent="center">
-                    <s-text>{formatNotes(credit.last_payment_notes)}</s-text>
+                    <s-text>
+                      {formatPaymentNotes(credit.last_payment_notes)}
+                    </s-text>
                   </s-stack>
                 </s-table-cell>
 

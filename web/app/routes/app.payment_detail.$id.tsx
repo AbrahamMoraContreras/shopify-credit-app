@@ -17,6 +17,7 @@ import { authenticate } from "../shopify.server";
 import {
   formatBankEntityLabel,
   formatPaymentMethodLabel,
+  formatPaymentNotes,
 } from "../lib/paymentLabels";
 
 interface PaymentDetailData {
@@ -522,11 +523,16 @@ export default function PaymentDetail() {
                   ? `RECORDATORIO-${payment.reference_number.split("-")[1]}-ENVIADO`
                   : payment.reference_number}
               </s-text>
-              {payment.notes && (
-                <s-text>
-                  <strong>Detalles:</strong> {payment.notes.replace(/\[DISTRIBUTE_EXCESS\]\s*/g, '')}
-                </s-text>
-              )}
+              {payment.notes &&
+                (() => {
+                  const formattedNotes = formatPaymentNotes(payment.notes);
+                  if (formattedNotes === "—") return null;
+                  return (
+                    <s-text>
+                      <strong>Detalles:</strong> {formattedNotes}
+                    </s-text>
+                  );
+                })()}
             </s-stack>
           </s-section>
 
