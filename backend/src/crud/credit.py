@@ -226,16 +226,54 @@ def cancel_credit(db: Session, credit: Credit):
     if not locked_credit:
         raise ValueError("Credit not found for cancellation")
         
-    # Revertir financieramente todos los pagos aprobados primero
+    # Revertir/cerrar cobros abiertos ligados al crédito
     from crud.payment import review_payment
     from models.enums import PaymentStatus
+    from models.payment_token import PaymentToken
+
     merchant_id = credit.customer.merchant_id
+    reminder_payment_ids: list[int] = []
     for p in credit.payments:
         p_status = getattr(p.status, "value", p.status)
         if p_status == "APROBADO":
-            review_payment(db, p.id, PaymentStatus.CANCELADO, merchant_id, notes="Reversión automática por cancelación de crédito", auto_commit=False)
+            review_payment(
+                db,
+                p.id,
+                PaymentStatus.CANCELADO,
+                merchant_id,
+                notes="Reversión automática por cancelación de crédito",
+                auto_commit=False,
+            )
         elif p_status == "EN_REVISION":
-            review_payment(db, p.id, PaymentStatus.RECHAZADO, merchant_id, notes="Pago rechazado automáticamente por cancelación de crédito", auto_commit=False)
+            review_payment(
+                db,
+                p.id,
+                PaymentStatus.RECHAZADO,
+                merchant_id,
+                notes="Pago rechazado automáticamente por cancelación de crédito",
+                auto_commit=False,
+            )
+        elif p_status == "REGISTRADO":
+            # Intent/recordatorio: anular sin reversión monetaria
+            review_payment(
+                db,
+                p.id,
+                PaymentStatus.CANCELADO,
+                merchant_id,
+                notes="Anulado automáticamente por cancelación de crédito (recordatorio)",
+                auto_commit=False,
+            )
+            reminder_payment_ids.append(p.id)
+
+    # Invalidar links públicos de recordatorio aún no usados
+    if reminder_payment_ids:
+        db.query(PaymentToken).filter(
+            PaymentToken.payment_id.in_(reminder_payment_ids),
+            PaymentToken.used_at.is_(None),
+        ).update(
+            {PaymentToken.expires_at: datetime.utcnow()},
+            synchronize_session=False,
+        )
 
     credit.status = CreditStatus.CANCELADO
     # Cancelar cuotas pendientes o vencidas para que no aparezcan en pagos esperados

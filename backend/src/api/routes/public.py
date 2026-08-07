@@ -17,6 +17,32 @@ from models.merchant import Merchant
 router = APIRouter(prefix="/public", tags=["Public"])
 
 
+def _assert_reminder_payment_open(payment: Payment | None, credit: Credit | None) -> None:
+    """Bloquea links de recordatorio si el cobro o el crédito ya no admiten pago."""
+    if not payment:
+        raise HTTPException(status_code=404, detail="Pago no encontrado.")
+
+    p_status = getattr(payment.status, "value", payment.status)
+    if p_status != "REGISTRADO":
+        raise HTTPException(
+            status_code=410,
+            detail="Este enlace ya no está disponible (el cobro fue anulado o ya no está pendiente).",
+        )
+
+    if credit is not None:
+        c_status = getattr(credit.status, "value", credit.status)
+        if c_status == "CANCELADO":
+            raise HTTPException(
+                status_code=410,
+                detail="El crédito asociado fue cancelado. Este enlace ya no es válido.",
+            )
+        if c_status == "PAGADO":
+            raise HTTPException(
+                status_code=410,
+                detail="El crédito asociado ya está pagado. Este enlace ya no es válido.",
+            )
+
+
 from typing import Optional, List
 
 class ProductInfo(BaseModel):
@@ -102,6 +128,7 @@ def get_payment_info(token: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Pago no encontrado.")
 
     credit = db.query(Credit).filter(Credit.id == payment.credit_id).first()
+    _assert_reminder_payment_open(payment, credit)
     merchant = db.query(Merchant).filter(Merchant.id == pt.merchant_id).first()
 
     installment_number = None
@@ -239,6 +266,10 @@ def submit_payment_proof(payload: ProofSubmission, db: Session = Depends(get_db)
 
     from models.enums import PaymentStatus
     payment = db.query(Payment).filter(Payment.id == pt.payment_id).first()
+    credit = None
+    if payment:
+        credit = db.query(Credit).filter(Credit.id == payment.credit_id).first()
+    _assert_reminder_payment_open(payment, credit)
 
     notes_parts = []
     if payload.document_type and payload.document_number:

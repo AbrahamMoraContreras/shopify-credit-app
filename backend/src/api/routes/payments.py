@@ -231,6 +231,13 @@ def create_payment_token(
         
     if credit.merchant_id != merchant_id:
         raise HTTPException(status_code=403, detail="Acceso denegado al crédito.")
+
+    credit_status = getattr(credit.status, "value", credit.status)
+    if credit_status in ("CANCELADO", "PAGADO"):
+        raise HTTPException(
+            status_code=400,
+            detail="No se puede enviar un recordatorio de cobro para un crédito cancelado o ya pagado.",
+        )
         
     if payload.amount <= 0:
         raise HTTPException(status_code=400, detail="El monto del pago debe ser mayor a cero.")
