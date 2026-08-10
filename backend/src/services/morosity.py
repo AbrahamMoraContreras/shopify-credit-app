@@ -3,9 +3,11 @@
 1) Calendar (on-demand sync): PENDIENTE + due_date < today → VENCIDA; credit → MOROSO.
    Only promotes; never clears calendar-overdue rows by itself.
 
-2) Payment date (on approve/revert): due_date < payment_date → VENCIDA.
+2) Payment date (on approve/revert): due_date < min(payment_date, today) → VENCIDA.
    When demoting, never clear a cuota that is still overdue vs today
    (so calendar mora coexists with payment_date mora).
+   payment_date after today is capped so late payment of cuota N does not
+   mark still-future cuotas as VENCIDA.
 """
 from __future__ import annotations
 
@@ -57,7 +59,7 @@ def apply_morosity_from_payment_date(
     Update unpaid installment statuses using the payment's registered date,
     while preserving calendar overdue (due_date < today).
 
-    - overdue vs payment_date OR vs today → VENCIDA
+    - overdue vs min(payment_date, today) OR vs today → VENCIDA
     - otherwise → PENDIENTE
     - any VENCIDA → credit MOROSO (unless paid/cancelled)
     """
@@ -74,6 +76,9 @@ def apply_morosity_from_payment_date(
         return
 
     today = today or date.today()
+    # No inventar mora futura: si payment_date > hoy, evaluar como máximo contra hoy.
+    # Así pagar una cuota atrasada con fecha posterior no marca VENCIDA cuotas aún no vencidas en calendario.
+    effective_ref = min(reference_date, today)
     has_overdue = False
     installments = (
         db.query(CreditInstallment)
@@ -87,7 +92,7 @@ def apply_morosity_from_payment_date(
             continue
 
         due = _as_date(inst.due_date)
-        overdue_vs_payment = bool(due and due < reference_date)
+        overdue_vs_payment = bool(due and due < effective_ref)
         overdue_vs_today = bool(due and due < today)
 
         if overdue_vs_payment or overdue_vs_today:

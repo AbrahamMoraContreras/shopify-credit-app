@@ -2,7 +2,7 @@
 from sqlalchemy import func, cast, Date, String
 from sqlalchemy.orm import Session, joinedload
 from uuid import UUID
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from decimal import Decimal
 from fastapi import HTTPException
 from models.installment import CreditInstallment
@@ -361,8 +361,11 @@ def _apply_payment_distribution(db: Session, payment: Payment, credit: Credit, t
         credit.balance = Decimal("0.00")
         credit.status = CreditStatus.PAGADO
         
-        # Al pagarse totalmente, cancelar cualquier intento de pago pendiente que haya sobrado
-        now = datetime.utcnow()
+        # Al pagarse totalmente, cancelar intentos pendientes sobrantes.
+        # Usar el mismo instante del pago que liquidó (o 1µs antes) para que la
+        # aprobación/acción del usuario quede arriba en la cola, no el auto-cancel.
+        op_at = payment.reviewed_at or payment.updated_at or datetime.utcnow()
+        cancel_at = op_at - timedelta(microseconds=1)
         pending_ids = [
             pid
             for (pid,) in db.query(Payment.id)
@@ -377,8 +380,8 @@ def _apply_payment_distribution(db: Session, payment: Payment, credit: Credit, t
             db.query(Payment).filter(Payment.id.in_(pending_ids)).update(
                 {
                     "status": PaymentStatus.CANCELADO,
-                    "reviewed_at": now,
-                    "updated_at": now,
+                    "reviewed_at": cancel_at,
+                    "updated_at": cancel_at,
                 },
                 synchronize_session=False,
             )

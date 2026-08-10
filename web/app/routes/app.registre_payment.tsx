@@ -82,7 +82,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const searchCreditId = url.searchParams.get("credit_id");
     const searchDate = url.searchParams.get("created_at_date");
     const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
-    let apiUrl = `${BACKEND_URL}/api/credits?status=EMITIDO&status=PENDIENTE_ACTIVACION&status=EN_PROGRESO`;
+    let apiUrl = `${BACKEND_URL}/api/credits?status=EMITIDO&status=PENDIENTE_ACTIVACION&status=EN_PROGRESO&status=MOROSO`;
 
     if (searchCustomer) apiUrl += `&customer_id=${searchCustomer}`;
     if (searchCreditId) apiUrl += `&credit_id=${searchCreditId}`;
