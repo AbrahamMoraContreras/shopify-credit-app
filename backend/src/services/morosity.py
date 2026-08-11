@@ -15,7 +15,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from models.credit import Credit
 from models.customer import Customer
@@ -226,9 +226,11 @@ def sync_calendar_morosity(
         inst.status = InstallmentStatus.VENCIDA
         affected_credit_ids.add(inst.credit_id)
 
+    newly_moroso: list[tuple] = []
     if affected_credit_ids:
         credits = (
             db.query(Credit)
+            .options(joinedload(Credit.customer))
             .filter(
                 Credit.id.in_(affected_credit_ids),
                 Credit.status.notin_([CreditStatus.PAGADO, CreditStatus.CANCELADO]),
@@ -238,10 +240,19 @@ def sync_calendar_morosity(
         for credit in credits:
             if Decimal(str(credit.balance)) <= Decimal("0.10"):
                 continue
+            prev = credit.status
+            prev_val = getattr(prev, "value", prev)
+            if prev_val != CreditStatus.MOROSO.value:
+                newly_moroso.append((credit, prev))
             credit.status = CreditStatus.MOROSO
 
     if auto_commit:
         db.commit()
+        if newly_moroso:
+            from services.email import notify_credit_status_change
+            for credit, prev in newly_moroso:
+                db.refresh(credit)
+                notify_credit_status_change(credit, previous_status=prev)
     else:
         db.flush()
 

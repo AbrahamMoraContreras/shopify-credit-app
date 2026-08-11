@@ -3,6 +3,16 @@ import resend
 from typing import Optional
 from core.config import settings
 
+# Estados de crédito que generan correo al cliente (no EN_PROGRESO).
+CREDIT_STATUS_NOTIFY = frozenset({"EMITIDO", "PAGADO", "CANCELADO", "MOROSO"})
+
+_STATUS_LABELS = {
+    "EMITIDO": "Emitido",
+    "PAGADO": "Pagado",
+    "CANCELADO": "Cancelado",
+    "MOROSO": "Moroso",
+}
+
 
 def send_payment_reminder(
     to_email: str,
@@ -54,3 +64,156 @@ def send_payment_reminder(
     except Exception as e:
         print(f"[email] Error sending email: {e}")
         return False
+
+
+def _credit_status_copy(
+    status: str,
+    customer_name: str,
+    credit_id: int,
+    concept: str,
+    merchant_name: str,
+) -> tuple[str, str, str]:
+    """Return (subject, heading, body_html_extra) for a credit status email."""
+    concept_line = f" del crédito <strong>#{credit_id}</strong>"
+    if concept:
+        concept_line += f" ({concept})"
+
+    if status == "EMITIDO":
+        subject = f"Tu crédito #{credit_id} fue emitido"
+        heading = "Crédito emitido"
+        extra = f"""
+          <p>Tu crédito con <strong>{merchant_name}</strong> ha sido <strong>emitido</strong>{concept_line}.</p>
+          <p>Ya puedes consultar el detalle de tus cuotas y fechas de pago con el comercio.</p>
+        """
+    elif status == "PAGADO":
+        subject = f"¡Felicitaciones! Tu crédito #{credit_id} está pagado"
+        heading = "¡Felicitaciones!"
+        extra = f"""
+          <p>¡Excelente noticia, <strong>{customer_name}</strong>!</p>
+          <p>Has <strong>finalizado exitosamente</strong> tu crédito{concept_line} con <strong>{merchant_name}</strong>.</p>
+          <p>Agradecemos tu puntualidad y compromiso. ¡Felicitaciones por completar tu financiamiento!</p>
+        """
+    elif status == "CANCELADO":
+        subject = f"Tu crédito #{credit_id} fue cancelado"
+        heading = "Crédito cancelado"
+        extra = f"""
+          <p>Te informamos que tu crédito{concept_line} con <strong>{merchant_name}</strong> ha sido <strong>cancelado</strong>.</p>
+          <p>Si tienes dudas, contacta directamente al comercio.</p>
+        """
+    elif status == "MOROSO":
+        subject = f"Aviso: tu crédito #{credit_id} está en mora"
+        heading = "Crédito en mora"
+        extra = f"""
+          <p>Te informamos que tu crédito{concept_line} con <strong>{merchant_name}</strong> figura en estado <strong>moroso</strong> por cuotas vencidas pendientes.</p>
+          <p>Te recomendamos ponerte al día lo antes posible para regularizar tu situación.</p>
+        """
+    else:
+        label = _STATUS_LABELS.get(status, status.replace("_", " "))
+        subject = f"Actualización de tu crédito #{credit_id}: {label}"
+        heading = f"Estado: {label}"
+        extra = f"""
+          <p>El estado de tu crédito{concept_line} con <strong>{merchant_name}</strong> ahora es <strong>{label}</strong>.</p>
+        """
+    return subject, heading, extra
+
+
+def send_credit_status_email(
+    to_email: str,
+    customer_name: str,
+    credit_id: int,
+    status: str,
+    concept: str = "",
+    merchant_name: str = "El Comercio",
+    balance: Optional[float] = None,
+) -> bool:
+    """Notify the customer that their credit status changed (via Resend)."""
+    if not settings.RESEND_API_KEY:
+        print("[email] RESEND_API_KEY not set — skipping credit status email.")
+        return False
+    if not to_email or not str(to_email).strip():
+        print(f"[email] No email for credit #{credit_id} — skipping status notify.")
+        return False
+
+    status_key = getattr(status, "value", status)
+    if status_key not in CREDIT_STATUS_NOTIFY:
+        return False
+
+    resend.api_key = settings.RESEND_API_KEY
+    subject, heading, extra = _credit_status_copy(
+        status_key, customer_name, credit_id, concept or "", merchant_name
+    )
+    label = _STATUS_LABELS.get(status_key, status_key.replace("_", " "))
+    balance_row = ""
+    if balance is not None and status_key not in ("PAGADO", "CANCELADO"):
+        balance_row = (
+            f'<tr><td style="padding:8px;color:#555;">Saldo pendiente:</td>'
+            f'<td style="padding:8px;font-weight:bold;">${float(balance):.2f} USD</td></tr>'
+        )
+
+    accent = "#16a34a" if status_key == "PAGADO" else "#333"
+    html_body = f"""
+    <div style="font-family:Arial,sans-serif;max-width:540px;margin:auto;padding:24px;border:1px solid #e0e0e0;border-radius:8px;">
+      <h2 style="color:{accent};">{heading}</h2>
+      <p>Hola, <strong>{customer_name}</strong>.</p>
+      {extra}
+      <table style="width:100%;border-collapse:collapse;margin:16px 0;">
+        <tr><td style="padding:8px;color:#555;">Crédito:</td><td style="padding:8px;font-weight:bold;">#{credit_id}</td></tr>
+        <tr><td style="padding:8px;color:#555;">Estado:</td><td style="padding:8px;font-weight:bold;">{label}</td></tr>
+        {balance_row}
+      </table>
+      <p style="color:#999;font-size:12px;">Este mensaje es informativo. Si no reconoces esta operación, contacta a {merchant_name}.</p>
+    </div>
+    """
+
+    try:
+        resend.Emails.send({
+            "from": settings.RESEND_FROM_EMAIL,
+            "to": [to_email.strip()],
+            "subject": subject,
+            "html": html_body,
+        })
+        return True
+    except Exception as e:
+        print(f"[email] Error sending credit status email: {e}")
+        return False
+
+
+def notify_credit_status_change(
+    credit,
+    previous_status=None,
+    merchant_name: Optional[str] = None,
+) -> bool:
+    """
+    Send status email only when credit transitions into EMITIDO/PAGADO/CANCELADO/MOROSO.
+    Never notifies EN_PROGRESO. Safe after commit; failures are logged, not raised.
+    """
+    new_status = getattr(credit.status, "value", credit.status)
+    prev = (
+        getattr(previous_status, "value", previous_status)
+        if previous_status is not None
+        else None
+    )
+    if new_status not in CREDIT_STATUS_NOTIFY or prev == new_status:
+        return False
+
+    customer = getattr(credit, "customer", None)
+    if not customer:
+        print(f"[email] Credit #{credit.id} has no customer loaded — skip status notify.")
+        return False
+
+    name = merchant_name
+    if not name and getattr(customer, "merchant", None):
+        domain = getattr(customer.merchant, "shop_domain", None) or ""
+        name = domain.replace(".myshopify.com", "") or "El Comercio"
+    if not name:
+        name = "El Comercio"
+
+    return send_credit_status_email(
+        to_email=customer.email or "",
+        customer_name=customer.full_name or "Cliente",
+        credit_id=credit.id,
+        status=new_status,
+        concept=getattr(credit, "concept", "") or "",
+        merchant_name=name,
+        balance=float(credit.balance) if credit.balance is not None else None,
+    )

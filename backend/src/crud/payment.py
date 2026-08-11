@@ -147,6 +147,7 @@ def create_payment(
 
     # Logica de saldo a favor
     favorable_payment = None
+    previous_credit_status = credit.status
     if payload.use_favorable_balance:
         customer = db.query(Customer).with_for_update().filter(Customer.id == credit.customer_id).first()
         if not customer:
@@ -195,6 +196,8 @@ def create_payment(
                 update_customer_punctuality(db, customer)
                 db.commit()
                 db.refresh(credit)
+                from services.email import notify_credit_status_change
+                notify_credit_status_change(credit, previous_status=previous_credit_status)
 
     # Lógica de dinero nuevo
     new_money_payment = None
@@ -442,6 +445,8 @@ def review_payment(
     if not credit:
         raise HTTPException(status_code=400, detail="Crédito no encontrado")
 
+    previous_credit_status = credit.status
+
     # LÓGICA DE REVERSIÓN
     if payment.status == PaymentStatus.APROBADO:
         amount_to_reverse = Decimal(str(payment.amount))
@@ -590,7 +595,12 @@ def review_payment(
             db.refresh(credit.customer)
         else:
             db.flush()
-        
+
+    if auto_commit:
+        from services.email import notify_credit_status_change
+        db.refresh(credit)
+        notify_credit_status_change(credit, previous_status=previous_credit_status)
+
     return payment
 
 

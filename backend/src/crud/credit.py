@@ -162,6 +162,9 @@ def create_credit(db: Session, merchant_id: str, payload: CreditCreate):
         changes={"total_amount": float(credit.total_amount), "customer": customer.full_name}
     )
     db.commit()
+    db.refresh(credit)
+    from services.email import notify_credit_status_change
+    notify_credit_status_change(credit, previous_status=None)
     return credit
 
 def get_credit(db: Session, credit_id: int) -> Optional[Credit]:
@@ -211,12 +214,16 @@ def list_credits(
     return items, total
 
 def update_credit(db: Session, credit: Credit, payload: CreditUpdate):
+    previous_status = credit.status
     data = payload.model_dump(exclude_unset=True)
     for k,v in data.items():
         setattr(credit, k, v)
     _log_history(db, credit.id, "CREDITO_ACTUALIZADO", str(data))
     db.commit()
     db.refresh(credit)
+    if "status" in data:
+        from services.email import notify_credit_status_change
+        notify_credit_status_change(credit, previous_status=previous_status)
     return credit
 
 def cancel_credit(db: Session, credit: Credit):
@@ -231,6 +238,7 @@ def cancel_credit(db: Session, credit: Credit):
     from models.payment_token import PaymentToken
 
     merchant_id = credit.customer.merchant_id
+    previous_status = credit.status
     reminder_payment_ids: list[int] = []
     for p in credit.payments:
         p_status = getattr(p.status, "value", p.status)
@@ -283,7 +291,7 @@ def cancel_credit(db: Session, credit: Credit):
     _log_history(db, credit.id, "CREDITO_CANCELADO", "El crédito fue cancelado manualmente")
     db.commit()
     db.refresh(credit)
-    
+
     log_audit_action(
         db=db,
         merchant_id=credit.customer.merchant_id,
@@ -292,6 +300,8 @@ def cancel_credit(db: Session, credit: Credit):
         entity_id=str(credit.id),
         changes={"action": "Credit cancelled"}
     )
+    from services.email import notify_credit_status_change
+    notify_credit_status_change(credit, previous_status=previous_status)
     return credit
 
 
