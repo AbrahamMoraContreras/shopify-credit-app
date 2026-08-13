@@ -196,8 +196,14 @@ def create_payment(
                 update_customer_punctuality(db, customer)
                 db.commit()
                 db.refresh(credit)
-                from services.email import notify_credit_status_change
+                from services.email import notify_credit_status_change, notify_payment_status_change
                 notify_credit_status_change(credit, previous_status=previous_credit_status)
+                db.refresh(favorable_payment)
+                notify_payment_status_change(
+                    favorable_payment,
+                    credit=credit,
+                    previous_status=None,
+                )
 
     # Lógica de dinero nuevo
     new_money_payment = None
@@ -226,6 +232,12 @@ def create_payment(
             )
             db.commit()
             db.refresh(new_money_payment)
+            from services.email import notify_payment_status_change
+            notify_payment_status_change(
+                new_money_payment,
+                credit=credit,
+                previous_status=None,
+            )
         except Exception as e:
             db.rollback()
             if "uq_payment_reference" in str(e) or "reference_number" in str(e).lower():
@@ -246,7 +258,10 @@ def _apply_payment_distribution(db: Session, payment: Payment, credit: Credit, t
     Distributes an APROBADO payment's amount across the credit and installments.
     Also auto-computes punctuality_value for installment-based credits (monthly/biweekly)
     by comparing payment_date against the earliest covered installment's due_date.
+
+    Returns list of payment ids auto-cancelled when the credit is fully paid.
     """
+    auto_cancelled_ids: list[int] = []
     initial_balance = Decimal(str(credit.balance))
     payment_amount = Decimal(str(payment.amount))
     
@@ -390,6 +405,7 @@ def _apply_payment_distribution(db: Session, payment: Payment, credit: Credit, t
             )
             for pid in pending_ids:
                 _mark_linked_proof_reviewed(db, pid)
+            auto_cancelled_ids = pending_ids
         
         # Y asegurarnos de que TODAS las cuotas restantes queden en PAGADA
         db.query(CreditInstallment).filter(
@@ -406,6 +422,8 @@ def _apply_payment_distribution(db: Session, payment: Payment, credit: Credit, t
         from services.morosity import apply_morosity_from_payment_date
         apply_morosity_from_payment_date(db, credit, payment_date_only)
 
+    return auto_cancelled_ids
+
 
 def review_payment(
     db: Session,
@@ -420,6 +438,8 @@ def review_payment(
 
     if not payment:
         raise HTTPException(status_code=400, detail="Pago no encontrado")
+
+    previous_payment_status = payment.status
 
     # Ya en el estado pedido: idempotente, pero sanear proof colgado (deploys previos).
     if payment.status == status:
@@ -548,6 +568,8 @@ def review_payment(
         else:
             payment.notes = notes
 
+    auto_cancelled_payment_ids: list[int] = []
+
     if status == PaymentStatus.APROBADO:
         distribute_excess = "[DISTRIBUTE_EXCESS]" in (payment.notes or "")
         target_ids = [inst.id for inst in payment.covered_installments]
@@ -555,7 +577,9 @@ def review_payment(
         if not target_ids and payment.installment_id:
             target_ids = [payment.installment_id]
             
-        _apply_payment_distribution(db, payment, credit, target_ids, distribute_excess, credit.customer)
+        auto_cancelled_payment_ids = _apply_payment_distribution(
+            db, payment, credit, target_ids, distribute_excess, credit.customer
+        ) or []
         _mark_linked_proof_reviewed(db, payment.id)
     elif status == PaymentStatus.NO_PAGADO:
         for inst in payment.covered_installments:
@@ -597,9 +621,21 @@ def review_payment(
             db.flush()
 
     if auto_commit:
-        from services.email import notify_credit_status_change
+        from services.email import notify_credit_status_change, notify_payment_status_change
         db.refresh(credit)
+        db.refresh(payment)
         notify_credit_status_change(credit, previous_status=previous_credit_status)
+        notify_payment_status_change(
+            payment, credit=credit, previous_status=previous_payment_status
+        )
+        for pid in auto_cancelled_payment_ids:
+            cancelled = db.query(Payment).filter(Payment.id == pid).first()
+            if cancelled:
+                notify_payment_status_change(
+                    cancelled,
+                    credit=credit,
+                    previous_status=None,
+                )
 
     return payment
 
@@ -677,6 +713,10 @@ def batch_delete_payments(
             _mark_linked_proof_reviewed(db, p.id)
             
     db.commit()
+    from services.email import notify_payment_status_change
+    for p in payments:
+        db.refresh(p)
+        notify_payment_status_change(p, credit=p.credit, previous_status=None)
     return len(payments)
 
 

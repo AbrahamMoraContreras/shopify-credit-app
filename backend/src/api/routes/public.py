@@ -382,6 +382,14 @@ def submit_payment_proof(payload: ProofSubmission, db: Session = Depends(get_db)
 
     db.commit()
     db.refresh(proof)
+    if payment:
+        from services.email import notify_payment_status_change
+        db.refresh(payment)
+        notify_payment_status_change(
+            payment,
+            credit=payment.credit,
+            previous_status="REGISTRADO",
+        )
     return {"ok": True, "mensaje": "Comprobante recibido exitosamente. El equipo lo revisará en breve."}
 
 # ==========================================

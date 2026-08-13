@@ -300,8 +300,12 @@ def cancel_credit(db: Session, credit: Credit):
         entity_id=str(credit.id),
         changes={"action": "Credit cancelled"}
     )
-    from services.email import notify_credit_status_change
+    from services.email import notify_credit_status_change, notify_payment_status_change
     notify_credit_status_change(credit, previous_status=previous_status)
+    for p in credit.payments:
+        p_status = getattr(p.status, "value", p.status)
+        if p_status in ("RECHAZADO", "CANCELADO"):
+            notify_payment_status_change(p, credit=credit, previous_status=None)
     return credit
 
 
